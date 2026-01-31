@@ -12,18 +12,47 @@
   <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
 <body>
-  <div class="app">
+  <!-- Login Screen -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-container">
+      <div class="login-header">
+        <img src="img/bzcat_logo.png" alt="BzCat" class="login-logo">
+        <p class="login-title">비즈니스 케이터링</p>
+      </div>
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="login-field">
+          <label class="login-label" for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" class="login-input" placeholder="example@email.com" autocomplete="email" required>
+        </div>
+        <button type="button" class="login-btn login-btn-primary" id="btnSendCode">로그인 코드 생성</button>
+        <div class="login-code-section" id="loginCodeSection" style="display: none;">
+          <div class="login-field">
+            <label class="login-label" for="loginCode">6자리 인증 코드</label>
+            <input type="text" id="loginCode" class="login-input" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+          </div>
+          <p class="login-code-hint" id="loginCodeHint"></p>
+          <button type="submit" class="login-btn login-btn-primary" id="btnLogin">로그인</button>
+        </div>
+      </form>
+      <p class="login-notice">※ 가입 정보는 이메일만 필요합니다. 코드는 입력한 이메일로 발송됩니다.</p>
+    </div>
+  </div>
+
+  <div class="app" id="mainApp" style="display: none;">
     <!-- Header -->
     <header class="header">
       <h1 class="logo-wrap"><img src="img/bzcat_logo.png" alt="BzCat" class="logo"></h1>
-      <button class="cart-toggle" id="cartToggle" aria-label="장바구니 열기">
-        <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <path d="M16 10a4 4 0 0 1-8 0"/>
-        </svg>
-        <span class="cart-count" id="cartCount">0</span>
-      </button>
+      <div class="header-actions">
+        <button class="header-logout" id="btnLogout" aria-label="로그아웃" title="로그아웃">로그아웃</button>
+        <button class="cart-toggle" id="cartToggle" aria-label="장바구니 열기">
+          <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+      </div>
     </header>
 
     <!-- Main Content -->
@@ -207,6 +236,7 @@
     </div>
   </div>
 
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
