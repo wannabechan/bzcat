@@ -5,21 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - BzCat</title>
   <link rel="icon" href="../img/favicon.png" type="image/png">
+  <link rel="stylesheet" href="../styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: #fafafa; color: #202124; min-height: 100dvh; padding: 24px; }
-    a { color: #e67b19; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    h1 { font-size: 1.5rem; margin-bottom: 24px; }
-    p { color: #5f6368; }
+    .admin-page { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .admin-header h1 { font-size: 1.25rem; }
+    .admin-store { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 24px; overflow: hidden; }
+    .admin-store-header { padding: 16px 20px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .admin-store-title { font-weight: 600; font-size: 1rem; }
+    .admin-store-body { padding: 20px; }
+    .admin-section { margin-bottom: 20px; }
+    .admin-section:last-child { margin-bottom: 0; }
+    .admin-section-title { font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .admin-form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .admin-form-row:last-child { margin-bottom: 0; }
+    .admin-form-field { flex: 1; min-width: 150px; }
+    .admin-form-field label { display: block; font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: 4px; }
+    .admin-form-field input, .admin-form-field textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); font-family: inherit; font-size: 0.9375rem; }
+    .admin-form-field textarea { min-height: 60px; resize: vertical; }
+    .admin-menu-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; background: var(--color-bg); border-radius: var(--radius); margin-bottom: 8px; }
+    .admin-menu-item:last-child { margin-bottom: 0; }
+    .admin-menu-thumb { width: 64px; height: 64px; min-width: 64px; background: #e0e0e0; border-radius: var(--radius); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .admin-menu-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .admin-menu-thumb .placeholder { font-size: 1.5rem; opacity: 0.5; }
+    .admin-menu-fields { flex: 1; min-width: 0; }
+    .admin-menu-fields .admin-form-field { margin-bottom: 8px; }
+    .admin-menu-fields .admin-form-field:last-child { margin-bottom: 0; }
+    .admin-menu-actions { flex-shrink: 0; }
+    .admin-btn { padding: 8px 16px; font-size: 0.875rem; font-weight: 500; border-radius: var(--radius); cursor: pointer; border: none; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    .admin-btn-primary { background: var(--color-primary); color: white; }
+    .admin-btn-primary:hover { background: var(--color-primary-hover); }
+    .admin-btn-secondary { background: var(--color-border); color: var(--color-text); }
+    .admin-btn-danger { background: #d32f2f; color: white; font-size: 0.8125rem; padding: 6px 12px; }
+    .admin-btn-add { margin-top: 12px; }
+    .admin-save-bar { position: sticky; bottom: 0; background: var(--color-surface); padding: 16px; border-top: 1px solid var(--color-border); margin: 0 -20px -20px; display: flex; justify-content: flex-end; gap: 8px; }
+    .admin-image-rule { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px; }
+    .admin-image-input-row { display: flex; gap: 8px; align-items: center; }
+    .admin-image-input-row input[type="url"] { flex: 1; }
+    .admin-btn-upload { flex-shrink: 0; white-space: nowrap; }
+    .admin-loading { text-align: center; padding: 48px; color: var(--color-text-secondary); }
+    .admin-error { color: #d32f2f; padding: 16px; background: #ffebee; border-radius: var(--radius); margin-bottom: 16px; }
   </style>
 </head>
 <body>
-  <a href="/">← 메인으로</a>
-  <h1>Admin</h1>
-  <p>메뉴 상세 내용 설정 페이지 (준비 중)</p>
+  <div class="admin-page">
+    <div class="admin-header">
+      <h1>Admin - 매장·메뉴 관리</h1>
+      <a href="/" class="admin-btn admin-btn-secondary">← 메인으로</a>
+    </div>
+
+    <div id="adminError" class="admin-error" style="display: none;"></div>
+    <div id="adminContent">
+      <div class="admin-loading">로딩 중...</div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
 </body>
 </html>
