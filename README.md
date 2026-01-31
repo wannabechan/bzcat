@@ -17,11 +17,11 @@
 
 ### 백엔드
 - Vercel Serverless Functions
-- Vercel Postgres (데이터베이스)
+- Upstash Redis (데이터베이스)
 - JWT 인증
 
 ### 이메일
-- Resend API
+- SendGrid (Twilio)
 
 ## 로컬 개발 환경 설정
 
@@ -36,36 +36,21 @@ npm install
 `.env.local` 파일을 생성하고 다음 환경 변수를 설정합니다:
 
 ```env
-# Vercel Postgres (Vercel 프로젝트 연결 후 자동 주입)
-POSTGRES_URL=
-POSTGRES_PRISMA_URL=
-POSTGRES_URL_NON_POOLING=
-POSTGRES_USER=
-POSTGRES_HOST=
-POSTGRES_PASSWORD=
-POSTGRES_DATABASE=
+# Upstash Redis (Vercel Storage 연결 후 자동 주입)
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
 
 # JWT Secret (강력한 랜덤 문자열로 변경)
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
-# Resend API Key (https://resend.com 에서 발급)
-RESEND_API_KEY=re_your_api_key_here
+# SendGrid API Key (https://sendgrid.com 에서 발급)
+SENDGRID_API_KEY=SG.your_api_key_here
+SENDGRID_FROM_EMAIL=인증한_발신_이메일
 ```
 
 ### 3. 데이터베이스 설정
 
-Vercel Postgres를 생성하고 스키마를 초기화합니다:
-
-```bash
-# Vercel Postgres 생성 (Vercel Dashboard에서)
-# 프로젝트에 Postgres 스토리지 추가
-
-# 로컬에 환경 변수 가져오기
-vercel env pull .env.local
-
-# 데이터베이스 스키마 초기화
-npm run setup-db
-```
+Upstash Redis를 Vercel Storage에 연결합니다. Redis는 스키마 초기화가 필요 없습니다.
 
 ### 4. 개발 서버 실행
 

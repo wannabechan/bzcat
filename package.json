@@ -8,9 +8,9 @@
     "build": "echo 'Static site - no build needed'"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.0",
     "@upstash/redis": "^1.34.0",
-    "jsonwebtoken": "^9.0.2",
-    "resend": "^4.0.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {}
 }
