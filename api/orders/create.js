@@ -3,8 +3,8 @@
  * 주문 생성
  */
 
-const { sql } = require('@vercel/postgres');
 const { verifyToken, apiResponse } = require('../_utils');
+const { createOrder } = require('../_redis');
 
 module.exports = async (req, res) => {
   // CORS preflight
@@ -53,39 +53,20 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '최소 주문 금액은 300,000원입니다.' });
     }
 
-    // 주문 생성
-    const result = await sql`
-      INSERT INTO orders (
-        user_email,
-        depositor,
-        contact,
-        expense_type,
-        expense_doc,
-        delivery_date,
-        delivery_time,
-        delivery_address,
-        detail_address,
-        order_items,
-        total_amount,
-        status
-      ) VALUES (
-        ${user.email},
-        ${depositor},
-        ${contact},
-        ${expenseType || 'none'},
-        ${expenseDoc || null},
-        ${deliveryDate},
-        ${deliveryTime},
-        ${deliveryAddress},
-        ${detailAddress || null},
-        ${JSON.stringify(orderItems)},
-        ${totalAmount},
-        'pending'
-      )
-      RETURNING id, created_at
-    `;
-
-    const order = result.rows[0];
+    // 주문 생성 (Redis)
+    const order = await createOrder({
+      user_email: user.email,
+      depositor,
+      contact,
+      expense_type: expenseType || 'none',
+      expense_doc: expenseDoc || null,
+      delivery_date: deliveryDate,
+      delivery_time: deliveryTime,
+      delivery_address: deliveryAddress,
+      detail_address: detailAddress || null,
+      order_items: orderItems,
+      total_amount: totalAmount,
+    });
 
     return apiResponse(res, 201, {
       success: true,
