@@ -6,8 +6,10 @@
 
 const TOKEN_KEY = 'bzcat_token';
 const API_BASE = ''; // Same origin
+const CODE_VALID_SECONDS = 120; // 2분
 
 let pendingEmail = null;
+let codeCountdownInterval = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -71,8 +73,48 @@ async function initAuth() {
   const loginCode = document.getElementById('loginCode');
   const loginCodeSection = document.getElementById('loginCodeSection');
   const loginCodeHint = document.getElementById('loginCodeHint');
+  const loginCodeTimer = document.getElementById('loginCodeTimer');
   const btnSendCode = document.getElementById('btnSendCode');
   const btnLogout = document.getElementById('btnLogout');
+
+  function resetToStep1() {
+    if (codeCountdownInterval) {
+      clearInterval(codeCountdownInterval);
+      codeCountdownInterval = null;
+    }
+    loginCodeSection.style.display = 'none';
+    loginCode.value = '';
+    loginCodeTimer.textContent = '';
+    loginCodeTimer.classList.remove('expiring');
+    loginCodeHint.textContent = '이메일로 인증 코드를 발송했습니다.';
+    pendingEmail = null;
+    btnSendCode.disabled = false;
+    btnSendCode.textContent = '로그인 코드 생성';
+  }
+
+  function startCodeCountdown() {
+    let remaining = CODE_VALID_SECONDS;
+    loginCodeTimer.classList.remove('expiring');
+
+    function updateTimer() {
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      loginCodeTimer.textContent = `${min}:${String(sec).padStart(2, '0')}`;
+      if (remaining <= 30) {
+        loginCodeTimer.classList.add('expiring');
+      }
+      if (remaining <= 0) {
+        clearInterval(codeCountdownInterval);
+        codeCountdownInterval = null;
+        resetToStep1();
+        return;
+      }
+      remaining--;
+    }
+
+    updateTimer();
+    codeCountdownInterval = setInterval(updateTimer, 1000);
+  }
 
   function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
@@ -108,18 +150,20 @@ async function initAuth() {
       loginCodeSection.style.display = '';
       loginCode.value = '';
       loginCode.focus();
-      
-      // 개발 모드에서 코드 표시
+      btnSendCode.disabled = true;
+      btnSendCode.textContent = '로그인 코드 생성';
+      startCodeCountdown();
+
+      // 개발 모드: 코드 표시
       if (data.devCode) {
-        loginCodeHint.textContent = `[개발] 이메일 발송 연동 전입니다. 코드: ${data.devCode}`;
+        loginCodeHint.innerHTML = `이메일로 인증 코드를 발송했습니다. <span class="login-dev-code">[개발] 코드: ${data.devCode}</span>`;
       } else {
-        loginCodeHint.textContent = `${email}로 인증 코드를 발송했습니다.`;
+        loginCodeHint.textContent = '이메일로 인증 코드를 발송했습니다.';
       }
 
     } catch (error) {
       console.error('Send code error:', error);
       alert('네트워크 오류가 발생했습니다.');
-    } finally {
       btnSendCode.disabled = false;
       btnSendCode.textContent = '로그인 코드 생성';
     }
@@ -168,8 +212,8 @@ async function initAuth() {
       }
 
       // 앱 표시
+      resetToStep1();
       showApp();
-      loginCodeSection.style.display = 'none';
       loginForm.reset();
 
     } catch (error) {
@@ -181,8 +225,8 @@ async function initAuth() {
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
       clearToken();
+      resetToStep1();
       showLogin();
-      if (loginCodeSection) loginCodeSection.style.display = 'none';
       if (loginForm) loginForm.reset();
     });
   }

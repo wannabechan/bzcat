@@ -153,6 +153,30 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+.login-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.login-code-timer {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.login-code-timer.expiring {
+  color: #d32f2f;
+}
+
+.login-dev-code {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
 .login-code-hint {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
