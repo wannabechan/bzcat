@@ -3,9 +3,9 @@
  * 이메일로 6자리 인증 코드 생성 및 발송
  */
 
-const { sql } = require('@vercel/postgres');
 const { Resend } = require('resend');
 const { generateCode, apiResponse } = require('../_utils');
+const { saveAuthCode } = require('../_redis');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -29,20 +29,9 @@ module.exports = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
     const code = generateCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
 
-    // 기존 미사용 코드 무효화
-    await sql`
-      UPDATE auth_codes 
-      SET used = true 
-      WHERE email = ${normalizedEmail} AND used = false
-    `;
-
-    // 새 코드 저장
-    await sql`
-      INSERT INTO auth_codes (email, code, expires_at)
-      VALUES (${normalizedEmail}, ${code}, ${expiresAt})
-    `;
+    // Redis에 코드 저장 (TTL 10분, 기존 코드 덮어쓰기)
+    await saveAuthCode(normalizedEmail, code);
 
     // 이메일 발송
     try {
