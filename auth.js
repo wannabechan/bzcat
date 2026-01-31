@@ -76,6 +76,17 @@ async function initAuth() {
   const loginCodeTimer = document.getElementById('loginCodeTimer');
   const btnSendCode = document.getElementById('btnSendCode');
   const btnLogout = document.getElementById('btnLogout');
+  const loginLogo = document.getElementById('loginLogo');
+
+  if (loginLogo) {
+    loginLogo.addEventListener('click', () => location.reload());
+    loginLogo.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        location.reload();
+      }
+    });
+  }
 
   function resetToStep1() {
     if (codeCountdownInterval) {
