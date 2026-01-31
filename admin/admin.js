@@ -4,6 +4,7 @@
 
 const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
+const FETCH_TIMEOUT_MS = 15000;
 
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
@@ -12,33 +13,44 @@ async function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function fetchWithTimeout(url, options, timeoutMs) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), timeoutMs || FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
 async function checkAdmin() {
   const token = await getToken();
-  if (!token) return false;
-
+  if (!token) return { ok: false, error: '로그인이 필요합니다.' };
   try {
-    const res = await fetch(`${API_BASE}/api/auth/session`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/auth/session`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, error: '세션이 만료되었습니다.' };
     const data = await res.json();
     const email = (data.user?.email || '').toLowerCase();
-    return data.user?.level === 'admin' || email === 'bzcatmanager@gmail.com';
-  } catch {
-    return false;
+    const isAdmin = data.user?.level === 'admin' || email === 'bzcatmanager@gmail.com';
+    return { ok: isAdmin, error: isAdmin ? null : '관리자만 접근할 수 있습니다.' };
+  } catch (e) {
+    return { ok: false, error: e.name === 'AbortError' ? '요청 시간이 초과되었습니다.' : (e.message || '연결에 실패했습니다.') };
   }
 }
 
 async function fetchStores() {
   const token = await getToken();
-  const res = await fetch(`${API_BASE}/api/admin/stores`, {
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || '데이터를 불러올 수 없습니다.');
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '데이터를 불러올 수 없습니다.');
+    }
+    return res.json();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('요청 시간이 초과되었습니다. 네트워크를 확인하고 다시 시도해 주세요.');
+    throw e;
   }
-  return res.json();
 }
 
 async function saveStores(stores, menus) {
@@ -223,10 +235,32 @@ function collectData() {
   return { stores, menus };
 }
 
+function showLoadingError(msg, showRetry = false) {
+  const content = document.getElementById('adminContent');
+  content.innerHTML = `
+    <div class="admin-loading admin-error">
+      <p>${msg}</p>
+      <p style="margin-top:12px;font-size:0.875rem;color:var(--color-text-secondary);">
+        로그인 후 메인 화면에서 admin 링크를 통해 접속해 주세요.
+      </p>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <a href="/" class="admin-btn admin-btn-primary">메인으로</a>
+        ${showRetry ? '<button type="button" class="admin-btn admin-btn-secondary" id="adminRetryBtn">다시 시도</button>' : ''}
+      </div>
+    </div>
+  `;
+  if (showRetry) {
+    document.getElementById('adminRetryBtn')?.addEventListener('click', () => {
+      document.getElementById('adminContent').innerHTML = '<div class="admin-loading">로딩 중...</div>';
+      init();
+    });
+  }
+}
+
 async function init() {
-  const isAdmin = await checkAdmin();
-  if (!isAdmin) {
-    window.location.href = '/';
+  const authResult = await checkAdmin();
+  if (!authResult.ok) {
+    showLoadingError(authResult.error || '접근할 수 없습니다.');
     return;
   }
 
@@ -320,8 +354,8 @@ async function init() {
       }
     });
   } catch (err) {
-    showError(err.message || '로딩 실패');
-    document.getElementById('adminContent').innerHTML = '<p>다시 시도해 주세요.</p>';
+    showLoadingError(err.message || '로딩에 실패했습니다.', true);
+    document.getElementById('adminError').style.display = 'none';
   }
 }
 
