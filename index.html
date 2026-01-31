@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BzCat : 비즈니스 케이터링</title>
+  <link rel="icon" href="img/favicon.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="logo-wrap"><img src="img/bzcat_logo.png" alt="BzCat" class="logo"></h1>
+      <button class="cart-toggle" id="cartToggle" aria-label="장바구니 열기">
+        <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Category Section -->
+      <section class="category-section">
+        <h2 class="section-title">카테고리 선택</h2>
+        <div class="category-tabs" id="categoryTabs">
+          <button class="category-tab active" data-category="bento">도시락</button>
+          <button class="category-tab" data-category="side">반찬</button>
+          <button class="category-tab" data-category="salad">샐러드</button>
+          <button class="category-tab" data-category="beverage">음료</button>
+          <button class="category-tab" data-category="dessert">디저트</button>
+        </div>
+      </section>
+
+      <!-- Menu Section -->
+      <section class="menu-section">
+        <h2 class="section-title menu-title" id="menuSectionTitle">도시락</h2>
+        <div class="menu-grid" id="menuGrid">
+          <!-- Menu items will be injected by JS -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Cart Drawer -->
+    <div class="cart-overlay" id="cartOverlay" aria-hidden="true"></div>
+    <aside class="cart-drawer" id="cartDrawer">
+      <div class="cart-header">
+        <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">장바구니</h2>
+        <button class="cart-close" id="cartClose" aria-label="장바구니 닫기">
+        <svg class="cart-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      </div>
+      <div class="cart-content" id="cartContent">
+        <div class="cart-empty" id="cartEmpty">
+          <p>장바구니가 비어있습니다</p>
+          <p class="cart-empty-hint">메뉴를 선택하여 담아주세요</p>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+      </div>
+      <div class="cart-footer" id="cartFooter" style="display: none;">
+        <p class="cart-min-order-notice" id="cartMinOrderNotice">※ 최소 주문 금액은 300,000원 입니다.</p>
+        <div class="cart-total">
+          <span>총 금액</span>
+          <strong id="cartTotal">0원</strong>
+        </div>
+        <button class="btn-checkout" id="btnCheckout">결제 안내</button>
+      </div>
+    </aside>
+
+    <!-- Checkout Modal -->
+    <div class="modal-overlay" id="checkoutModal" aria-hidden="true">
+      <div class="modal checkout-modal">
+        <div class="modal-header">
+          <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">결제안내</h2>
+          <div class="modal-header-actions">
+            <button type="button" class="modal-back" id="checkoutBack" aria-label="뒤로가기" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <button class="modal-close" id="checkoutClose" aria-label="닫기">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="bank-info">
+            <h3>계좌송금 정보</h3>
+            <div class="bank-details">
+              <dl>
+                <dt>주문시간</dt>
+                <dd id="checkoutOrderTime">—</dd>
+                <dt>예금주</dt>
+                <dd>(주)케이터링서비스</dd>
+                <dt>은행</dt>
+                <dd>신한은행</dd>
+                <dt>계좌번호</dt>
+                <dd class="account-number">
+                  <span>110-123-456789</span>
+                  <button class="btn-copy" id="btnCopyAccount" title="복사">복사</button>
+                </dd>
+                <dt>입금금액</dt>
+                <dd class="amount-row">
+                  <span class="amount" id="checkoutAmount">0원</span>
+                  <button type="button" class="btn-order-detail" id="btnOrderDetail">내역보기</button>
+                </dd>
+              </dl>
+            </div>
+            <div class="bank-notice">
+              <p id="checkoutNotice1">※ 입금자명, 연락처를 정확히 입력해 주세요.</p>
+              <p id="checkoutDeadline">※ — 까지 입금 부탁드립니다.</p>
+              <p>※ 주문 신청과 입금 내역 확인 후 주문이 최종 확정됩니다.</p>
+            </div>
+          </div>
+          <div class="order-summary-wrap">
+            <div class="checkout-form" id="checkoutForm">
+              <div class="checkout-step" id="checkoutStep1">
+                <div class="form-row form-row-inline">
+                  <div class="form-field">
+                    <label class="form-label" for="inputDepositor">입금자명</label>
+                    <input type="text" id="inputDepositor" class="form-input" placeholder="입금자명 입력" autocomplete="name">
+                  </div>
+                  <div class="form-field">
+                    <label class="form-label" for="inputContact">연락처</label>
+                    <input type="tel" id="inputContact" class="form-input" placeholder="연락처 입력" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" maxlength="11">
+                  </div>
+                </div>
+                <div class="form-row form-row-expense">
+                  <label class="form-label">지출증빙</label>
+                  <div class="expense-options">
+                    <label class="expense-option">
+                      <input type="radio" name="expenseDoc" value="cash" class="expense-radio">
+                      <span>현금영수증</span>
+                    </label>
+                    <label class="expense-option">
+                      <input type="radio" name="expenseDoc" value="business" class="expense-radio">
+                      <span>사업자지출증빙</span>
+                    </label>
+                    <label class="expense-option">
+                      <input type="radio" name="expenseDoc" value="none" class="expense-radio" checked>
+                      <span>미신청</span>
+                    </label>
+                  </div>
+                  <input type="text" id="inputExpenseDoc" class="form-input" placeholder="" disabled>
+                </div>
+              </div>
+              <div class="checkout-step" id="checkoutStep2" style="display: none;">
+                <div class="form-row form-row-inline">
+                  <div class="form-field">
+                    <label class="form-label" for="inputDeliveryDate">배송희망날짜</label>
+                    <input type="date" id="inputDeliveryDate" class="form-input" min="">
+                  </div>
+                  <div class="form-field">
+                    <label class="form-label" for="inputDeliveryTime">배송희망시간</label>
+                    <select id="inputDeliveryTime" class="form-input form-select">
+                      <option value="">선택</option>
+                      <option value="09:00-10:00">09:00-10:00</option>
+                      <option value="10:00-11:00">10:00-11:00</option>
+                      <option value="11:00-12:00">11:00-12:00</option>
+                      <option value="12:00-13:00">12:00-13:00</option>
+                      <option value="13:00-14:00">13:00-14:00</option>
+                      <option value="14:00-15:00">14:00-15:00</option>
+                      <option value="15:00-16:00">15:00-16:00</option>
+                      <option value="16:00-17:00">16:00-17:00</option>
+                      <option value="17:00-18:00">17:00-18:00</option>
+                      <option value="18:00-19:00">18:00-19:00</option>
+                      <option value="19:00-20:00">19:00-20:00</option>
+                      <option value="20:00-21:00">20:00-21:00</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row form-row-delivery-address">
+                  <label class="form-label" for="inputDeliveryAddress">배송주소</label>
+                  <input type="text" id="inputDeliveryAddress" class="form-input" placeholder="배송주소 검색" readonly>
+                  <div class="form-row-detail-address" id="detailAddressRow" style="display: none;">
+                    <label class="form-label" for="inputDetailAddress">상세주소</label>
+                    <input type="text" id="inputDetailAddress" class="form-input" placeholder="상세주소 입력 (동, 호수 등)">
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn-order-submit" id="btnOrderSubmit" disabled>배송 정보 입력</button>
+            </div>
+          </div>
+          <div class="postcode-overlay" id="postcodeOverlay" aria-hidden="true">
+            <div class="postcode-wrap">
+              <button type="button" class="postcode-close" id="postcodeClose" aria-label="닫기">&times;</button>
+              <div class="postcode-layer" id="postcodeLayer"></div>
+            </div>
+          </div>
+          <div class="order-detail-overlay" id="orderDetailOverlay" aria-hidden="true">
+            <div class="order-detail-panel">
+              <div class="order-detail-header">
+                <h3>주문 내역</h3>
+                <button type="button" class="order-detail-close" id="orderDetailClose" aria-label="닫기">&times;</button>
+              </div>
+              <div class="order-detail-content" id="orderDetailContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
