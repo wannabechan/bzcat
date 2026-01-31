@@ -54,16 +54,21 @@ function showLogin() {
   document.getElementById('mainApp').style.display = 'none';
 }
 
-function showApp() {
+function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
+  const adminLink = document.getElementById('headerAdminLink');
+  if (adminLink) {
+    const isAdmin = user && (user.level === 'admin' || (user.email || '').toLowerCase() === 'bzcatmanager@gmail.com');
+    adminLink.style.display = isAdmin ? '' : 'none';
+  }
 }
 
 async function initAuth() {
   const user = await checkSession();
   
   if (user) {
-    showApp();
+    showApp(user);
   } else {
     showLogin();
   }
@@ -226,7 +231,7 @@ async function initAuth() {
 
       // 앱 표시
       resetToStep1();
-      showApp();
+      showApp(data.user);
       loginForm.reset();
 
     } catch (error) {

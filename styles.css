@@ -220,9 +220,26 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .logo-wrap {
   margin: 0;
   line-height: 0;
+}
+
+.header-admin-link {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.header-admin-link:hover {
+  color: var(--color-primary);
 }
 
 .logo {
