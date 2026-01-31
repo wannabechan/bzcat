@@ -19,19 +19,27 @@ function getRedis() {
   return new Redis({ url, token });
 }
 
-const CODE_TTL_SECONDS = 600; // 10분
+const CODE_TTL_SECONDS = 120; // 2분
+
+function normalizeCode(input) {
+  return String(input || '').replace(/\D/g, '').slice(0, 6);
+}
 
 async function saveAuthCode(email, code) {
   const redis = getRedis();
   const key = `auth:code:${email}`;
-  await redis.set(key, code, { ex: CODE_TTL_SECONDS });
+  await redis.set(key, String(code), { ex: CODE_TTL_SECONDS });
 }
 
 async function getAndDeleteAuthCode(email, code) {
   const redis = getRedis();
   const key = `auth:code:${email}`;
   const stored = await redis.get(key);
-  if (stored !== code) return false;
+  const normalizedInput = normalizeCode(code);
+  const normalizedStored = String(stored || '').replace(/\D/g, '');
+  if (normalizedInput.length !== 6 || normalizedInput !== normalizedStored) {
+    return false;
+  }
   await redis.del(key);
   return true;
 }
