@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
             <div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
               <h1 style="margin: 0; font-size: 32px; letter-spacing: 8px; color: #e67b19;">${code}</h1>
             </div>
-            <p style="color: #666; font-size: 14px;">이 코드는 10분간 유효합니다.</p>
+            <p style="color: #666; font-size: 14px;">이 코드는 2분간 유효합니다.</p>
             <p style="color: #666; font-size: 14px;">본인이 요청하지 않은 경우 이 메일을 무시해 주세요.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
             <p style="color: #999; font-size: 12px;">BzCat - 비즈니스 케이터링</p>
