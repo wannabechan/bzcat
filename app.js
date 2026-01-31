@@ -186,11 +186,35 @@ function addToCartFromPending(itemId) {
   renderCartItems();
 }
 
+// 카테고리 탭 렌더 (API 데이터 기반)
+function renderCategoryTabs() {
+  const slugs = Object.keys(MENU_DATA);
+  if (slugs.length === 0) {
+    categoryTabs.innerHTML = '<p class="category-empty">등록된 카테고리가 없습니다.</p>';
+    menuSectionTitle.textContent = '';
+    menuGrid.innerHTML = '';
+    return;
+  }
+  const firstSlug = slugs[0];
+  categoryTabs.innerHTML = slugs
+    .map((slug) => {
+      const title = MENU_DATA[slug]?.title || slug;
+      const active = slug === firstSlug ? ' active' : '';
+      return `<button class="category-tab${active}" data-category="${slug}">${title}</button>`;
+    })
+    .join('');
+}
+
 // 메뉴 카드 렌더
 function renderMenuCards() {
-  const category = document.querySelector('.category-tab.active')?.dataset.category || 'bento';
+  const slugs = Object.keys(MENU_DATA);
+  const category = document.querySelector('.category-tab.active')?.dataset.category || slugs[0];
   const data = MENU_DATA[category];
-  if (!data) return;
+  if (!data) {
+    menuSectionTitle.textContent = slugs.length ? '카테고리를 선택하세요' : '';
+    menuGrid.innerHTML = '';
+    return;
+  }
 
   menuSectionTitle.textContent = data.title;
   const emoji = getCategoryEmoji(category);
@@ -683,6 +707,7 @@ function init() {
   });
 
   loadMenuData().then(() => {
+    renderCategoryTabs();
     renderMenuCards();
     renderCartItems();
     updateCartCount();

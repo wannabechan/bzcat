@@ -340,6 +340,12 @@ body {
   margin-bottom: 8px;
 }
 
+.category-empty {
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  padding: 16px 0;
+}
+
 .category-tabs {
   display: flex;
   gap: 8px;
