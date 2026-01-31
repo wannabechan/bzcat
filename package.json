@@ -5,11 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "vercel dev",
-    "build": "echo 'Static site - no build needed'",
-    "setup-db": "node scripts/setup-db.js"
+    "build": "echo 'Static site - no build needed'"
   },
   "dependencies": {
-    "@vercel/postgres": "^0.10.0",
+    "@upstash/redis": "^1.34.0",
     "jsonwebtoken": "^9.0.2",
     "resend": "^4.0.0"
   },

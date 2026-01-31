@@ -1,37 +1,24 @@
 # BzCat 배포 가이드
 
-## 1단계: Vercel Postgres 생성
+## 1단계: Upstash Redis 추가
 
 1. Vercel Dashboard 접속
-2. 프로젝트 선택 → Storage → Create Database
-3. Postgres 선택 → 생성
-4. 로컬 개발용 환경 변수 다운로드:
-   ```bash
-   vercel env pull .env.local
-   ```
+2. 프로젝트 선택 → **Storage** 탭
+3. **Create Database** 클릭
+4. **Redis** 카테고리에서 **Upstash Redis** 선택
+5. **Continue** → Database name 입력 (예: `bzcat-redis`) → Region 선택 → **Create**
+6. 환경 변수(`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)가 자동으로 주입됨
 
-## 2단계: 데이터베이스 스키마 설정
+> ⚠️ Vercel KV는 2024년 12월 종료되었습니다. Upstash Redis를 사용합니다.
+> 상세 가이드: [REDIS_SETUP.md](./REDIS_SETUP.md)
 
-### 방법 1: Vercel Dashboard에서 직접 실행
-
-1. Vercel Dashboard → Storage → Postgres → Query
-2. `db/schema.sql` 파일 내용을 복사하여 붙여넣기
-3. Execute 클릭
-
-### 방법 2: 로컬에서 스크립트 실행
-
-```bash
-npm install
-npm run setup-db
-```
-
-## 3단계: Resend API 키 발급
+## 2단계: Resend API 키 발급
 
 1. https://resend.com 가입
 2. API Keys → Create API Key
 3. 키 복사 (나중에 다시 볼 수 없으므로 안전하게 보관)
 
-## 4단계: 환경 변수 설정
+## 3단계: 환경 변수 설정
 
 Vercel Dashboard → 프로젝트 → Settings → Environment Variables
 
@@ -47,7 +34,7 @@ JWT_SECRET 생성 예시:
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-## 5단계: 코드 수정 (프로덕션 준비)
+## 4단계: 코드 수정 (프로덕션 준비)
 
 `api/auth/send-code.js` 파일에서 이메일 발송 주소 변경:
 
@@ -55,7 +42,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 from: 'BzCat <noreply@yourdomain.com>', // 실제 도메인으로 변경
 ```
 
-## 6단계: GitHub에 Push
+## 5단계: GitHub에 Push
 
 ```bash
 git add .
@@ -63,13 +50,13 @@ git commit -m "Add backend API and database"
 git push origin main
 ```
 
-## 7단계: 자동 배포 확인
+## 6단계: 자동 배포 확인
 
 Vercel이 자동으로 배포를 시작합니다:
 - Vercel Dashboard → Deployments에서 진행 상황 확인
 - 배포 완료 후 URL 확인
 
-## 8단계: 테스트
+## 7단계: 테스트
 
 1. 배포된 URL 접속
 2. 이메일로 로그인 시도
@@ -87,12 +74,12 @@ Vercel이 자동으로 배포를 시작합니다:
    ```
 3. 개발 모드에서는 `devCode`로 테스트 가능 (이메일 발송 없이)
 
-### 데이터베이스 연결 오류
+### Redis 연결 오류
 
-1. Vercel Postgres가 프로젝트에 연결되어 있는지 확인
+1. Upstash Redis가 프로젝트에 연결되어 있는지 확인
 2. 환경 변수가 자동으로 주입되었는지 확인:
    ```
-   Settings → Environment Variables → Postgres 관련 변수들
+   Settings → Environment Variables → UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
    ```
 
 ### JWT 오류
@@ -102,7 +89,7 @@ Vercel이 자동으로 배포를 시작합니다:
 
 ## 프로덕션 체크리스트
 
-- [ ] Vercel Postgres 생성 및 스키마 초기화
+- [ ] Upstash Redis 생성 및 프로젝트 연결
 - [ ] Resend API 키 발급 및 설정
 - [ ] JWT_SECRET 생성 및 설정
 - [ ] 이메일 발송 주소를 실제 도메인으로 변경
