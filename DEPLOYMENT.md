@@ -12,12 +12,12 @@
 > ⚠️ Vercel KV는 2024년 12월 종료되었습니다. Upstash Redis를 사용합니다.
 > 상세 가이드: [REDIS_SETUP.md](./REDIS_SETUP.md)
 
-## 2단계: SendGrid 설정
+## 2단계: Resend 설정
 
-1. https://sendgrid.com 가입
-2. 발신자(Sender) 인증 (Settings → Sender Authentication)
-3. API Key 생성 (Settings → API Keys)
-4. 상세 가이드: [SENDGRID_SETUP.md](./SENDGRID_SETUP.md)
+1. https://resend.com 가입
+2. API Key 생성 (API Keys 메뉴)
+3. 도메인 인증 (실서비스용, Domains 메뉴)
+4. 상세 가이드: [RESEND_SETUP.md](./RESEND_SETUP.md)
 
 ## 3단계: 환경 변수 설정
 
@@ -27,8 +27,8 @@ Vercel Dashboard → 프로젝트 → Settings → Environment Variables
 
 ```
 JWT_SECRET=<강력한-랜덤-문자열-64자-이상>
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxx
-SENDGRID_FROM_EMAIL=noreply@yourdomain.com  (SendGrid에서 인증한 이메일)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@yourdomain.com  (도메인 인증 후, 선택)
 ```
 
 JWT_SECRET 생성 예시:

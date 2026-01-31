@@ -21,7 +21,7 @@
 - JWT 인증
 
 ### 이메일
-- SendGrid (Twilio)
+- Resend
 
 ## 로컬 개발 환경 설정
 
@@ -43,9 +43,9 @@ KV_REST_API_TOKEN=
 # JWT Secret (강력한 랜덤 문자열로 변경)
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
-# SendGrid API Key (https://sendgrid.com 에서 발급)
-SENDGRID_API_KEY=SG.your_api_key_here
-SENDGRID_FROM_EMAIL=인증한_발신_이메일
+# Resend API Key (https://resend.com 에서 발급)
+RESEND_API_KEY=re_your_api_key_here
+RESEND_FROM_EMAIL=인증한_발신_이메일  (도메인 인증 후, 선택)
 ```
 
 ### 3. 데이터베이스 설정
