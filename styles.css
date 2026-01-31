@@ -61,16 +61,19 @@ body {
 }
 
 .login-symbol {
-  height: 56px;
-  width: auto;
-  object-fit: contain;
-  margin-bottom: 16px;
-}
-
-.login-logo {
+  display: block;
   height: 48px;
   width: auto;
   object-fit: contain;
+  margin: 0 auto 12px;
+}
+
+.login-logo {
+  display: block;
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto;
 }
 
 .login-title {
