@@ -86,8 +86,9 @@ async function initAuth() {
     loginCode.value = '';
     loginCodeTimer.textContent = '';
     loginCodeTimer.classList.remove('expiring');
-    loginCodeHint.textContent = '이메일로 인증 코드를 발송했습니다.';
+    loginCodeHint.textContent = '이메일로 발송된 인증 코드를 입력하세요.';
     pendingEmail = null;
+    btnSendCode.style.display = '';
     btnSendCode.disabled = false;
     btnSendCode.textContent = '로그인 코드 생성';
   }
@@ -102,6 +103,8 @@ async function initAuth() {
       loginCodeTimer.textContent = `${min}:${String(sec).padStart(2, '0')}`;
       if (remaining <= 30) {
         loginCodeTimer.classList.add('expiring');
+      } else {
+        loginCodeTimer.classList.remove('expiring');
       }
       if (remaining <= 0) {
         clearInterval(codeCountdownInterval);
@@ -150,15 +153,14 @@ async function initAuth() {
       loginCodeSection.style.display = '';
       loginCode.value = '';
       loginCode.focus();
-      btnSendCode.disabled = true;
-      btnSendCode.textContent = '로그인 코드 생성';
+      btnSendCode.style.display = 'none';
       startCodeCountdown();
 
       // 개발 모드: 코드 표시
       if (data.devCode) {
-        loginCodeHint.innerHTML = `이메일로 인증 코드를 발송했습니다. <span class="login-dev-code">[개발] 코드: ${data.devCode}</span>`;
+        loginCodeHint.innerHTML = `이메일로 발송된 인증 코드를 입력하세요. <span class="login-dev-code">[개발] 코드: ${data.devCode}</span>`;
       } else {
-        loginCodeHint.textContent = '이메일로 인증 코드를 발송했습니다.';
+        loginCodeHint.textContent = '이메일로 발송된 인증 코드를 입력하세요.';
       }
 
     } catch (error) {

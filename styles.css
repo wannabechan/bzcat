@@ -153,17 +153,25 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
-.login-label-row {
+.login-code-hint-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.login-code-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .login-code-timer {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .login-code-timer.expiring {
@@ -175,13 +183,6 @@ body {
   margin-top: 4px;
   font-size: 0.75rem;
   color: var(--color-text-secondary);
-}
-
-.login-code-hint {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  margin: 8px 0 12px;
-  line-height: 1.4;
 }
 
 .login-notice {
