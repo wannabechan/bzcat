@@ -448,6 +448,7 @@ body {
 .menu-card-actions {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-top: auto;
 }
@@ -493,24 +494,21 @@ body {
 }
 
 .menu-add-btn {
-  flex: 1;
-  min-width: 0;
+  width: 36px;
   height: 36px;
-  padding: 0 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-family: inherit;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   color: white;
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
   transition: background 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   -webkit-tap-highlight-color: transparent;
-}
-
-.menu-add-btn:active {
-  background: var(--color-primary-hover);
 }
 
 .menu-add-btn:disabled {
@@ -521,6 +519,15 @@ body {
 
 .menu-add-btn:disabled:active {
   background: var(--color-border);
+}
+
+.menu-add-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-add-btn:active {
+  background: var(--color-primary-hover);
 }
 
 /* ===== Cart Drawer (Mobile-first: Bottom Sheet) ===== */

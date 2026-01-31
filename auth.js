@@ -61,9 +61,9 @@ function initAuth() {
   const session = getSession();
   if (session) {
     showApp();
-    return;
+  } else {
+    showLogin();
   }
-  showLogin();
 
   const loginForm = document.getElementById('loginForm');
   const loginEmail = document.getElementById('loginEmail');
@@ -119,8 +119,8 @@ function initAuth() {
     btnLogout.addEventListener('click', () => {
       clearSession();
       showLogin();
-      loginCodeSection.style.display = 'none';
-      loginForm.reset();
+      if (loginCodeSection) loginCodeSection.style.display = 'none';
+      if (loginForm) loginForm.reset();
     });
   }
 }
