@@ -60,6 +60,13 @@ body {
   margin-bottom: 32px;
 }
 
+.login-symbol {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
 .login-logo {
   height: 48px;
   width: auto;

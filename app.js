@@ -142,22 +142,30 @@ function getCartTotalCount() {
 }
 
 // 장바구니 총 금액
-function getCartTotalAmount() {
+function calculateTotal() {
   let total = 0;
   for (const [itemId, qty] of Object.entries(cart)) {
-    const item = findMenuItem(itemId);
+    const item = findItemById(itemId);
     if (item) total += item.price * qty;
   }
   return total;
 }
 
+function getCartTotalAmount() {
+  return calculateTotal();
+}
+
 // 메뉴 아이템 찾기
-function findMenuItem(itemId) {
+function findItemById(itemId) {
   for (const cat of Object.values(MENU_DATA)) {
     const found = cat.items.find((i) => i.id === itemId);
     if (found) return found;
   }
   return null;
+}
+
+function findMenuItem(itemId) {
+  return findItemById(itemId);
 }
 
 // 카트 버튼 카운트 갱신
@@ -589,7 +597,7 @@ function init() {
     if (e.target === orderDetailOverlay) closeOrderDetailOverlay();
   });
 
-  btnOrderSubmit.addEventListener('click', () => {
+  btnOrderSubmit.addEventListener('click', async () => {
     const isStep1 = checkoutStep1.style.display !== 'none';
     if (isStep1) {
       checkoutStep1.style.display = 'none';
@@ -602,13 +610,73 @@ function init() {
       btnOrderSubmit.textContent = '주문 신청';
       updateOrderSubmitButton();
     } else {
-      alert('주문이 접수되었습니다. 확인 후 곧 안내 회신드리겠습니다. 고맙습니다');
-      cart = {};
-      pendingQty = {};
-      updateCartCount();
-      renderCartItems();
-      renderMenuCards();
-      closeCheckoutModal();
+      // Step 2: 주문 제출 (API 호출)
+      const token = window.BzCatAuth?.getToken();
+      if (!token) {
+        alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+        window.location.reload();
+        return;
+      }
+
+      // 주문 데이터 준비
+      const orderItems = Object.entries(cart).map(([itemId, qty]) => {
+        const item = findItemById(itemId);
+        return {
+          id: itemId,
+          name: item.name,
+          price: item.price,
+          quantity: qty,
+        };
+      });
+
+      const orderData = {
+        depositor: inputDepositor.value.trim(),
+        contact: inputContact.value.trim(),
+        expenseType: document.querySelector('input[name="expenseDoc"]:checked')?.value || 'none',
+        expenseDoc: inputExpenseDoc.value.trim() || null,
+        deliveryDate: inputDeliveryDate.value,
+        deliveryTime: inputDeliveryTime.value,
+        deliveryAddress: inputDeliveryAddress.value.trim(),
+        detailAddress: inputDetailAddress.value.trim() || null,
+        orderItems: orderItems,
+        totalAmount: calculateTotal(),
+      };
+
+      btnOrderSubmit.disabled = true;
+      btnOrderSubmit.textContent = '처리 중...';
+
+      try {
+        const response = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.error || '주문 처리에 실패했습니다.');
+          return;
+        }
+
+        alert('주문이 접수되었습니다. 확인 후 곧 안내 회신드리겠습니다. 고맙습니다');
+        cart = {};
+        pendingQty = {};
+        updateCartCount();
+        renderCartItems();
+        renderMenuCards();
+        closeCheckoutModal();
+
+      } catch (error) {
+        console.error('Order submission error:', error);
+        alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+      } finally {
+        btnOrderSubmit.disabled = false;
+        btnOrderSubmit.textContent = '주문 신청';
+      }
     }
   });
 
