@@ -85,6 +85,10 @@ function generateId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function generateStoreId() {
+  return `store-${Date.now().toString(36)}`;
+}
+
 function renderStore(store, menus) {
   const payment = store.payment || { accountHolder: '', bankName: '', accountNumber: '' };
   const items = menus || [];
@@ -93,6 +97,7 @@ function renderStore(store, menus) {
     <div class="admin-store" data-store-id="${store.id}">
       <div class="admin-store-header">
         <span class="admin-store-title">${store.title || store.id}</span>
+        <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${store.id}" title="카테고리 삭제">삭제</button>
       </div>
       <div class="admin-store-body">
         <div class="admin-section">
@@ -178,8 +183,10 @@ function renderMenuItem(storeId, item, index) {
 function collectData() {
   const stores = [];
   const menus = {};
+  const list = document.getElementById('adminStoresList');
+  const storeEls = list ? list.querySelectorAll('.admin-store') : document.querySelectorAll('.admin-store');
 
-  document.querySelectorAll('.admin-store').forEach((storeEl) => {
+  storeEls.forEach((storeEl) => {
     const storeId = storeEl.dataset.storeId;
     const titleInput = storeEl.querySelector('input[data-field="title"]');
     const accountHolderInput = storeEl.querySelector('input[data-field="accountHolder"]');
@@ -226,9 +233,43 @@ async function init() {
   try {
     const { stores, menus } = await fetchStores();
     const content = document.getElementById('adminContent');
-    content.innerHTML = stores.map((s) => renderStore(s, menus[s.id])).join('');
+    content.innerHTML = `
+      <div class="admin-stores-list" id="adminStoresList">
+        ${stores.map((s) => renderStore(s, menus[s.id] || [])).join('')}
+      </div>
+      <button type="button" class="admin-btn admin-btn-secondary admin-btn-add-store" data-add-store>+ 카테고리 추가</button>
+    `;
 
     content.addEventListener('click', (e) => {
+      if (e.target.closest('[data-add-store]')) {
+        const list = document.getElementById('adminStoresList');
+        const newStore = {
+          id: generateStoreId(),
+          slug: generateStoreId(),
+          title: '새 카테고리',
+          payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' },
+        };
+        const div = document.createElement('div');
+        div.innerHTML = renderStore(newStore, []);
+        list.appendChild(div.firstElementChild);
+      }
+      if (e.target.closest('[data-delete-store]')) {
+        const btn = e.target.closest('[data-delete-store]');
+        const storeEl = btn.closest('.admin-store');
+        const list = document.getElementById('adminStoresList');
+        if (list && list.querySelectorAll('.admin-store').length <= 1) {
+          alert('최소 1개 이상의 카테고리가 필요합니다.');
+          return;
+        }
+        const menuCount = storeEl.querySelectorAll('.admin-menu-item').length;
+        if (menuCount > 0) {
+          alert('메뉴가 1개라도 있으면 카테고리를 삭제할 수 없습니다. 먼저 메뉴를 모두 삭제해 주세요.');
+          return;
+        }
+        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+          storeEl.remove();
+        }
+      }
       if (e.target.closest('[data-upload-btn]')) {
         const btn = e.target.closest('[data-upload-btn]');
         const item = btn.closest('.admin-menu-item');
