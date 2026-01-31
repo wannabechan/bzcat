@@ -3,61 +3,30 @@
  * - 카테고리 선택 → 메뉴 담기 → 장바구니 → 계좌송금 안내
  */
 
-// 메뉴 데이터
-const MENU_DATA = {
-  bento: {
-    title: '도시락',
-    items: [
-      { id: 'bento-1', name: '삼겹살 덮밥', price: 100000, description: '구운 삼겹살과 야채가 듬뿍 들어간 든든한 덮밥입니다.' },
-      { id: 'bento-2', name: '불고기 덮밥', price: 8000, description: '달콤한 양념에 재운 불고기가 가득한 인기 메뉴입니다.' },
-      { id: 'bento-3', name: '치킨까스 도시락', price: 7500, description: '바삭한 치킨 커틀릿과 신선한 채소가 들어있습니다.' },
-      { id: 'bento-4', name: '제육덮밥', price: 7500, description: '매콤한 제육볶음이 올라간 밥입니다.' },
-      { id: 'bento-5', name: '김치찌개 정식', price: 7000, description: '얼큰한 김치찌개와 밥, 반찬이 포함된 정식입니다.' },
-      { id: 'bento-6', name: '연어덮밥', price: 9000, description: '신선한 연어와 아보카도가 올라간 프리미엄 덮밥입니다.' },
-    ],
-  },
-  side: {
-    title: '반찬',
-    items: [
-      { id: 'side-1', name: '김치 (소)', price: 2000, description: '직접 담근 맛있는 배추김치 소량입니다.' },
-      { id: 'side-2', name: '김치 (대)', price: 4000, description: '직접 담근 맛있는 배추김치 대량입니다.' },
-      { id: 'side-3', name: '계란말이', price: 3000, description: '부드럽고 폭신한 계란말이입니다.' },
-      { id: 'side-4', name: '감자조림', price: 2500, description: '달콤 짭조름한 간장 감자조림입니다.' },
-      { id: 'side-5', name: '멸치볶음', price: 2500, description: '고소한 멸치 볶음 반찬입니다.' },
-      { id: 'side-6', name: '잡채', price: 3500, description: '당면과 각종 야채가 들어간 잡채입니다.' },
-    ],
-  },
-  salad: {
-    title: '샐러드',
-    items: [
-      { id: 'salad-1', name: '코울슬로', price: 3000, description: '상큼한 양배추 샐러드입니다.' },
-      { id: 'salad-2', name: '양념감자', price: 3500, description: '매콤달콤한 양념 감자 샐러드입니다.' },
-      { id: 'salad-3', name: '그린샐러드', price: 4000, description: '신선한 채소만으로 구성된 샐러드입니다.' },
-      { id: 'salad-4', name: '콥샐러드', price: 4500, description: '닭가슴살, 베이컨, 아보카도가 들어간 샐러드입니다.' },
-      { id: 'salad-5', name: '시저샐러드', price: 5000, description: '크루통과 파마산 치즈가 들어간 시저 샐러드입니다.' },
-    ],
-  },
-  beverage: {
-    title: '음료',
-    items: [
-      { id: 'beverage-1', name: '생수 500ml', price: 500, description: '개인용 생수 한 병입니다.' },
-      { id: 'beverage-2', name: '생수 2L', price: 1500, description: '단체용 대용량 생수입니다.' },
-      { id: 'beverage-3', name: '콜라', price: 1000, description: '시원한 탄산음료 콜라입니다.' },
-      { id: 'beverage-4', name: '사이다', price: 1000, description: '시원한 탄산음료 사이다입니다.' },
-      { id: 'beverage-5', name: '아이스티', price: 1500, description: '복숭아 맛 아이스티입니다.' },
-      { id: 'beverage-6', name: '주스', price: 1500, description: '신선한 과일 주스입니다.' },
-    ],
-  },
-  dessert: {
-    title: '디저트',
-    items: [
-      { id: 'dessert-1', name: '과일', price: 2000, description: '신선한 제철 과일 모음입니다.' },
-      { id: 'dessert-2', name: '요거트', price: 1500, description: '부드러운 플레인 요거트입니다.' },
-      { id: 'dessert-3', name: '케이크', price: 3500, description: '달콤한 미니 케이크입니다.' },
-      { id: 'dessert-4', name: '쿠키', price: 1000, description: '바삭한 수제 쿠키입니다.' },
-    ],
-  },
+// 메뉴 데이터 (API에서 로드, 실패 시 폴백)
+const MENU_DATA_FALLBACK = {
+  bento: { title: '도시락', items: [{ id: 'bento-1', name: '삼겹살 덮밥', price: 100000, description: '메뉴를 불러오는 중입니다.', imageUrl: '' }], payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
+  side: { title: '반찬', items: [], payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
+  salad: { title: '샐러드', items: [], payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
+  beverage: { title: '음료', items: [], payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
+  dessert: { title: '디저트', items: [], payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
 };
+
+let MENU_DATA = { ...MENU_DATA_FALLBACK };
+
+async function loadMenuData() {
+  try {
+    const res = await fetch('/api/menu-data');
+    if (res.ok) {
+      const data = await res.json();
+      MENU_DATA = data;
+      return true;
+    }
+  } catch (e) {
+    console.warn('Menu data load failed:', e);
+  }
+  return false;
+}
 
 // 장바구니 상태: { [itemId]: quantity }
 let cart = {};
@@ -103,8 +72,9 @@ const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
 const checkoutBack = document.getElementById('checkoutBack');
 const btnCopyAccount = document.getElementById('btnCopyAccount');
-
-const ACCOUNT_NUMBER = '110-123-456789';
+const checkoutAccountHolder = document.getElementById('checkoutAccountHolder');
+const checkoutBankName = document.getElementById('checkoutBankName');
+const checkoutAccountNumber = document.getElementById('checkoutAccountNumber');
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -158,10 +128,20 @@ function getCartTotalAmount() {
 // 메뉴 아이템 찾기
 function findItemById(itemId) {
   for (const cat of Object.values(MENU_DATA)) {
-    const found = cat.items.find((i) => i.id === itemId);
+    const found = cat.items?.find((i) => i.id === itemId);
     if (found) return found;
   }
   return null;
+}
+
+// 장바구니에 포함된 첫 매장의 결제정보
+function getPaymentForCart() {
+  const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
+  const firstId = itemIds[0];
+  if (!firstId) return MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
+  const storeSlug = firstId.split('-')[0];
+  const storeData = MENU_DATA[storeSlug];
+  return storeData?.payment || MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
 }
 
 function findMenuItem(itemId) {
@@ -215,14 +195,18 @@ function renderMenuCards() {
   menuSectionTitle.textContent = data.title;
   const emoji = getCategoryEmoji(category);
 
-  menuGrid.innerHTML = data.items
+  const items = data.items || [];
+  menuGrid.innerHTML = items
     .map((item) => {
       const qty = pendingQty[item.id] || 0;
       const addDisabled = qty === 0;
+      const imgContent = item.imageUrl
+        ? `<div class="menu-card-image"><img src="${item.imageUrl.replace(/"/g, '&quot;')}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
+        : `<div class="menu-card-image">${emoji}</div>`;
       return `
         <article class="menu-card" data-id="${item.id}">
           <div class="menu-card-image-wrapper">
-            <div class="menu-card-image">${emoji}</div>
+            ${imgContent}
             <button class="menu-info-btn" data-id="${item.id}" aria-label="상세 정보">
               <i>i</i>
             </button>
@@ -416,6 +400,11 @@ function openCheckoutModal() {
   inputDetailAddress.value = '';
   btnOrderSubmit.disabled = true;
 
+  const payment = getPaymentForCart();
+  if (checkoutAccountHolder) checkoutAccountHolder.textContent = payment?.accountHolder || '(주)케이터링서비스';
+  if (checkoutBankName) checkoutBankName.textContent = payment?.bankName || '신한은행';
+  if (checkoutAccountNumber) checkoutAccountNumber.textContent = payment?.accountNumber || '110-123-456789';
+
   checkoutModal.classList.add('visible');
   checkoutModal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -439,8 +428,9 @@ function closeCheckoutModal() {
 
 // 계좌번호 복사
 function copyAccountNumber() {
+  const num = checkoutAccountNumber?.textContent || '110-123-456789';
   navigator.clipboard
-    .writeText(ACCOUNT_NUMBER)
+    .writeText(num)
     .then(() => {
       const text = btnCopyAccount.textContent;
       btnCopyAccount.textContent = '복사됨';
@@ -692,9 +682,11 @@ function init() {
     }
   });
 
-  renderMenuCards();
-  renderCartItems();
-  updateCartCount();
+  loadMenuData().then(() => {
+    renderMenuCards();
+    renderCartItems();
+    updateCartCount();
+  });
 }
 
 init();

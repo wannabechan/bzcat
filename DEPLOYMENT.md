@@ -12,14 +12,22 @@
 > ⚠️ Vercel KV는 2024년 12월 종료되었습니다. Upstash Redis를 사용합니다.
 > 상세 가이드: [REDIS_SETUP.md](./REDIS_SETUP.md)
 
-## 2단계: Resend 설정
+## 2단계: Vercel Blob 추가 (이미지 업로드용)
+
+1. Vercel Dashboard → 프로젝트 → **Storage** 탭
+2. **Create Database** → **Blob** 선택 → **Continue**
+3. Blob store 이름 입력 (예: `bzcat-images`) → **Create**
+4. 환경 변수 `BLOB_READ_WRITE_TOKEN`이 자동으로 주입됨
+5. 로컬 개발 시: `vercel env pull`로 환경 변수 가져오기
+
+## 3단계: Resend 설정
 
 1. https://resend.com 가입
 2. API Key 생성 (API Keys 메뉴)
 3. 도메인 인증 (실서비스용, Domains 메뉴)
 4. 상세 가이드: [RESEND_SETUP.md](./RESEND_SETUP.md)
 
-## 3단계: 환경 변수 설정
+## 4단계: 환경 변수 설정
 
 Vercel Dashboard → 프로젝트 → Settings → Environment Variables
 
@@ -75,6 +83,12 @@ Vercel이 자동으로 배포를 시작합니다:
    ```
    Settings → Environment Variables → UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
    ```
+
+### 이미지 업로드 오류
+
+1. Vercel Blob store가 프로젝트에 연결되어 있는지 확인
+2. `BLOB_READ_WRITE_TOKEN` 환경 변수 확인
+3. 허용 형식: JPEG, PNG, WebP, GIF (최대 4MB)
 
 ### JWT 오류
 
