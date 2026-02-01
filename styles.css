@@ -1108,6 +1108,12 @@ body {
   color: var(--color-text-secondary);
 }
 
+.profile-order-status-steps .step.pending {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.25);
+}
+
 .profile-order-status-steps .step.cancelled {
   background: rgba(197, 34, 31, 0.08);
   border-color: #c5221f;
@@ -1596,6 +1602,13 @@ body {
 
 .order-detail-footer .cart-total {
   margin-bottom: 0;
+}
+
+.order-detail-panel.order-detail-cancelled .cart-item-price,
+.order-detail-panel.order-detail-cancelled .cart-category-total,
+.order-detail-panel.order-detail-cancelled .order-detail-footer .cart-total strong {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
 }
 
 .order-detail-list {

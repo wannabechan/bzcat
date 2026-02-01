@@ -516,6 +516,8 @@ function openCheckoutModal() {
 
   orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${renderOrderSummaryList(entries)}</div>`;
 
+  const orderDetailPanel = orderDetailOverlay.querySelector('.order-detail-panel');
+  if (orderDetailPanel) orderDetailPanel.classList.remove('order-detail-cancelled');
   const orderDetailTotalEl = document.getElementById('orderDetailTotal');
   if (orderDetailTotalEl) orderDetailTotalEl.textContent = formatPrice(total);
 
@@ -574,6 +576,8 @@ function openProfileOrderDetail(order) {
   orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
   const totalEl = document.getElementById('orderDetailTotal');
   if (totalEl) totalEl.textContent = formatPrice(order.totalAmount || 0);
+  const panel = orderDetailOverlay.querySelector('.order-detail-panel');
+  if (panel) panel.classList.toggle('order-detail-cancelled', order.status === 'cancelled');
   orderDetailOverlay.classList.add('visible');
   orderDetailOverlay.setAttribute('aria-hidden', 'false');
 }
@@ -647,7 +651,7 @@ async function fetchAndRenderProfileOrders() {
     const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
 
     profileOrdersData = {};
-    const CANCELABLE_STEP_COUNT = 2;
+    const CANCELABLE_STEP_COUNT = 1;
     profileOrders.innerHTML = orders
       .map((o) => {
         profileOrdersData[o.id] = o;
@@ -663,6 +667,7 @@ async function fetchAndRenderProfileOrders() {
             let cls = 'step';
             if (i < currentIdx) cls += ' done';
             else if (i === currentIdx) cls += ' active';
+            else cls += ' pending';
             return `<span class="${cls}">${s.label}</span>`;
           }).join('');
         }
