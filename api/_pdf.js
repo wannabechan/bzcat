@@ -57,8 +57,9 @@ async function generateOrderPdf(order, stores = []) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const fontPath = path.join(__dirname, 'fonts', 'NotoSansKR-Regular.ttf');
-    if (fs.existsSync(fontPath)) {
+    const fontPath = path.join(__dirname, 'fonts', 'NotoSansKR-VariableFont_wght.ttf');
+    const useKorean = fs.existsSync(fontPath);
+    if (useKorean) {
       doc.registerFont('NotoSansKR', fontPath);
       doc.font('NotoSansKR');
     }
@@ -79,7 +80,6 @@ async function generateOrderPdf(order, stores = []) {
     doc.text(`배송주소: ${order.delivery_address || '—'} ${order.detail_address || ''}`, 50, doc.y + 15);
     doc.moveDown(2);
 
-    const useKorean = fs.existsSync(fontPath);
     let y = doc.y;
     for (const slug of orderedSlugs) {
       const title = getCategoryTitle(slug);
