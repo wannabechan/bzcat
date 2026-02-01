@@ -133,6 +133,14 @@ function renderStore(store, menus) {
               <label>브랜드명</label>
               <input type="text" data-field="brand" value="${(store.brand || '').replace(/"/g, '&quot;')}" placeholder="예: OO브랜드">
             </div>
+            <div class="admin-form-field" style="flex: 2;">
+              <label>매장주소</label>
+              <input type="text" data-field="storeAddress" value="${(store.storeAddress || '').replace(/"/g, '&quot;')}" placeholder="예: 서울시 강남구 OO로 123">
+            </div>
+            <div class="admin-form-field">
+              <label>담당자연락처</label>
+              <input type="text" data-field="storeContact" value="${(store.storeContact || '').replace(/"/g, '&quot;')}" placeholder="예: 02-1234-5678">
+            </div>
           </div>
         </div>
         <div class="admin-section">
@@ -216,11 +224,13 @@ function collectData() {
     const storeId = storeEl.dataset.storeId;
     const titleInput = storeEl.querySelector('input[data-field="title"]');
     const brandInput = storeEl.querySelector('input[data-field="brand"]');
+    const storeAddressInput = storeEl.querySelector('input[data-field="storeAddress"]');
+    const storeContactInput = storeEl.querySelector('input[data-field="storeContact"]');
     const accountHolderInput = storeEl.querySelector('input[data-field="accountHolder"]');
     const bankNameInput = storeEl.querySelector('input[data-field="bankName"]');
     const accountNumberInput = storeEl.querySelector('input[data-field="accountNumber"]');
 
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', payment: {
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', payment: {
       accountHolder: accountHolderInput?.value?.trim() || '',
       bankName: bankNameInput?.value?.trim() || '',
       accountNumber: accountNumberInput?.value?.trim() || '',
@@ -315,6 +325,8 @@ async function init() {
           slug: generateStoreId(),
           title: '새 카테고리',
           brand: '',
+          storeAddress: '',
+          storeContact: '',
           payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' },
         };
         const div = document.createElement('div');
