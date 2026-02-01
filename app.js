@@ -54,8 +54,6 @@ const checkoutAmount = document.getElementById('checkoutAmount');
 const checkoutOrderTime = document.getElementById('checkoutOrderTime');
 const inputDepositor = document.getElementById('inputDepositor');
 const inputContact = document.getElementById('inputContact');
-const expenseRadios = document.querySelectorAll('input[name="expenseDoc"]');
-const inputExpenseDoc = document.getElementById('inputExpenseDoc');
 const checkoutForm = document.getElementById('checkoutForm');
 const checkoutStep1 = document.getElementById('checkoutStep1');
 const inputDeliveryDate = document.getElementById('inputDeliveryDate');
@@ -437,12 +435,15 @@ function openCheckoutModal() {
 
   orderDetailContent.innerHTML = `<ul class="order-detail-list">${renderOrderSummaryList(entries)}</ul>`;
 
+  const categoryIds = new Set();
+  for (const [itemId] of entries) {
+    categoryIds.add(getCategoryForItem(itemId));
+  }
+  const categoryCountEl = document.getElementById('checkoutCategoryCount');
+  if (categoryCountEl) categoryCountEl.textContent = `${categoryIds.size}개 카테고리 주문`;
+
   inputDepositor.value = '';
   inputContact.value = '';
-  document.querySelector('input[name="expenseDoc"][value="none"]').checked = true;
-  inputExpenseDoc.value = '';
-  inputExpenseDoc.placeholder = '';
-  inputExpenseDoc.disabled = true;
   inputDeliveryDate.value = '';
   inputDeliveryTime.value = '';
   inputDeliveryAddress.value = '';
@@ -515,35 +516,16 @@ function init() {
   checkoutModal.addEventListener('click', (e) => {
     if (e.target === checkoutModal) closeCheckoutModal();
   });
-  function updateExpenseInputState() {
-    const selected = document.querySelector('input[name="expenseDoc"]:checked');
-    if (selected?.value === 'none') {
-      inputExpenseDoc.disabled = true;
-      inputExpenseDoc.value = '';
-      inputExpenseDoc.placeholder = '';
-    } else if (selected?.value === 'cash') {
-      inputExpenseDoc.disabled = false;
-      inputExpenseDoc.placeholder = '신청자 핸드폰 번호';
-    } else if (selected?.value === 'business') {
-      inputExpenseDoc.disabled = false;
-      inputExpenseDoc.placeholder = '사업자등록번호';
-    }
-    updateOrderSubmitButton();
-  }
   function updateOrderSubmitButton() {
     const hasName = (inputDepositor.value || '').trim().length > 0;
     const hasContact = (inputContact.value || '').trim().length > 0;
-    const selected = document.querySelector('input[name="expenseDoc"]:checked');
-    const needsExpenseInput = selected?.value === 'cash' || selected?.value === 'business';
-    const hasExpenseInput = !needsExpenseInput || (inputExpenseDoc.value || '').trim().length > 0;
     const hasDate = (inputDeliveryDate.value || '').trim().length > 0;
     const hasTime = (inputDeliveryTime.value || '').trim().length > 0;
     const hasAddress = (inputDeliveryAddress.value || '').trim().length > 0;
     const detailRowVisible = detailAddressRow.style.display !== 'none';
     const hasDetailAddress = !detailRowVisible || (inputDetailAddress.value || '').trim().length > 0;
-    btnOrderSubmit.disabled = !(hasName && hasContact && hasExpenseInput && hasDate && hasTime && hasAddress && hasDetailAddress);
+    btnOrderSubmit.disabled = !(hasName && hasContact && hasDate && hasTime && hasAddress && hasDetailAddress);
   }
-  expenseRadios.forEach((r) => r.addEventListener('change', updateExpenseInputState));
   inputDepositor.addEventListener('input', updateOrderSubmitButton);
   inputDepositor.addEventListener('change', updateOrderSubmitButton);
   inputContact.addEventListener('input', (e) => {
@@ -551,8 +533,6 @@ function init() {
     updateOrderSubmitButton();
   });
   inputContact.addEventListener('change', updateOrderSubmitButton);
-  inputExpenseDoc.addEventListener('input', updateOrderSubmitButton);
-  inputExpenseDoc.addEventListener('change', updateOrderSubmitButton);
   inputDeliveryDate.addEventListener('input', updateOrderSubmitButton);
   inputDeliveryDate.addEventListener('change', updateOrderSubmitButton);
   inputDeliveryTime.addEventListener('input', updateOrderSubmitButton);
@@ -644,8 +624,8 @@ function init() {
       const orderData = {
         depositor: inputDepositor.value.trim(),
         contact: inputContact.value.trim(),
-        expenseType: document.querySelector('input[name="expenseDoc"]:checked')?.value || 'none',
-        expenseDoc: inputExpenseDoc.value.trim() || null,
+        expenseType: 'none',
+        expenseDoc: null,
         deliveryDate: inputDeliveryDate.value,
         deliveryTime: inputDeliveryTime.value,
         deliveryAddress: inputDeliveryAddress.value.trim(),

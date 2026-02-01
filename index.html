@@ -127,7 +127,10 @@
                 <dt>입금금액</dt>
                 <dd class="amount-row">
                   <span class="amount" id="checkoutAmount">0원</span>
-                  <button type="button" class="btn-order-detail" id="btnOrderDetail">내역보기</button>
+                  <span class="amount-row-meta">
+                    <span class="amount-category-count" id="checkoutCategoryCount">0개 카테고리 주문</span>
+                    <button type="button" class="btn-order-detail" id="btnOrderDetail">내역보기</button>
+                  </span>
                 </dd>
               </dl>
             </div>
@@ -148,24 +151,6 @@
                     <label class="form-label" for="inputContact">비상 연락처</label>
                     <input type="tel" id="inputContact" class="form-input" placeholder="비상 연락처 입력" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" maxlength="11">
                   </div>
-                </div>
-                <div class="form-row form-row-expense">
-                  <label class="form-label">지출증빙</label>
-                  <div class="expense-options">
-                    <label class="expense-option">
-                      <input type="radio" name="expenseDoc" value="cash" class="expense-radio">
-                      <span>현금영수증</span>
-                    </label>
-                    <label class="expense-option">
-                      <input type="radio" name="expenseDoc" value="business" class="expense-radio">
-                      <span>사업자지출증빙</span>
-                    </label>
-                    <label class="expense-option">
-                      <input type="radio" name="expenseDoc" value="none" class="expense-radio" checked>
-                      <span>미신청</span>
-                    </label>
-                  </div>
-                  <input type="text" id="inputExpenseDoc" class="form-input" placeholder="" disabled>
                 </div>
                 <div class="form-row form-row-inline">
                   <div class="form-field">

@@ -1039,6 +1039,17 @@ body {
   font-size: 1.125rem;
 }
 
+.amount-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amount-category-count {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+}
+
 .btn-order-detail {
   padding: 4px 10px;
   font-size: 0.75rem;
