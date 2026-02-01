@@ -1,0 +1,60 @@
+/**
+ * GET /api/orders/my
+ * 현재 로그인 사용자의 주문 목록 조회
+ */
+
+const { verifyToken, apiResponse } = require('../_utils');
+const { getOrdersByUser } = require('../_redis');
+
+const STATUS_LABELS = {
+  submitted: '주문 신청 완료',
+  payment_link_issued: '결제 링크 발급',
+  payment_completed: '결제 완료',
+  delivery_completed: '배송 완료',
+  cancelled: '주문 취소',
+};
+
+module.exports = async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    return apiResponse(res, 200, {});
+  }
+
+  if (req.method !== 'GET') {
+    return apiResponse(res, 405, { error: 'Method not allowed' });
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+
+    if (!user) {
+      return apiResponse(res, 401, { error: '유효하지 않은 토큰입니다.' });
+    }
+
+    const orders = await getOrdersByUser(user.email);
+
+    const items = orders.map((o) => {
+      const status = o.status === 'pending' ? 'submitted' : (o.status || 'submitted');
+      return {
+        id: o.id,
+        status,
+        statusLabel: STATUS_LABELS[status] || STATUS_LABELS.submitted,
+        createdAt: o.created_at,
+        deliveryDate: o.delivery_date,
+        deliveryTime: o.delivery_time,
+        totalAmount: o.total_amount,
+        orderItems: o.order_items || [],
+      };
+    });
+
+    return apiResponse(res, 200, { orders: items });
+  } catch (error) {
+    console.error('Get my orders error:', error);
+    return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });
+  }
+};
