@@ -66,6 +66,19 @@ const btnOrderDetail = document.getElementById('btnOrderDetail');
 const orderDetailOverlay = document.getElementById('orderDetailOverlay');
 const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
+const profileToggle = document.getElementById('profileToggle');
+const profileOverlay = document.getElementById('profileOverlay');
+const profileDrawer = document.getElementById('profileDrawer');
+const profileClose = document.getElementById('profileClose');
+const profileEmpty = document.getElementById('profileEmpty');
+const profileOrders = document.getElementById('profileOrders');
+
+const ORDER_STATUS_STEPS = [
+  { key: 'submitted', label: '주문 신청 완료' },
+  { key: 'payment_link_issued', label: '결제 링크 발급' },
+  { key: 'payment_completed', label: '결제 완료' },
+  { key: 'delivery_completed', label: '배송 완료' },
+];
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -80,6 +93,16 @@ function formatOrderTime(date) {
   const h = String(date.getHours()).padStart(2, '0');
   const min = String(date.getMinutes()).padStart(2, '0');
   return `${y}년 ${m}월 ${d}일 ${h}시 ${min}분`;
+}
+
+// 유틸: ISO 날짜를 간단 포맷 (yy.mm.dd)
+function formatOrderDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  const y = String(d.getFullYear()).slice(-2);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}.${m}.${day}`;
 }
 
 // 유틸: 입금기한 표시용 (mm월 dd일 hh시 mm분)
@@ -506,6 +529,98 @@ function closeOrderDetailOverlay() {
   orderDetailOverlay.setAttribute('aria-hidden', 'true');
 }
 
+// 마이프로필: 주문 내역
+async function openProfile() {
+  profileDrawer.classList.add('open');
+  profileOverlay.classList.add('visible');
+  profileOverlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  await fetchAndRenderProfileOrders();
+}
+
+function closeProfile() {
+  profileDrawer.classList.remove('open');
+  profileOverlay.classList.remove('visible');
+  profileOverlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+async function fetchAndRenderProfileOrders() {
+  const token = window.BzCatAuth?.getToken();
+  if (!token) {
+    profileEmpty.style.display = 'block';
+    profileOrders.style.display = 'none';
+    profileEmpty.innerHTML = '<p>로그인이 필요합니다</p>';
+    return;
+  }
+  profileEmpty.style.display = 'block';
+  profileOrders.style.display = 'none';
+  profileEmpty.innerHTML = '<p>로딩 중...</p>';
+
+  try {
+    const res = await fetch('/api/orders/my', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      profileEmpty.innerHTML = `<p>${data.error || '불러오기에 실패했습니다.'}</p>`;
+      return;
+    }
+
+    const orders = data.orders || [];
+    if (orders.length === 0) {
+      profileEmpty.style.display = 'block';
+      profileOrders.style.display = 'none';
+      profileEmpty.innerHTML = '<p>주문 내역이 없습니다</p><p class="profile-empty-hint">주문 신청을 완료하면 여기에서 확인할 수 있습니다</p>';
+      return;
+    }
+
+    profileEmpty.style.display = 'none';
+    profileOrders.style.display = 'block';
+
+    const stepIndex = (key) => ORDER_STATUS_STEPS.findIndex((s) => s.key === key);
+    const isCancelled = (status) => status === 'cancelled';
+
+    profileOrders.innerHTML = orders
+      .map((o) => {
+        const cancelled = isCancelled(o.status);
+        const currentIdx = cancelled ? -1 : stepIndex(o.status);
+        const stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
+          let cls = 'step';
+          if (cancelled) {
+            cls += ' done';
+          } else if (i < currentIdx) {
+            cls += ' done';
+          } else if (i === currentIdx) {
+            cls += ' active';
+          }
+          return `<span class="${cls}">${s.label}</span>`;
+        }).join('');
+
+        return `
+          <div class="profile-order-card">
+            <div class="profile-order-card-header">
+              <div>
+                <div class="profile-order-id">주문 #${o.id}</div>
+                <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
+              </div>
+              <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
+            </div>
+            <div class="profile-order-status-steps">${stepsHtml}${cancelled ? '<span class="step cancelled">주문 취소</span>' : ''}</div>
+            <div class="profile-order-amount">${formatPrice(o.totalAmount || 0)}</div>
+          </div>
+        `;
+      })
+      .join('');
+  } catch (err) {
+    console.error('Profile orders fetch error:', err);
+    profileEmpty.style.display = 'block';
+    profileOrders.style.display = 'none';
+    profileEmpty.innerHTML = '<p>네트워크 오류가 발생했습니다.</p>';
+  }
+}
+
 function closeCheckoutModal() {
   checkoutModal.classList.remove('visible');
   checkoutModal.setAttribute('aria-hidden', 'true');
@@ -527,6 +642,12 @@ function init() {
   cartToggle.addEventListener('click', openCart);
   cartClose.addEventListener('click', closeCart);
   cartOverlay.addEventListener('click', closeCart);
+
+  profileToggle.addEventListener('click', openProfile);
+  profileClose.addEventListener('click', closeProfile);
+  profileOverlay.addEventListener('click', (e) => {
+    if (e.target === profileOverlay) closeProfile();
+  });
   btnCheckout.addEventListener('click', (e) => {
     const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
     const byCategory = {};
@@ -714,6 +835,8 @@ function init() {
     if (e.key === 'Escape') {
       if (orderDetailOverlay.classList.contains('visible')) {
         closeOrderDetailOverlay();
+      } else if (profileDrawer.classList.contains('open')) {
+        closeProfile();
       } else {
         closeCart();
         closeCheckoutModal();

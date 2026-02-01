@@ -51,8 +51,14 @@
       </div>
       <div class="header-actions">
         <button class="header-logout" id="btnLogout" aria-label="로그아웃" title="로그아웃">로그아웃</button>
-        <button class="cart-toggle" id="cartToggle" aria-label="장바구니 열기">
-          <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="header-icon-btn profile-toggle" id="profileToggle" aria-label="마이프로필" title="마이프로필">
+          <svg class="header-icon profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </button>
+        <button class="header-icon-btn cart-toggle" id="cartToggle" aria-label="장바구니 열기">
+          <svg class="header-icon cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
             <line x1="3" y1="6" x2="21" y2="6"/>
             <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -105,6 +111,26 @@
           <strong id="cartTotal">0원</strong>
         </div>
         <button class="btn-checkout" id="btnCheckout">결제 안내</button>
+      </div>
+    </aside>
+
+    <!-- Profile Drawer -->
+    <div class="profile-overlay" id="profileOverlay" aria-hidden="true"></div>
+    <aside class="profile-drawer" id="profileDrawer">
+      <div class="profile-header">
+        <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">마이프로필</h2>
+        <button class="profile-close" id="profileClose" aria-label="닫기">
+          <svg class="profile-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="profile-content" id="profileContent">
+        <div class="profile-empty" id="profileEmpty">
+          <p>주문 내역이 없습니다</p>
+          <p class="profile-empty-hint">주문 신청을 완료하면 여기에서 확인할 수 있습니다</p>
+        </div>
+        <div class="profile-orders" id="profileOrders"></div>
       </div>
     </aside>
 

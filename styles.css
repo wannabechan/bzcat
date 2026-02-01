@@ -272,7 +272,7 @@ body {
   background: #f0f0f0;
 }
 
-.cart-toggle {
+.header-icon-btn {
   position: relative;
   width: 44px;
   height: 44px;
@@ -288,11 +288,13 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.cart-toggle:active {
+.header-icon-btn:active {
   background: rgba(0, 0, 0, 0.05);
 }
 
-.cart-icon {
+.header-icon,
+.cart-icon,
+.profile-icon {
   width: 24px;
   height: 24px;
 }
@@ -911,6 +913,183 @@ body {
   animation: notice-blink 0.4s ease-in-out 3;
 }
 
+/* ===== Profile Drawer ===== */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.profile-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.profile-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 85dvh;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.profile-drawer.open {
+  transform: translateY(0);
+}
+
+.profile-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.profile-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-close-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-close:active {
+  background: #e8e8e8;
+}
+
+.profile-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 120px;
+}
+
+.profile-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+}
+
+.profile-empty-hint {
+  font-size: 0.8125rem;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.profile-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-order-card {
+  padding: 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.profile-order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.profile-order-id {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.profile-order-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.profile-order-status {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.profile-order-status.cancelled {
+  color: var(--color-text-secondary);
+}
+
+.profile-order-status-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.profile-order-status-steps .step {
+  padding: 2px 8px;
+  background: var(--color-surface);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+
+.profile-order-status-steps .step.active {
+  background: rgba(230, 123, 25, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.profile-order-status-steps .step.done {
+  background: rgba(34, 33, 36, 0.06);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.profile-order-status-steps .step.cancelled {
+  background: rgba(197, 34, 31, 0.08);
+  border-color: #c5221f;
+  color: #c5221f;
+}
+
+.profile-order-amount {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
 /* ===== Checkout Modal ===== */
 .modal-overlay {
   position: fixed;
@@ -1485,6 +1664,20 @@ body {
     transform: translateX(0);
   }
 
+  .profile-drawer {
+    left: auto;
+    right: 0;
+    width: 400px;
+    max-width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    transform: translateX(100%);
+  }
+
+  .profile-drawer.open {
+    transform: translateX(0);
+  }
+
   .modal-overlay {
     align-items: center;
   }
@@ -1503,7 +1696,7 @@ body {
 
 /* ===== Touch & Accessibility ===== */
 @media (hover: hover) {
-  .cart-toggle:hover {
+  .header-icon-btn:hover {
     background: rgba(0, 0, 0, 0.04);
   }
 
