@@ -74,6 +74,9 @@ const profileEmpty = document.getElementById('profileEmpty');
 const profileOrders = document.getElementById('profileOrders');
 
 let profileOrdersData = {};
+let profileAllOrders = [];
+let profileVisibleCount = 10;
+const PROFILE_PAGE_SIZE = 10;
 
 const ORDER_STATUS_STEPS = [
   { key: 'submitted', label: '주문 신청 완료' },
@@ -631,6 +634,66 @@ async function confirmAndCancelOrder(order) {
   }
 }
 
+function renderProfileOrdersList() {
+  const orders = profileAllOrders;
+  const visible = orders.slice(0, profileVisibleCount);
+  const hasMore = orders.length > profileVisibleCount;
+
+  const stepIndex = (key) => ORDER_STATUS_STEPS.findIndex((s) => s.key === key);
+  const isCancelled = (status) => status === 'cancelled';
+  const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
+
+  profileOrdersData = {};
+  const CANCELABLE_STEP_COUNT = 1;
+
+  const cardsHtml = visible
+    .map((o) => {
+      profileOrdersData[o.id] = o;
+      const cancelled = isCancelled(o.status);
+      const currentIdx = cancelled ? -1 : stepIndex(o.status);
+      let stepsHtml;
+      if (cancelled) {
+        stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)
+          .map((s) => `<span class="step done">${s.label}</span>`)
+          .join('');
+      } else {
+        stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
+          let cls = 'step';
+          if (i < currentIdx) cls += ' done';
+          else if (i === currentIdx) cls += ' active';
+          else cls += ' pending';
+          return `<span class="${cls}">${s.label}</span>`;
+        }).join('');
+      }
+      const showCancelBtn = canCancel(o.status);
+
+      return `
+        <div class="profile-order-card" data-order-id="${o.id}">
+          <div class="profile-order-card-header">
+            <div class="profile-order-header-left">
+              <span class="profile-order-id">주문 #${o.id}</span>
+              <div class="profile-order-actions">
+                <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
+                ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
+              </div>
+            </div>
+            <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
+          </div>
+          <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
+          <div class="profile-order-status-steps">${stepsHtml}</div>
+          <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
+        </div>
+      `;
+    })
+    .join('');
+
+  const loadMoreHtml = hasMore
+    ? `<div class="profile-load-more-wrap"><button type="button" class="profile-btn profile-btn-load-more" data-action="load-more">더 보기</button></div>`
+    : '';
+
+  profileOrders.innerHTML = cardsHtml + loadMoreHtml;
+}
+
 async function fetchAndRenderProfileOrders() {
   const token = window.BzCatAuth?.getToken();
   if (!token) {
@@ -664,53 +727,9 @@ async function fetchAndRenderProfileOrders() {
 
     profileEmpty.style.display = 'none';
     profileOrders.style.display = 'block';
-
-    const stepIndex = (key) => ORDER_STATUS_STEPS.findIndex((s) => s.key === key);
-    const isCancelled = (status) => status === 'cancelled';
-    const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
-
-    profileOrdersData = {};
-    const CANCELABLE_STEP_COUNT = 1;
-    profileOrders.innerHTML = orders
-      .map((o) => {
-        profileOrdersData[o.id] = o;
-        const cancelled = isCancelled(o.status);
-        const currentIdx = cancelled ? -1 : stepIndex(o.status);
-        let stepsHtml;
-        if (cancelled) {
-          stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)
-            .map((s) => `<span class="step done">${s.label}</span>`)
-            .join('');
-        } else {
-          stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
-            let cls = 'step';
-            if (i < currentIdx) cls += ' done';
-            else if (i === currentIdx) cls += ' active';
-            else cls += ' pending';
-            return `<span class="${cls}">${s.label}</span>`;
-          }).join('');
-        }
-        const showCancelBtn = canCancel(o.status);
-
-        return `
-          <div class="profile-order-card" data-order-id="${o.id}">
-            <div class="profile-order-card-header">
-              <div class="profile-order-header-left">
-                <span class="profile-order-id">주문 #${o.id}</span>
-                <div class="profile-order-actions">
-                  <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
-                  ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
-                </div>
-              </div>
-              <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
-            </div>
-            <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
-            <div class="profile-order-status-steps">${stepsHtml}</div>
-            <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
-          </div>
-        `;
-      })
-      .join('');
+    profileAllOrders = orders;
+    profileVisibleCount = PROFILE_PAGE_SIZE;
+    renderProfileOrdersList();
   } catch (err) {
     console.error('Profile orders fetch error:', err);
     profileEmpty.style.display = 'block';
@@ -749,6 +768,11 @@ function init() {
   profileOrders.addEventListener('click', (e) => {
     const btn = e.target.closest('.profile-btn');
     if (!btn) return;
+    if (btn.dataset.action === 'load-more') {
+      profileVisibleCount += PROFILE_PAGE_SIZE;
+      renderProfileOrdersList();
+      return;
+    }
     const card = btn.closest('.profile-order-card');
     const orderId = card && parseInt(card.dataset.orderId, 10);
     const order = orderId && profileOrdersData[orderId];
