@@ -97,7 +97,7 @@ function formatOrderTime(date) {
   return `${y}년 ${m}월 ${d}일 ${h}시 ${min}분`;
 }
 
-// 유틸: ISO 날짜를 간단 포맷 (yy.mm.dd hh시 mm분)
+// 유틸: ISO 날짜를 간단 포맷 (yy년 mm월 dd일 | hh시 mm분)
 function formatOrderDate(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
@@ -106,7 +106,7 @@ function formatOrderDate(isoStr) {
   const day = String(d.getDate()).padStart(2, '0');
   const h = String(d.getHours()).padStart(2, '0');
   const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}.${m}.${day} ${h}시 ${min}분`;
+  return `${y}년 ${m}월 ${day}일 | ${h}시 ${min}분`;
 }
 
 // 유틸: 입금기한 표시용 (mm월 dd일 hh시 mm분)
