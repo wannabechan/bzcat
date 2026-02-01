@@ -134,6 +134,13 @@ function findItemById(itemId) {
   return null;
 }
 
+function getCategoryForItem(itemId) {
+  for (const [slug, data] of Object.entries(MENU_DATA)) {
+    if (data.items?.some((i) => i.id === itemId)) return slug;
+  }
+  return itemId.split('-')[0];
+}
+
 // 장바구니에 포함된 첫 매장의 결제정보
 function getPaymentForCart() {
   const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
@@ -315,27 +322,48 @@ function renderCartItems() {
   const belowMin = total < 300000;
   btnCheckout.classList.toggle('below-minimum', belowMin);
 
-  cartItems.innerHTML = entries
-    .map(([itemId, qty]) => {
-      const item = findMenuItem(itemId);
-      if (!item) return '';
+  const categoryOrder = Object.keys(MENU_DATA);
+  const byCategory = {};
+  for (const [itemId, qty] of entries) {
+    const item = findMenuItem(itemId);
+    if (!item) continue;
+    const slug = getCategoryForItem(itemId);
+    if (!byCategory[slug]) byCategory[slug] = [];
+    byCategory[slug].push({ itemId, qty, item });
+  }
+  for (const slug of Object.keys(byCategory)) {
+    byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
+  }
+
+  const renderCartItem = ({ itemId, qty, item }) => `
+    <div class="cart-item" data-id="${itemId}">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${formatPrice(item.price)} × ${qty}</div>
+      </div>
+      <div class="cart-item-qty">
+        <button type="button" data-action="decrease" data-id="${itemId}">−</button>
+        <span>${qty}</span>
+        <button type="button" data-action="increase" data-id="${itemId}">+</button>
+      </div>
+      <button class="cart-item-remove" data-id="${itemId}" aria-label="삭제">
+        <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  cartItems.innerHTML = categoryOrder
+    .filter((slug) => byCategory[slug]?.length)
+    .map((slug) => {
+      const categoryTitle = MENU_DATA[slug]?.title || slug;
+      const itemsHtml = byCategory[slug].map(renderCartItem).join('');
       return `
-        <div class="cart-item" data-id="${itemId}">
-          <div class="cart-item-info">
-            <div class="cart-item-name">${item.name}</div>
-            <div class="cart-item-price">${formatPrice(item.price)} × ${qty}</div>
-          </div>
-          <div class="cart-item-qty">
-            <button type="button" data-action="decrease" data-id="${itemId}">−</button>
-            <span>${qty}</span>
-            <button type="button" data-action="increase" data-id="${itemId}">+</button>
-          </div>
-          <button class="cart-item-remove" data-id="${itemId}" aria-label="삭제">
-            <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
-            </svg>
-          </button>
+        <div class="cart-category-group">
+          <div class="cart-category-title">${categoryTitle}</div>
+          ${itemsHtml}
         </div>
       `;
     })
