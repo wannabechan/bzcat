@@ -52,7 +52,6 @@ const checkoutModal = document.getElementById('checkoutModal');
 const checkoutClose = document.getElementById('checkoutClose');
 const checkoutAmount = document.getElementById('checkoutAmount');
 const checkoutOrderTime = document.getElementById('checkoutOrderTime');
-const checkoutDeadline = document.getElementById('checkoutDeadline');
 const inputDepositor = document.getElementById('inputDepositor');
 const inputContact = document.getElementById('inputContact');
 const expenseRadios = document.querySelectorAll('input[name="expenseDoc"]');
@@ -71,10 +70,6 @@ const orderDetailOverlay = document.getElementById('orderDetailOverlay');
 const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
 const checkoutBack = document.getElementById('checkoutBack');
-const btnCopyAccount = document.getElementById('btnCopyAccount');
-const checkoutAccountHolder = document.getElementById('checkoutAccountHolder');
-const checkoutBankName = document.getElementById('checkoutBankName');
-const checkoutAccountNumber = document.getElementById('checkoutAccountNumber');
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -440,7 +435,6 @@ function openCheckoutModal() {
   const deadlineTime = new Date(orderTime.getTime() + 24 * 60 * 60 * 1000);
 
   checkoutOrderTime.textContent = formatOrderTime(orderTime);
-  checkoutDeadline.textContent = `※ 주문 신청 후, 24시간 이내 (${formatDeadlineShort(deadlineTime)} 까지) 입금 부탁드립니다.`;
   checkoutAmount.textContent = formatPrice(total);
 
   orderDetailContent.innerHTML = `<ul class="order-detail-list">${renderOrderSummaryList(entries)}</ul>`;
@@ -464,11 +458,6 @@ function openCheckoutModal() {
   inputDetailAddress.value = '';
   btnOrderSubmit.disabled = true;
 
-  const payment = getPaymentForCart();
-  if (checkoutAccountHolder) checkoutAccountHolder.textContent = payment?.accountHolder || '(주)케이터링서비스';
-  if (checkoutBankName) checkoutBankName.textContent = payment?.bankName || '신한은행';
-  if (checkoutAccountNumber) checkoutAccountNumber.textContent = payment?.accountNumber || '110-123-456789';
-
   checkoutModal.classList.add('visible');
   checkoutModal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -488,22 +477,6 @@ function closeCheckoutModal() {
   checkoutModal.classList.remove('visible');
   checkoutModal.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
-}
-
-// 계좌번호 복사
-function copyAccountNumber() {
-  const num = checkoutAccountNumber?.textContent || '110-123-456789';
-  navigator.clipboard
-    .writeText(num)
-    .then(() => {
-      const text = btnCopyAccount.textContent;
-      btnCopyAccount.textContent = '복사됨';
-      setTimeout(() => (btnCopyAccount.textContent = text), 1500);
-    })
-    .catch(() => {
-      btnCopyAccount.textContent = '복사 실패';
-      setTimeout(() => (btnCopyAccount.textContent = '복사'), 1500);
-    });
 }
 
 // 카테고리 탭 클릭
@@ -547,8 +520,6 @@ function init() {
   checkoutModal.addEventListener('click', (e) => {
     if (e.target === checkoutModal) closeCheckoutModal();
   });
-  btnCopyAccount.addEventListener('click', copyAccountNumber);
-
   function updateExpenseInputState() {
     const selected = document.querySelector('input[name="expenseDoc"]:checked');
     if (selected?.value === 'none') {
