@@ -319,8 +319,6 @@ function renderCartItems() {
   cartEmpty.style.display = 'none';
   cartFooter.style.display = 'block';
   cartTotal.textContent = formatPrice(total);
-  const belowMin = total < 300000;
-  btnCheckout.classList.toggle('below-minimum', belowMin);
 
   const categoryOrder = Object.keys(MENU_DATA);
   const byCategory = {};
@@ -334,6 +332,14 @@ function renderCartItems() {
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
+
+  const CATEGORY_MIN = 150000;
+  const categoryTotals = {};
+  for (const slug of Object.keys(byCategory)) {
+    categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
+  }
+  const allCategoriesMeetMin = Object.keys(byCategory).every((slug) => categoryTotals[slug] >= CATEGORY_MIN);
+  btnCheckout.classList.toggle('below-minimum', !allCategoriesMeetMin);
 
   const renderCartItem = ({ itemId, qty, item }) => `
     <div class="cart-item" data-id="${itemId}">
@@ -359,10 +365,16 @@ function renderCartItems() {
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
       const categoryTitle = MENU_DATA[slug]?.title || slug;
+      const catTotal = categoryTotals[slug] || 0;
+      const meetMin = catTotal >= CATEGORY_MIN;
+      const totalClass = meetMin ? 'cart-category-total met' : 'cart-category-total below';
       const itemsHtml = byCategory[slug].map(renderCartItem).join('');
       return `
         <div class="cart-category-group">
-          <div class="cart-category-title">${categoryTitle}</div>
+          <div class="cart-category-header">
+            <span class="cart-category-title">${categoryTitle}</span>
+            <span class="${totalClass}">${formatPrice(catTotal)}</span>
+          </div>
           ${itemsHtml}
         </div>
       `;
@@ -510,8 +522,18 @@ function init() {
   cartClose.addEventListener('click', closeCart);
   cartOverlay.addEventListener('click', closeCart);
   btnCheckout.addEventListener('click', (e) => {
-    const total = getCartTotalAmount();
-    if (total < 300000) {
+    const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
+    const byCategory = {};
+    for (const [itemId, qty] of entries) {
+      const item = findMenuItem(itemId);
+      if (!item) continue;
+      const slug = getCategoryForItem(itemId);
+      if (!byCategory[slug]) byCategory[slug] = 0;
+      byCategory[slug] += item.price * qty;
+    }
+    const CATEGORY_MIN = 150000;
+    const allMeet = Object.keys(byCategory).every((slug) => byCategory[slug] >= CATEGORY_MIN);
+    if (!allMeet) {
       cartMinOrderNotice.classList.add('notice-alert');
       setTimeout(() => cartMinOrderNotice.classList.remove('notice-alert'), 3000);
       return;
@@ -661,7 +683,7 @@ function init() {
       }
 
       // 주문 데이터 준비
-      const orderItems = Object.entries(cart).map(([itemId, qty]) => {
+      const orderItems = Object.entries(cart).filter(([, qty]) => qty > 0).map(([itemId, qty]) => {
         const item = findItemById(itemId);
         return {
           id: itemId,
@@ -670,6 +692,13 @@ function init() {
           quantity: qty,
         };
       });
+
+      const categoryTotals = {};
+      for (const { id, price, quantity } of orderItems) {
+        const slug = getCategoryForItem(id);
+        if (!categoryTotals[slug]) categoryTotals[slug] = 0;
+        categoryTotals[slug] += price * quantity;
+      }
 
       const orderData = {
         depositor: inputDepositor.value.trim(),
@@ -682,6 +711,7 @@ function init() {
         detailAddress: inputDetailAddress.value.trim() || null,
         orderItems: orderItems,
         totalAmount: calculateTotal(),
+        categoryTotals,
       };
 
       btnOrderSubmit.disabled = true;
