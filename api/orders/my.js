@@ -49,6 +49,7 @@ module.exports = async (req, res) => {
         deliveryTime: o.delivery_time,
         totalAmount: o.total_amount,
         orderItems: o.order_items || [],
+        pdfUrl: o.pdf_url || null,
       };
     });
 

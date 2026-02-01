@@ -1,10 +1,12 @@
 /**
  * POST /api/orders/create
- * 주문 생성
+ * 주문 생성 (주문서 PDF 생성 후 Vercel Blob 저장)
  */
 
+const { put } = require('@vercel/blob');
 const { verifyToken, apiResponse } = require('../_utils');
-const { createOrder } = require('../_redis');
+const { createOrder, updateOrderPdfUrl, getStores } = require('../_redis');
+const { generateOrderPdf } = require('../_pdf');
 
 module.exports = async (req, res) => {
   // CORS preflight
@@ -79,6 +81,21 @@ module.exports = async (req, res) => {
       order_items: orderItems,
       total_amount: totalAmount,
     });
+
+    // 주문서 PDF 생성 및 Vercel Blob 저장
+    try {
+      const stores = await getStores();
+      const pdfBuffer = await generateOrderPdf(order, stores);
+      const pathname = `orders/order-${order.id}-${Date.now()}.pdf`;
+      const blob = await put(pathname, pdfBuffer, {
+        access: 'public',
+        contentType: 'application/pdf',
+      });
+      await updateOrderPdfUrl(order.id, blob.url);
+    } catch (pdfErr) {
+      console.error('PDF generation/upload error:', pdfErr);
+      // 주문은 완료됐으므로 PDF 실패만 로깅
+    }
 
     return apiResponse(res, 201, {
       success: true,
