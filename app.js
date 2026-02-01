@@ -414,11 +414,26 @@ function getMaxDeliveryDate() {
 }
 
 function renderOrderSummaryList(entries) {
-  return entries
-    .map(([id, qty]) => {
-      const item = findMenuItem(id);
-      if (!item) return '';
-      return `<li><span>${item.name} × ${qty}</span><span>${formatPrice(item.price * qty)}</span></li>`;
+  const categoryOrder = Object.keys(MENU_DATA);
+  const byCategory = {};
+  for (const [itemId, qty] of entries) {
+    const item = findMenuItem(itemId);
+    if (!item) continue;
+    const slug = getCategoryForItem(itemId);
+    if (!byCategory[slug]) byCategory[slug] = [];
+    byCategory[slug].push({ itemId, qty, item });
+  }
+  for (const slug of Object.keys(byCategory)) {
+    byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
+  }
+  return categoryOrder
+    .filter((slug) => byCategory[slug]?.length)
+    .map((slug) => {
+      const categoryTitle = MENU_DATA[slug]?.title || slug;
+      const itemsHtml = byCategory[slug]
+        .map(({ item, qty }) => `<li><span>${item.name} × ${qty}</span><span>${formatPrice(item.price * qty)}</span></li>`)
+        .join('');
+      return `<li class="order-detail-category"><span class="order-detail-category-title">${categoryTitle}</span></li>${itemsHtml}`;
     })
     .join('');
 }

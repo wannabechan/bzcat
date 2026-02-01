@@ -1047,7 +1047,7 @@ body {
 
 .amount-category-count {
   font-size: 0.75rem;
-  color: var(--color-primary);
+  color: #feb449;
 }
 
 .btn-order-detail {
@@ -1074,6 +1074,22 @@ body {
   font-size: 0.875rem;
   padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.order-detail-list li.order-detail-category {
+  border-bottom: none;
+  padding-top: 12px;
+  padding-bottom: 4px;
+}
+
+.order-detail-list li.order-detail-category:first-child {
+  padding-top: 0;
+}
+
+.order-detail-category-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .checkout-form {
