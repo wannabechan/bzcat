@@ -121,8 +121,17 @@ function renderStore(store, menus) {
           <div class="admin-section-title">매장 정보</div>
           <div class="admin-form-row">
             <div class="admin-form-field">
-              <label>매장명</label>
+              <label>대분류</label>
               <input type="text" data-field="title" value="${(store.title || '').replace(/"/g, '&quot;')}" placeholder="예: 도시락">
+            </div>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">브랜드</div>
+          <div class="admin-form-row">
+            <div class="admin-form-field">
+              <label>브랜드명</label>
+              <input type="text" data-field="brand" value="${(store.brand || '').replace(/"/g, '&quot;')}" placeholder="예: OO브랜드">
             </div>
           </div>
         </div>
@@ -206,11 +215,12 @@ function collectData() {
   storeEls.forEach((storeEl) => {
     const storeId = storeEl.dataset.storeId;
     const titleInput = storeEl.querySelector('input[data-field="title"]');
+    const brandInput = storeEl.querySelector('input[data-field="brand"]');
     const accountHolderInput = storeEl.querySelector('input[data-field="accountHolder"]');
     const bankNameInput = storeEl.querySelector('input[data-field="bankName"]');
     const accountNumberInput = storeEl.querySelector('input[data-field="accountNumber"]');
 
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, payment: {
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', payment: {
       accountHolder: accountHolderInput?.value?.trim() || '',
       bankName: bankNameInput?.value?.trim() || '',
       accountNumber: accountNumberInput?.value?.trim() || '',
@@ -304,6 +314,7 @@ async function init() {
           id: generateStoreId(),
           slug: generateStoreId(),
           title: '새 카테고리',
+          brand: '',
           payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' },
         };
         const div = document.createElement('div');
