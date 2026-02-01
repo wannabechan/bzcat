@@ -112,6 +112,22 @@ async function getOrdersByUser(email) {
   return orders;
 }
 
+async function getOrderById(orderId) {
+  const redis = getRedis();
+  const raw = await redis.get(`order:${orderId}`);
+  if (!raw) return null;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
+}
+
+async function updateOrderStatus(orderId, status) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.status = status;
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
 // ===== Stores & Menus (Admin) =====
 
 const STORES_KEY = 'app:stores';
@@ -217,6 +233,8 @@ module.exports = {
   updateUserLogin,
   createOrder,
   getOrdersByUser,
+  getOrderById,
+  updateOrderStatus,
   getStores,
   getMenus,
   saveStoresAndMenus,
