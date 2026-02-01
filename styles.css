@@ -896,14 +896,18 @@ body {
 
 .cart-min-order-notice {
   font-size: 0.8125rem;
-  color: var(--color-text-secondary);
+  color: #b0b0b0;
   margin-bottom: 12px;
   line-height: 1.4;
-  transition: color 0.2s;
 }
 
-.cart-min-order-notice.notice-alert {
-  color: #c5221f;
+@keyframes notice-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.cart-min-order-notice.notice-blink {
+  animation: notice-blink 0.4s ease-in-out 3;
 }
 
 /* ===== Checkout Modal ===== */

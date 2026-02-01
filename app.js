@@ -534,8 +534,10 @@ function init() {
     const CATEGORY_MIN = 150000;
     const allMeet = Object.keys(byCategory).every((slug) => byCategory[slug] >= CATEGORY_MIN);
     if (!allMeet) {
-      cartMinOrderNotice.classList.add('notice-alert');
-      setTimeout(() => cartMinOrderNotice.classList.remove('notice-alert'), 3000);
+      cartMinOrderNotice.classList.remove('notice-blink');
+      cartMinOrderNotice.offsetHeight;
+      cartMinOrderNotice.classList.add('notice-blink');
+      setTimeout(() => cartMinOrderNotice.classList.remove('notice-blink'), 1200);
       return;
     }
     closeCart();
