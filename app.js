@@ -469,6 +469,9 @@ function openCheckoutModal() {
 
   orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${renderOrderSummaryList(entries)}</div>`;
 
+  const orderDetailTotalEl = document.getElementById('orderDetailTotal');
+  if (orderDetailTotalEl) orderDetailTotalEl.textContent = formatPrice(total);
+
   const categoryIds = new Set();
   for (const [itemId] of entries) {
     categoryIds.add(getCategoryForItem(itemId));
