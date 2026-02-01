@@ -1568,22 +1568,22 @@ body {
   font-weight: 600;
 }
 
-.order-detail-header-actions {
+.order-detail-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .order-detail-pdf-btn {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-primary);
+  color: #b0b0b0;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .order-detail-pdf-btn:active {
-  color: var(--color-primary-hover);
+  color: #909090;
 }
 
 .order-detail-close {
