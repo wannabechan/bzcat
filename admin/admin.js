@@ -106,7 +106,7 @@ function renderStore(store, menus) {
   const items = menus || [];
 
   return `
-    <div class="admin-store" data-store-id="${store.id}">
+    <div class="admin-store" id="admin-store-${store.id.replace(/"/g, '')}" data-store-id="${store.id}">
       <div class="admin-store-header">
         <span class="admin-store-title">${store.title || store.id}</span>
         <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${store.id}" title="카테고리 삭제">삭제</button>
@@ -267,7 +267,16 @@ async function init() {
   try {
     const { stores, menus } = await fetchStores();
     const content = document.getElementById('adminContent');
+    const indexHtml = stores.length > 1
+      ? `<div class="admin-index">
+          <span class="admin-index-label">바로가기</span>
+          <div class="admin-index-btns">
+            ${stores.map((s) => `<button type="button" class="admin-btn admin-btn-index" data-goto-store="${s.id}">${s.title || s.id}</button>`).join('')}
+          </div>
+        </div>`
+      : '';
     content.innerHTML = `
+      ${indexHtml}
       <div class="admin-stores-list" id="adminStoresList">
         ${stores.map((s) => renderStore(s, menus[s.id] || [])).join('')}
       </div>
@@ -275,8 +284,14 @@ async function init() {
     `;
 
     content.addEventListener('click', (e) => {
+      if (e.target.closest('[data-goto-store]')) {
+        const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
+        const el = document.getElementById(`admin-store-${storeId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       if (e.target.closest('[data-add-store]')) {
         const list = document.getElementById('adminStoresList');
+        const indexBtns = document.querySelector('.admin-index-btns');
         const newStore = {
           id: generateStoreId(),
           slug: generateStoreId(),
@@ -286,6 +301,14 @@ async function init() {
         const div = document.createElement('div');
         div.innerHTML = renderStore(newStore, []);
         list.appendChild(div.firstElementChild);
+        if (indexBtns) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'admin-btn admin-btn-index';
+          btn.dataset.gotoStore = newStore.id;
+          btn.textContent = newStore.title;
+          indexBtns.appendChild(btn);
+        }
       }
       if (e.target.closest('[data-delete-store]')) {
         const btn = e.target.closest('[data-delete-store]');
@@ -301,6 +324,8 @@ async function init() {
           return;
         }
         if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+          const gotoBtn = content.querySelector(`[data-goto-store="${storeEl.dataset.storeId}"]`);
+          if (gotoBtn) gotoBtn.remove();
           storeEl.remove();
         }
       }
