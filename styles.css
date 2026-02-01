@@ -571,6 +571,11 @@ body {
   font-weight: 500;
 }
 
+@keyframes menu-add-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 .menu-add-btn {
   width: 36px;
   height: 36px;
@@ -587,6 +592,10 @@ body {
   transition: background 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   -webkit-tap-highlight-color: transparent;
+}
+
+.menu-add-btn:not(:disabled) {
+  animation: menu-add-blink 1.2s ease-in-out infinite;
 }
 
 .menu-add-btn:disabled {
