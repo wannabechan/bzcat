@@ -3,8 +3,8 @@
  * Key 구조:
  * - user:{email} = JSON 사용자 정보
  * - auth:code:{email} = 6자리 코드 (TTL 10분)
- * - orders:next_id = 숫자 (자동 증가)
- * - order:{id} = JSON 주문 정보
+ * - orders:count:{yymmdd} = 해당일 주문 건수 (INCR)
+ * - order:{id} = JSON 주문 정보 (id = yymmdd000 형식)
  * - orders:by_user:{email} = Sorted Set (score=timestamp, member=orderId)
  */
 
@@ -76,9 +76,27 @@ async function updateUserLogin(email) {
   return { ...user, is_first_login: isFirstLogin };
 }
 
+function getYymmddKST() {
+  const d = new Date();
+  const formatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  const y = get('year');
+  const m = get('month');
+  const day = get('day');
+  return `${y}${m}${day}`;
+}
+
 async function getNextOrderId() {
   const redis = getRedis();
-  return await redis.incr('orders:next_id');
+  const yymmdd = getYymmddKST();
+  const count = await redis.incr(`orders:count:${yymmdd}`);
+  return `${yymmdd}${String(count).padStart(3, '0')}`;
 }
 
 async function createOrder(orderData) {
