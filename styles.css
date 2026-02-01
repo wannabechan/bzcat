@@ -1082,14 +1082,18 @@ body {
 
 .profile-order-status-steps {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   margin-top: 8px;
   font-size: 0.75rem;
   color: var(--color-text-secondary);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
 }
 
 .profile-order-status-steps .step {
+  flex-shrink: 0;
   padding: 2px 8px;
   background: var(--color-surface);
   border-radius: 4px;
@@ -1145,6 +1149,15 @@ body {
 
 .profile-btn-load-more:hover {
   color: var(--color-primary-hover);
+}
+
+@media (max-width: 480px) {
+  .profile-order-status-steps {
+    font-size: 0.6875rem;
+  }
+  .profile-order-status-steps .step {
+    padding: 2px 6px;
+  }
 }
 
 /* ===== Checkout Modal ===== */
