@@ -16,7 +16,9 @@ const DEFAULT_CATEGORY_TITLES = {
 
 const MARGIN = 50;
 const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+const BOTTOM_LIMIT = PAGE_HEIGHT - MARGIN;
 
 function formatPrice(price) {
   return Number(price).toLocaleString() + '원';
@@ -132,21 +134,34 @@ async function generateOrderPdf(order, stores = []) {
     const col3 = MARGIN + 360;
     const col4 = MARGIN + 440;
 
-    // 테이블 헤더
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 24).fill('#e8e8e8').stroke('#ccc');
-    doc.fillColor('#333').fontSize(9);
-    if (!useKorean) doc.font('Helvetica-Bold');
-    doc.text('메뉴명', col1, y + 8);
-    doc.text('수량', col2, y + 8);
-    doc.text('단가', col3, y + 8);
-    doc.text('금액', col4, y + 8);
-    if (useKorean) doc.font('NotoSansKR');
-    doc.fillColor('#000');
-    y += 24;
+    function ensureSpace(needed, inTable) {
+      if (y + needed > BOTTOM_LIMIT) {
+        doc.addPage();
+        y = MARGIN;
+        if (inTable) drawTableHeader();
+      }
+    }
+
+    function drawTableHeader() {
+      doc.rect(MARGIN, y, CONTENT_WIDTH, 24).fill('#e8e8e8').stroke('#ccc');
+      doc.fillColor('#333').fontSize(9);
+      if (!useKorean) doc.font('Helvetica-Bold');
+      doc.text('메뉴명', col1, y + 8);
+      doc.text('수량', col2, y + 8);
+      doc.text('단가', col3, y + 8);
+      doc.text('금액', col4, y + 8);
+      if (useKorean) doc.font('NotoSansKR');
+      doc.fillColor('#000');
+      y += 24;
+    }
+
+    ensureSpace(24, true);
+    drawTableHeader();
 
     let rowNum = 0;
     for (const slug of orderedSlugs) {
       const title = getCategoryTitle(slug);
+      ensureSpace(20, true);
       doc.rect(MARGIN, y, CONTENT_WIDTH, 20).fill('#f5f5f5').stroke('#ddd');
       doc.fontSize(10).fillColor('#333');
       if (!useKorean) doc.font('Helvetica-Bold');
@@ -159,6 +174,7 @@ async function generateOrderPdf(order, stores = []) {
       for (const item of byCategory[slug]) {
         const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
         const rowH = 18;
+        ensureSpace(rowH, true);
         if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
         doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
         doc.fontSize(9);
@@ -172,6 +188,7 @@ async function generateOrderPdf(order, stores = []) {
     }
 
     // 총 금액 행
+    ensureSpace(36, true);
     y += 8;
     doc.rect(MARGIN, y, CONTENT_WIDTH, 28).fill('#f0f0f0').stroke('#ccc');
     doc.fontSize(10).fillColor('#000');
@@ -183,6 +200,7 @@ async function generateOrderPdf(order, stores = []) {
     y += 36;
 
     // ===== 4. 기타 안내 사항 =====
+    ensureSpace(150, false);
     doc.fontSize(12).fillColor('#333');
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('4. 기타 안내 사항', MARGIN, y);
@@ -207,6 +225,7 @@ async function generateOrderPdf(order, stores = []) {
     y += 16;
 
     // ===== 5. 면책 조항 =====
+    ensureSpace(140, false);
     doc.fontSize(12).fillColor('#333');
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('5. 면책 조항', MARGIN, y);
@@ -219,12 +238,16 @@ async function generateOrderPdf(order, stores = []) {
       '· 재고 수급 및 생산 일정 등 음식점 운영 사정에 따라 일부 메뉴 구성 또는 주문 내용이 변경될 수 있으며, 이 경우 사전에 고객에게 안내드립니다.',
       '· 플랫폼 서비스 운영 과정에서 제공되는 서비스의 일부 내용은 필요에 따라 예고 없이 변경될 수 있습니다.',
     ];
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 125).stroke('#ddd').fill('#fafafa');
+    const discWidth = CONTENT_WIDTH - 24;
     doc.fillColor('#555').fontSize(8);
+    const discLineH = 26;
+    const discTotalH = disclaimer.length * discLineH + 24;
+    ensureSpace(discTotalH, false);
+    doc.rect(MARGIN, y, CONTENT_WIDTH, discTotalH).stroke('#ddd').fill('#fafafa');
     y += 12;
     for (const d of disclaimer) {
-      doc.text(d, MARGIN + 12, y, { width: CONTENT_WIDTH - 24 });
-      y += doc.heightOfString(d, { width: CONTENT_WIDTH - 24 }) + 10;
+      doc.text(d, MARGIN + 12, y, { width: discWidth });
+      y += discLineH;
     }
 
     // 푸터
