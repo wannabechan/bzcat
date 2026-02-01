@@ -58,7 +58,6 @@ const expenseRadios = document.querySelectorAll('input[name="expenseDoc"]');
 const inputExpenseDoc = document.getElementById('inputExpenseDoc');
 const checkoutForm = document.getElementById('checkoutForm');
 const checkoutStep1 = document.getElementById('checkoutStep1');
-const checkoutStep2 = document.getElementById('checkoutStep2');
 const inputDeliveryDate = document.getElementById('inputDeliveryDate');
 const inputDeliveryTime = document.getElementById('inputDeliveryTime');
 const inputDeliveryAddress = document.getElementById('inputDeliveryAddress');
@@ -69,7 +68,6 @@ const btnOrderDetail = document.getElementById('btnOrderDetail');
 const orderDetailOverlay = document.getElementById('orderDetailOverlay');
 const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
-const checkoutBack = document.getElementById('checkoutBack');
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -439,12 +437,6 @@ function openCheckoutModal() {
 
   orderDetailContent.innerHTML = `<ul class="order-detail-list">${renderOrderSummaryList(entries)}</ul>`;
 
-  checkoutStep1.style.display = '';
-  checkoutStep2.style.display = 'none';
-  checkoutForm.classList.remove('form-step2');
-  checkoutBack.style.display = 'none';
-  document.getElementById('checkoutNotice1').textContent = '※ 입금자명, 연락처를 정확히 입력해 주세요.';
-  btnOrderSubmit.textContent = '배송 정보 입력';
   inputDepositor.value = '';
   inputContact.value = '';
   document.querySelector('input[name="expenseDoc"][value="none"]').checked = true;
@@ -456,6 +448,9 @@ function openCheckoutModal() {
   inputDeliveryAddress.value = '';
   detailAddressRow.style.display = 'none';
   inputDetailAddress.value = '';
+  inputDeliveryDate.min = getMinDeliveryDate();
+  inputDeliveryDate.max = getMaxDeliveryDate();
+  btnOrderSubmit.textContent = '주문 신청';
   btnOrderSubmit.disabled = true;
 
   checkoutModal.classList.add('visible');
@@ -536,22 +531,17 @@ function init() {
     updateOrderSubmitButton();
   }
   function updateOrderSubmitButton() {
-    const isStep1 = checkoutStep1.style.display !== 'none';
-    if (isStep1) {
-      const hasName = (inputDepositor.value || '').trim().length > 0;
-      const hasContact = (inputContact.value || '').trim().length > 0;
-      const selected = document.querySelector('input[name="expenseDoc"]:checked');
-      const needsExpenseInput = selected?.value === 'cash' || selected?.value === 'business';
-      const hasExpenseInput = !needsExpenseInput || (inputExpenseDoc.value || '').trim().length > 0;
-      btnOrderSubmit.disabled = !(hasName && hasContact && hasExpenseInput);
-    } else {
-      const hasDate = (inputDeliveryDate.value || '').trim().length > 0;
-      const hasTime = (inputDeliveryTime.value || '').trim().length > 0;
-      const hasAddress = (inputDeliveryAddress.value || '').trim().length > 0;
-      const detailRowVisible = detailAddressRow.style.display !== 'none';
-      const hasDetailAddress = !detailRowVisible || (inputDetailAddress.value || '').trim().length > 0;
-      btnOrderSubmit.disabled = !(hasDate && hasTime && hasAddress && hasDetailAddress);
-    }
+    const hasName = (inputDepositor.value || '').trim().length > 0;
+    const hasContact = (inputContact.value || '').trim().length > 0;
+    const selected = document.querySelector('input[name="expenseDoc"]:checked');
+    const needsExpenseInput = selected?.value === 'cash' || selected?.value === 'business';
+    const hasExpenseInput = !needsExpenseInput || (inputExpenseDoc.value || '').trim().length > 0;
+    const hasDate = (inputDeliveryDate.value || '').trim().length > 0;
+    const hasTime = (inputDeliveryTime.value || '').trim().length > 0;
+    const hasAddress = (inputDeliveryAddress.value || '').trim().length > 0;
+    const detailRowVisible = detailAddressRow.style.display !== 'none';
+    const hasDetailAddress = !detailRowVisible || (inputDetailAddress.value || '').trim().length > 0;
+    btnOrderSubmit.disabled = !(hasName && hasContact && hasExpenseInput && hasDate && hasTime && hasAddress && hasDetailAddress);
   }
   expenseRadios.forEach((r) => r.addEventListener('change', updateExpenseInputState));
   inputDepositor.addEventListener('input', updateOrderSubmitButton);
@@ -619,15 +609,6 @@ function init() {
   inputDetailAddress.addEventListener('input', updateOrderSubmitButton);
   inputDetailAddress.addEventListener('change', updateOrderSubmitButton);
 
-  checkoutBack.addEventListener('click', () => {
-    checkoutStep1.style.display = '';
-    checkoutStep2.style.display = 'none';
-    checkoutForm.classList.remove('form-step2');
-    checkoutBack.style.display = 'none';
-    document.getElementById('checkoutNotice1').textContent = '※ 입금자명, 연락처를 정확히 입력해 주세요.';
-    btnOrderSubmit.textContent = '배송 정보 입력';
-    updateOrderSubmitButton();
-  });
   btnOrderDetail.addEventListener('click', openOrderDetailOverlay);
   orderDetailClose.addEventListener('click', closeOrderDetailOverlay);
   orderDetailOverlay.addEventListener('click', (e) => {
@@ -635,19 +616,6 @@ function init() {
   });
 
   btnOrderSubmit.addEventListener('click', async () => {
-    const isStep1 = checkoutStep1.style.display !== 'none';
-    if (isStep1) {
-      checkoutStep1.style.display = 'none';
-      checkoutStep2.style.display = '';
-      checkoutForm.classList.add('form-step2');
-      checkoutBack.style.display = 'flex';
-      document.getElementById('checkoutNotice1').textContent = '※ 배송 희망 날짜는 6일후 ~ 45일후 기간 내에서만 선택 가능합니다.';
-      inputDeliveryDate.min = getMinDeliveryDate();
-      inputDeliveryDate.max = getMaxDeliveryDate();
-      btnOrderSubmit.textContent = '주문 신청';
-      updateOrderSubmitButton();
-    } else {
-      // Step 2: 주문 제출 (API 호출)
       const token = window.BzCatAuth?.getToken();
       if (!token) {
         alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -722,7 +690,6 @@ function init() {
         btnOrderSubmit.disabled = false;
         btnOrderSubmit.textContent = '주문 신청';
       }
-    }
   });
 
   // ESC 키로 모달/오버레이 닫기

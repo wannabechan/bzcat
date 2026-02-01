@@ -114,15 +114,12 @@
         <div class="modal-header">
           <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">결제안내</h2>
           <div class="modal-header-actions">
-            <button type="button" class="modal-back" id="checkoutBack" aria-label="뒤로가기" style="display: none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            </button>
             <button class="modal-close" id="checkoutClose" aria-label="닫기">&times;</button>
           </div>
         </div>
         <div class="modal-body">
           <div class="bank-info">
-            <h3>계좌송금 정보</h3>
+            <h3>주문 요약</h3>
             <div class="bank-details">
               <dl>
                 <dt>주문시간</dt>
@@ -135,7 +132,8 @@
               </dl>
             </div>
             <div class="bank-notice">
-              <p id="checkoutNotice1">※ 입금자명, 연락처를 정확히 입력해 주세요.</p>
+              <p>※ 입금자명, 연락처를 정확히 입력해 주세요.</p>
+              <p>※ 배송 희망 날짜는 6일후 ~ 45일후 기간 내에서만 선택 가능합니다.</p>
             </div>
           </div>
           <div class="order-summary-wrap">
@@ -143,12 +141,12 @@
               <div class="checkout-step" id="checkoutStep1">
                 <div class="form-row form-row-inline">
                   <div class="form-field">
-                    <label class="form-label" for="inputDepositor">입금자명</label>
-                    <input type="text" id="inputDepositor" class="form-input" placeholder="입금자명 입력" autocomplete="name">
+                    <label class="form-label" for="inputDepositor">주문자명</label>
+                    <input type="text" id="inputDepositor" class="form-input" placeholder="주문자명 입력" autocomplete="name">
                   </div>
                   <div class="form-field">
-                    <label class="form-label" for="inputContact">연락처</label>
-                    <input type="tel" id="inputContact" class="form-input" placeholder="연락처 입력" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" maxlength="11">
+                    <label class="form-label" for="inputContact">비상 연락처</label>
+                    <input type="tel" id="inputContact" class="form-input" placeholder="비상 연락처 입력" autocomplete="tel" inputmode="numeric" pattern="[0-9]*" maxlength="11">
                   </div>
                 </div>
                 <div class="form-row form-row-expense">
@@ -169,8 +167,6 @@
                   </div>
                   <input type="text" id="inputExpenseDoc" class="form-input" placeholder="" disabled>
                 </div>
-              </div>
-              <div class="checkout-step" id="checkoutStep2" style="display: none;">
                 <div class="form-row form-row-inline">
                   <div class="form-field">
                     <label class="form-label" for="inputDeliveryDate">배송희망날짜</label>
@@ -204,7 +200,7 @@
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn-order-submit" id="btnOrderSubmit" disabled>배송 정보 입력</button>
+              <button type="button" class="btn-order-submit" id="btnOrderSubmit" disabled>주문 신청</button>
             </div>
           </div>
           <div class="postcode-overlay" id="postcodeOverlay" aria-hidden="true">
