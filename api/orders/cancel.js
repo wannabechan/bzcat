@@ -34,8 +34,8 @@ module.exports = async (req, res) => {
     }
 
     const { orderId } = req.body;
-    const id = parseInt(orderId, 10);
-    if (!id || isNaN(id)) {
+    const id = orderId != null ? (typeof orderId === 'number' ? orderId : String(orderId).trim()) : '';
+    if (!id) {
       return apiResponse(res, 400, { error: '주문 번호가 올바르지 않습니다.' });
     }
 

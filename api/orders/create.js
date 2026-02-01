@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
     try {
       const stores = await getStores();
       const pdfBuffer = await generateOrderPdf(order, stores);
-      const pathname = `orders/order-${order.id}-${Date.now()}.pdf`;
+      const pathname = `orders/order-${order.id}.pdf`;
       const blob = await put(pathname, pdfBuffer, {
         access: 'public',
         contentType: 'application/pdf',
