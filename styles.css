@@ -1048,33 +1048,20 @@ body {
 }
 
 .profile-btn {
-  padding: 4px 10px;
+  padding: 0;
   font-size: 0.75rem;
   font-family: inherit;
   font-weight: 500;
-  border-radius: 4px;
+  background: none;
+  border: none;
   cursor: pointer;
+  color: #b0b0b0;
   -webkit-tap-highlight-color: transparent;
 }
 
-.profile-btn-detail {
-  color: var(--color-primary);
-  background: rgba(230, 123, 25, 0.1);
-  border: 1px solid var(--color-primary);
-}
-
-.profile-btn-detail:active {
-  background: rgba(230, 123, 25, 0.2);
-}
-
-.profile-btn-cancel {
-  color: #c5221f;
-  background: rgba(197, 34, 31, 0.08);
-  border: 1px solid #c5221f;
-}
-
+.profile-btn-detail:active,
 .profile-btn-cancel:active {
-  background: rgba(197, 34, 31, 0.15);
+  color: #909090;
 }
 
 .profile-order-date {
@@ -1125,6 +1112,11 @@ body {
   background: rgba(197, 34, 31, 0.08);
   border-color: #c5221f;
   color: #c5221f;
+}
+
+.profile-order-amount.cancelled {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
 }
 
 .profile-order-amount {
@@ -1743,12 +1735,8 @@ body {
     background: rgba(0, 0, 0, 0.04);
   }
 
-  .profile-btn-detail:hover {
-    background: rgba(230, 123, 25, 0.2);
-  }
-
-  .profile-btn-cancel:hover {
-    background: rgba(197, 34, 31, 0.12);
+  .profile-btn:hover {
+    color: #909090;
   }
 
   .category-tab:hover {

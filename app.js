@@ -647,22 +647,25 @@ async function fetchAndRenderProfileOrders() {
     const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
 
     profileOrdersData = {};
+    const CANCELABLE_STEP_COUNT = 2;
     profileOrders.innerHTML = orders
       .map((o) => {
         profileOrdersData[o.id] = o;
         const cancelled = isCancelled(o.status);
         const currentIdx = cancelled ? -1 : stepIndex(o.status);
-        const stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
-          let cls = 'step';
-          if (cancelled) {
-            cls += ' done';
-          } else if (i < currentIdx) {
-            cls += ' done';
-          } else if (i === currentIdx) {
-            cls += ' active';
-          }
-          return `<span class="${cls}">${s.label}</span>`;
-        }).join('');
+        let stepsHtml;
+        if (cancelled) {
+          stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)
+            .map((s) => `<span class="step done">${s.label}</span>`)
+            .join('');
+        } else {
+          stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
+            let cls = 'step';
+            if (i < currentIdx) cls += ' done';
+            else if (i === currentIdx) cls += ' active';
+            return `<span class="${cls}">${s.label}</span>`;
+          }).join('');
+        }
         const showCancelBtn = canCancel(o.status);
 
         return `
@@ -678,8 +681,8 @@ async function fetchAndRenderProfileOrders() {
               <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
             </div>
             <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
-            <div class="profile-order-status-steps">${stepsHtml}${cancelled ? '<span class="step cancelled">주문 취소</span>' : ''}</div>
-            <div class="profile-order-amount">${formatPrice(o.totalAmount || 0)}</div>
+            <div class="profile-order-status-steps">${stepsHtml}</div>
+            <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
           </div>
         `;
       })
