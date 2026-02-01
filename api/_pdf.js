@@ -54,7 +54,9 @@ async function generateOrderPdf(order, stores = []) {
   }
 
   const categoryOrder = ['bento', 'side', 'salad', 'beverage', 'dessert'];
-  const orderedSlugs = categoryOrder.filter((s) => byCategory[s]?.length);
+  const knownSlugs = categoryOrder.filter((s) => byCategory[s]?.length);
+  const otherSlugs = Object.keys(byCategory).filter((s) => !categoryOrder.includes(s));
+  const orderedSlugs = [...knownSlugs, ...otherSlugs];
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
@@ -93,12 +95,13 @@ async function generateOrderPdf(order, stores = []) {
     y += 20;
 
     const infoBoxY = y;
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 52).stroke('#ccc').fill('#fafafa');
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 72).stroke('#ccc').fill('#fafafa');
     doc.fillColor('#000').fontSize(10);
     y += 14;
-    doc.text(`주문자명: ${order.depositor || '—'}`, MARGIN + 12, y);
-    doc.text(`연락처: ${order.contact || '—'}`, MARGIN + 12, y + 18);
-    y = infoBoxY + 52 + 20;
+    doc.text(`주문자 이메일: ${order.user_email || '—'}`, MARGIN + 12, y);
+    doc.text(`주문자명: ${order.depositor || '—'}`, MARGIN + 12, y + 18);
+    doc.text(`연락처: ${order.contact || '—'}`, MARGIN + 12, y + 36);
+    y = infoBoxY + 72 + 20;
 
     // ===== 2. 주문 정보 =====
     doc.fontSize(12).fillColor('#333');
@@ -154,15 +157,15 @@ async function generateOrderPdf(order, stores = []) {
       rowNum++;
 
       for (const item of byCategory[slug]) {
-        const lineTotal = item.price * item.qty;
+        const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
         const rowH = 18;
         if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
         doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
         doc.fontSize(9);
-        doc.text(item.name, col1, y + 5);
-        doc.text(String(item.qty), col2, y + 5);
-        doc.text(formatPrice(item.price), col3, y + 5);
-        doc.text(formatPrice(lineTotal), col4, y + 5);
+        doc.text(String(item.name || ''), col1, y + 5, { width: col2 - col1 - 8 });
+        doc.text(String(item.qty || 0), col2, y + 5);
+        doc.text(formatPrice(item.price || 0), col3, y + 5);
+        doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
         y += rowH;
         rowNum++;
       }
@@ -171,10 +174,11 @@ async function generateOrderPdf(order, stores = []) {
     // 총 금액 행
     y += 8;
     doc.rect(MARGIN, y, CONTENT_WIDTH, 28).fill('#f0f0f0').stroke('#ccc');
-    doc.fontSize(11).fillColor('#000');
+    doc.fontSize(10).fillColor('#000');
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('총 주문 금액', col1, y + 9);
-    doc.text(formatPrice(order.total_amount || 0), col4, y + 9);
+    doc.fontSize(9);
+    doc.text(formatPrice(order.total_amount || 0), col4, y + 10, { width: 55, align: 'right', lineBreak: false });
     if (useKorean) doc.font('NotoSansKR');
     y += 36;
 
@@ -187,17 +191,18 @@ async function generateOrderPdf(order, stores = []) {
 
     const noticeBoxY = y;
     const notices = [
-      '· 결제 완료 후 주문이 확정됩니다.',
-      '· 배송 희망일 6일 전까지 주문 및 결제를 완료해 주세요.',
-      '· 주문 변경·취소는 배송 3일 전까지 가능합니다.',
-      '· 문의사항은 주문 시 입력한 연락처로 안내드립니다.',
+      '· 본 주문서는 주문자의 신청에 따른 주문 내용 확인용 문서이며, 최종 결제 완료 후 주문이 확정됩니다.',
+      '· 배송 희망일 5일전 결제 링크가 생성되고, 등록하신 연락처로 안내 메세지를 보내드립니다.',
+      '· 홈페이지 마이프로필에서 해당 주문의 [결제 링크 발급] 버튼을 누르시고 결제를 진행하시면 됩니다.',
+      '· 배송 희망일 4일전까지 결제 완료 필수이며, 기한 내 결제되지 않은 주문은 자동 취소됩니다.',
+      '· 결제 완료된 주문은 취소되지 않으며 환불은 불가합니다.',
     ];
-    doc.rect(MARGIN, y, CONTENT_WIDTH, notices.length * 20 + 16).stroke('#ccc').fill('#fcfcfc');
+    doc.rect(MARGIN, y, CONTENT_WIDTH, notices.length * 22 + 16).stroke('#ccc').fill('#fcfcfc');
     doc.fillColor('#444').fontSize(9);
     y += 12;
     for (const n of notices) {
-      doc.text(n, MARGIN + 12, y);
-      y += 20;
+      doc.text(n, MARGIN + 12, y, { width: CONTENT_WIDTH - 24 });
+      y += 22;
     }
     y += 16;
 
@@ -209,16 +214,15 @@ async function generateOrderPdf(order, stores = []) {
     y += 20;
 
     const disclaimer = [
-      '본 주문서는 주문자의 신청에 따른 주문 내용 확인용 문서입니다.',
-      '재고·생산 사정 등으로 인해 일부 메뉴 변경 또는 배송일 조정이 있을 수 있으며,',
-      '해당 시 사전에 연락드립니다. 예고 없이 제공되는 서비스 내용이 변경될 수 있습니다.',
+      '본 웹사이트는 소상공인 음식점의 메뉴 노출 및 주문 연결을 지원하기 위한 비영리 플랫폼으로, 플랫폼 제공자는 상품의 판매 당사자가 아닙니다. 각 주문에 대한 결제, 조리, 배송, 환불 및 기타 거래상의 책임은 해당 메뉴에 명시된 음식점에 있으며, 플랫폼 제공자는 이에 대한 법적·계약상 책임을 부담하지 않습니다.',
+      '또한 재고 수급, 생산 일정 등 음식점의 운영 사정에 따라 일부 메뉴의 구성 변경 또는 주문 내용의 조정이 발생할 수 있으며, 이러한 경우 사전에 고객에게 안내드립니다. 서비스 운영 과정에서 제공되는 서비스의 일부 내용은 운영상 필요에 따라 예고 없이 변경될 수 있습니다.',
     ];
-    doc.rect(MARGIN, y, CONTENT_WIDTH, disclaimer.length * 18 + 16).stroke('#ddd').fill('#fafafa');
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 125).stroke('#ddd').fill('#fafafa');
     doc.fillColor('#555').fontSize(8);
     y += 12;
     for (const d of disclaimer) {
-      doc.text(d, MARGIN + 12, y);
-      y += 18;
+      doc.text(d, MARGIN + 12, y, { width: CONTENT_WIDTH - 24 });
+      y += doc.heightOfString(d, { width: CONTENT_WIDTH - 24 }) + 10;
     }
 
     // 푸터
