@@ -109,7 +109,12 @@ function renderStore(store, menus) {
     <div class="admin-store" id="admin-store-${store.id.replace(/"/g, '')}" data-store-id="${store.id}">
       <div class="admin-store-header">
         <span class="admin-store-title">${store.title || store.id}</span>
-        <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${store.id}" title="카테고리 삭제">삭제</button>
+        <div class="admin-store-header-actions">
+          <button type="button" class="admin-btn admin-btn-top" data-scroll-top aria-label="맨 위로">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+          <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${store.id}" title="카테고리 삭제">삭제</button>
+        </div>
       </div>
       <div class="admin-store-body">
         <div class="admin-section">
@@ -284,6 +289,9 @@ async function init() {
     `;
 
     content.addEventListener('click', (e) => {
+      if (e.target.closest('[data-scroll-top]')) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       if (e.target.closest('[data-goto-store]')) {
         const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
         const el = document.getElementById(`admin-store-${storeId}`);
