@@ -1,5 +1,7 @@
 /**
  * 주문서 PDF 생성 (정식 주문서 형식)
+ * P1: 주문자 정보, 주문 정보, 기타 안내 사항, 면책 조항
+ * P2+: 주문 내역
  */
 
 const PDFDocument = require('pdfkit');
@@ -35,7 +37,18 @@ function formatDate(isoStr) {
   return `${y}.${m}.${day} ${h}:${min}`;
 }
 
+function formatFooterDate(date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${day} ${h}:${min}`;
+}
+
 async function generateOrderPdf(order, stores = []) {
+  const pdfGeneratedAt = new Date();
   const slugToTitle = {};
   for (const s of stores) {
     slugToTitle[s.slug || s.id] = s.title || s.id;
@@ -74,23 +87,23 @@ async function generateOrderPdf(order, stores = []) {
       doc.font('NotoSansKR');
     }
 
+    doc.fillColor('#000');
     let y = MARGIN;
 
     // ===== 헤더 =====
-    doc.fontSize(24).fillColor('#1a1a1a');
+    doc.fontSize(24);
     doc.text('BzCat', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
-    doc.fontSize(14).fillColor('#555');
+    doc.fontSize(14);
     y = doc.y + 4;
     doc.text('비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
     y = doc.y + 20;
-    doc.fillColor('#000');
 
     // 구분선
     doc.moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke('#ddd');
     y += 16;
 
-    // ===== 1. 주문자 정보 =====
-    doc.fontSize(12).fillColor('#333');
+    // ===== P1: 1. 주문자 정보 =====
+    doc.fontSize(12);
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('1. 주문자 정보', MARGIN, y);
     if (useKorean) doc.font('NotoSansKR');
@@ -106,7 +119,7 @@ async function generateOrderPdf(order, stores = []) {
     y = infoBoxY + 72 + 20;
 
     // ===== 2. 주문 정보 =====
-    doc.fontSize(12).fillColor('#333');
+    doc.fontSize(12);
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('2. 주문 정보', MARGIN, y);
     if (useKorean) doc.font('NotoSansKR');
@@ -122,92 +135,13 @@ async function generateOrderPdf(order, stores = []) {
     doc.text(`배송주소: ${order.delivery_address || '—'} ${order.detail_address || ''}`, MARGIN + 12, y + 54);
     y = orderBoxY + 90 + 20;
 
-    // ===== 3. 주문 내역 =====
-    doc.fontSize(12).fillColor('#333');
+    // ===== 3. 기타 안내 사항 =====
+    doc.fontSize(12);
     if (!useKorean) doc.font('Helvetica-Bold');
-    doc.text('3. 주문 내역', MARGIN, y);
+    doc.text('3. 기타 안내 사항', MARGIN, y);
     if (useKorean) doc.font('NotoSansKR');
     y += 20;
 
-    const col1 = MARGIN + 12;
-    const col2 = MARGIN + 280;
-    const col3 = MARGIN + 360;
-    const col4 = MARGIN + 440;
-
-    function ensureSpace(needed, inTable) {
-      if (y + needed > BOTTOM_LIMIT) {
-        doc.addPage();
-        y = MARGIN;
-        if (inTable) drawTableHeader();
-      }
-    }
-
-    function drawTableHeader() {
-      doc.rect(MARGIN, y, CONTENT_WIDTH, 24).fill('#e8e8e8').stroke('#ccc');
-      doc.fillColor('#333').fontSize(9);
-      if (!useKorean) doc.font('Helvetica-Bold');
-      doc.text('메뉴명', col1, y + 8);
-      doc.text('수량', col2, y + 8);
-      doc.text('단가', col3, y + 8);
-      doc.text('금액', col4, y + 8);
-      if (useKorean) doc.font('NotoSansKR');
-      doc.fillColor('#000');
-      y += 24;
-    }
-
-    ensureSpace(24, true);
-    drawTableHeader();
-
-    let rowNum = 0;
-    for (const slug of orderedSlugs) {
-      const title = getCategoryTitle(slug);
-      ensureSpace(20, true);
-      doc.rect(MARGIN, y, CONTENT_WIDTH, 20).fill('#f5f5f5').stroke('#ddd');
-      doc.fontSize(10).fillColor('#333');
-      if (!useKorean) doc.font('Helvetica-Bold');
-      doc.text(`[${title}]`, col1, y + 6);
-      if (useKorean) doc.font('NotoSansKR');
-      doc.fillColor('#000');
-      y += 20;
-      rowNum++;
-
-      for (const item of byCategory[slug]) {
-        const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
-        const rowH = 18;
-        ensureSpace(rowH, true);
-        if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
-        doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
-        doc.fontSize(9);
-        doc.text(String(item.name || ''), col1, y + 5, { width: col2 - col1 - 8 });
-        doc.text(String(item.qty || 0), col2, y + 5);
-        doc.text(formatPrice(item.price || 0), col3, y + 5);
-        doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
-        y += rowH;
-        rowNum++;
-      }
-    }
-
-    // 총 금액 행
-    ensureSpace(36, true);
-    y += 8;
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 28).fill('#f0f0f0').stroke('#ccc');
-    doc.fontSize(10).fillColor('#000');
-    if (!useKorean) doc.font('Helvetica-Bold');
-    doc.text('총 주문 금액', col1, y + 9);
-    doc.fontSize(9);
-    doc.text(formatPrice(order.total_amount || 0), col4, y + 10, { width: 55, align: 'right', lineBreak: false });
-    if (useKorean) doc.font('NotoSansKR');
-    y += 36;
-
-    // ===== 4. 기타 안내 사항 =====
-    ensureSpace(150, false);
-    doc.fontSize(12).fillColor('#333');
-    if (!useKorean) doc.font('Helvetica-Bold');
-    doc.text('4. 기타 안내 사항', MARGIN, y);
-    if (useKorean) doc.font('NotoSansKR');
-    y += 20;
-
-    const noticeBoxY = y;
     const notices = [
       '· 본 주문서는 주문자의 신청에 따른 주문 내용 확인용 문서이며, 최종 결제 완료 후 주문이 확정됩니다.',
       '· 배송 희망일 5일전 결제 링크가 생성되고, 등록하신 연락처로 안내 메세지를 보내드립니다.',
@@ -216,7 +150,7 @@ async function generateOrderPdf(order, stores = []) {
       '· 결제 완료된 주문은 취소되지 않으며 환불은 불가합니다.',
     ];
     doc.rect(MARGIN, y, CONTENT_WIDTH, notices.length * 22 + 16).stroke('#ccc').fill('#fcfcfc');
-    doc.fillColor('#444').fontSize(9);
+    doc.fillColor('#000').fontSize(9);
     y += 12;
     for (const n of notices) {
       doc.text(n, MARGIN + 12, y, { width: CONTENT_WIDTH - 24 });
@@ -224,11 +158,10 @@ async function generateOrderPdf(order, stores = []) {
     }
     y += 16;
 
-    // ===== 5. 면책 조항 =====
-    ensureSpace(140, false);
-    doc.fontSize(12).fillColor('#333');
+    // ===== 4. 면책 조항 =====
+    doc.fontSize(12);
     if (!useKorean) doc.font('Helvetica-Bold');
-    doc.text('5. 면책 조항', MARGIN, y);
+    doc.text('4. 면책 조항', MARGIN, y);
     if (useKorean) doc.font('NotoSansKR');
     y += 20;
 
@@ -239,10 +172,9 @@ async function generateOrderPdf(order, stores = []) {
       '· 플랫폼 서비스 운영 과정에서 제공되는 서비스의 일부 내용은 필요에 따라 예고 없이 변경될 수 있습니다.',
     ];
     const discWidth = CONTENT_WIDTH - 24;
-    doc.fillColor('#555').fontSize(8);
+    doc.fillColor('#000').fontSize(8);
     const discLineH = 26;
     const discTotalH = disclaimer.length * discLineH + 24;
-    ensureSpace(discTotalH, false);
     doc.rect(MARGIN, y, CONTENT_WIDTH, discTotalH).stroke('#ddd').fill('#fafafa');
     y += 12;
     for (const d of disclaimer) {
@@ -250,10 +182,87 @@ async function generateOrderPdf(order, stores = []) {
       y += discLineH;
     }
 
-    // 푸터
-    y += 24;
-    doc.fontSize(8).fillColor('#999');
-    doc.text(`작성일시: ${formatDate(order.created_at)}  |  BzCat 비즈니스 케이터링`, MARGIN, y, {
+    // ===== P2: 5. 주문 내역 =====
+    doc.addPage();
+    y = MARGIN;
+
+    const col1 = MARGIN + 12;
+    const col2 = MARGIN + 280;
+    const col3 = MARGIN + 360;
+    const col4 = MARGIN + 440;
+
+    function ensureSpace(needed) {
+      if (y + needed > BOTTOM_LIMIT - 30) {
+        doc.addPage();
+        y = MARGIN;
+        drawTableHeader();
+      }
+    }
+
+    function drawTableHeader() {
+      doc.rect(MARGIN, y, CONTENT_WIDTH, 24).fill('#e8e8e8').stroke('#ccc');
+      doc.fillColor('#000').fontSize(9);
+      if (!useKorean) doc.font('Helvetica-Bold');
+      doc.text('메뉴명', col1, y + 8);
+      doc.text('수량', col2, y + 8);
+      doc.text('단가', col3, y + 8);
+      doc.text('금액', col4, y + 8);
+      if (useKorean) doc.font('NotoSansKR');
+      y += 24;
+    }
+
+    doc.fontSize(12);
+    if (!useKorean) doc.font('Helvetica-Bold');
+    doc.text('5. 주문 내역', MARGIN, y);
+    if (useKorean) doc.font('NotoSansKR');
+    y += 20;
+
+    ensureSpace(24);
+    drawTableHeader();
+
+    let rowNum = 0;
+    for (const slug of orderedSlugs) {
+      const title = getCategoryTitle(slug);
+      ensureSpace(20);
+      doc.rect(MARGIN, y, CONTENT_WIDTH, 20).fill('#f5f5f5').stroke('#ddd');
+      doc.fontSize(10).fillColor('#000');
+      if (!useKorean) doc.font('Helvetica-Bold');
+      doc.text(`[${title}]`, col1, y + 6);
+      if (useKorean) doc.font('NotoSansKR');
+      y += 20;
+      rowNum++;
+
+      for (const item of byCategory[slug]) {
+        const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
+        const rowH = 18;
+        ensureSpace(rowH);
+        if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
+        doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
+        doc.fontSize(9).fillColor('#000');
+        doc.text(String(item.name || ''), col1, y + 5, { width: col2 - col1 - 8 });
+        doc.text(String(item.qty || 0), col2, y + 5);
+        doc.text(formatPrice(item.price || 0), col3, y + 5);
+        doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
+        y += rowH;
+        rowNum++;
+      }
+    }
+
+    // 총 금액 행
+    ensureSpace(36);
+    y += 8;
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 28).fill('#f0f0f0').stroke('#ccc');
+    doc.fontSize(10).fillColor('#000');
+    if (!useKorean) doc.font('Helvetica-Bold');
+    doc.text('총 주문 금액', col1, y + 9);
+    doc.fontSize(9);
+    doc.text(formatPrice(order.total_amount || 0), col4, y + 10, { width: 55, align: 'right', lineBreak: false });
+    if (useKorean) doc.font('NotoSansKR');
+    y += 36;
+
+    // 푸터 (마지막 페이지 최하단)
+    doc.fontSize(8).fillColor('#000');
+    doc.text(`작성일시: ${formatFooterDate(pdfGeneratedAt)}  |  BzCat 비즈니스 케이터링`, MARGIN, PAGE_HEIGHT - MARGIN - 12, {
       align: 'center',
       width: CONTENT_WIDTH,
     });
