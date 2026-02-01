@@ -518,6 +518,11 @@ function openCheckoutModal() {
 
   const orderDetailPanel = orderDetailOverlay.querySelector('.order-detail-panel');
   if (orderDetailPanel) orderDetailPanel.classList.remove('order-detail-cancelled');
+  const pdfBtn = document.getElementById('orderDetailPdfBtn');
+  if (pdfBtn) {
+    pdfBtn.href = '#';
+    pdfBtn.style.display = 'none';
+  }
   const orderDetailTotalEl = document.getElementById('orderDetailTotal');
   if (orderDetailTotalEl) orderDetailTotalEl.textContent = formatPrice(total);
 
@@ -578,6 +583,18 @@ function openProfileOrderDetail(order) {
   if (totalEl) totalEl.textContent = formatPrice(order.totalAmount || 0);
   const panel = orderDetailOverlay.querySelector('.order-detail-panel');
   if (panel) panel.classList.toggle('order-detail-cancelled', order.status === 'cancelled');
+
+  const pdfBtn = document.getElementById('orderDetailPdfBtn');
+  if (pdfBtn) {
+    if (order.pdfUrl) {
+      pdfBtn.href = order.pdfUrl;
+      pdfBtn.style.display = '';
+    } else {
+      pdfBtn.href = '#';
+      pdfBtn.style.display = 'none';
+    }
+  }
+
   orderDetailOverlay.classList.add('visible');
   orderDetailOverlay.setAttribute('aria-hidden', 'false');
 }

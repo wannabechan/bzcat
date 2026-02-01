@@ -110,7 +110,7 @@
           <span>총 금액</span>
           <strong id="cartTotal">0원</strong>
         </div>
-        <button class="btn-checkout" id="btnCheckout">결제 안내</button>
+        <button class="btn-checkout" id="btnCheckout">주문 접수</button>
       </div>
     </aside>
 
@@ -138,7 +138,7 @@
     <div class="modal-overlay" id="checkoutModal" aria-hidden="true">
       <div class="modal checkout-modal">
         <div class="modal-header">
-          <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">결제안내</h2>
+          <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">주문 접수</h2>
           <div class="modal-header-actions">
             <button class="modal-close" id="checkoutClose" aria-label="닫기">&times;</button>
           </div>
@@ -227,7 +227,10 @@
       <div class="order-detail-panel">
         <div class="order-detail-header">
           <h3>주문 내역</h3>
-          <button type="button" class="order-detail-close" id="orderDetailClose" aria-label="닫기">&times;</button>
+          <div class="order-detail-header-actions">
+            <a id="orderDetailPdfBtn" href="#" target="_blank" rel="noopener noreferrer" class="order-detail-pdf-btn" style="display: none;">주문서 확인</a>
+            <button type="button" class="order-detail-close" id="orderDetailClose" aria-label="닫기">&times;</button>
+          </div>
         </div>
         <div class="order-detail-content" id="orderDetailContent"></div>
         <div class="order-detail-footer">

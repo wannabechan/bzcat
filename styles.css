@@ -1568,6 +1568,24 @@ body {
   font-weight: 600;
 }
 
+.order-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.order-detail-pdf-btn {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.order-detail-pdf-btn:active {
+  color: var(--color-primary-hover);
+}
+
 .order-detail-close {
   width: 36px;
   height: 36px;
