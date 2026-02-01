@@ -89,14 +89,9 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     // ===== 헤더 =====
     doc.fontSize(24);
     doc.text('BzCat', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
-    if (isCancelled) {
-      doc.fontSize(10).fillColor('#c5221f');
-      doc.text('*주문 취소건', PAGE_WIDTH - MARGIN - 80, MARGIN, { align: 'right', width: 80 });
-      doc.fillColor('#000');
-    }
     doc.fontSize(14);
     y = doc.y + 4;
-    doc.text('비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
+    doc.text(isCancelled ? '비즈니스 케이터링 주문서 (취소 주문 건)' : '비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
     y = doc.y + 20;
 
     // 구분선
@@ -160,6 +155,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     y += 16;
 
     // ===== 4. 면책 조항 =====
+    y += 10;
     doc.fontSize(12);
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('4. 면책 조항', MARGIN, y);
@@ -168,7 +164,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
 
     const disclaimer = [
       '· 본 웹사이트는 소상공인 음식점의 주문 연결을 지원하기 위한 비영리 플랫폼으로, 플랫폼 제공자는 상품의 판매 당사자가 아닙니다.',
-      '· 각 주문에 대한 결제, 조리, 배송 및 환불 책임은 해당 메뉴에 명시된 음식점에 있으며, 플랫폼 제공자는 이에 대한 법적·계약상 책임을 지지 않습니다.',
+      '· 주문에 대한 결제, 조리 및 환불 책임은 해당 메뉴에 명시된 음식점에 있으며, 플랫폼 제공자는 이에 대한 법적·계약상 책임을 지지 않습니다.',
       '· 재고 수급 및 생산 일정 등 음식점 운영 사정에 따라 일부 메뉴 구성 또는 주문 내용이 변경될 수 있으며, 이 경우 사전에 고객에게 안내드립니다.',
       '· 플랫폼 서비스 운영 과정에서 제공되는 서비스의 일부 내용은 필요에 따라 예고 없이 변경될 수 있습니다.',
     ];
@@ -229,7 +225,9 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       doc.rect(MARGIN, y, CONTENT_WIDTH, 20).fill('#f5f5f5').stroke('#ddd');
       doc.fontSize(10).fillColor('#000');
       if (!useKorean) doc.font('Helvetica-Bold');
+      else doc.font('NotoSansKR');
       doc.text(`[${title}]`, col1, y + 6);
+      if (!useKorean) doc.font('Helvetica');
       if (useKorean) doc.font('NotoSansKR');
       y += 20;
       rowNum++;
@@ -241,10 +239,10 @@ async function generateOrderPdf(order, stores = [], options = {}) {
         if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
         doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
         doc.fontSize(9).fillColor('#000');
-        doc.text(String(item.name || ''), col1, y + 5, { width: col2 - col1 - 8 });
+        doc.text(`- ${String(item.name || '')}`, col1, y + 5, { width: col2 - col1 - 8 });
         doc.text(String(item.qty || 0), col2, y + 5);
         doc.text(formatPrice(item.price || 0), col3, y + 5);
-        doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
+        doc.text(formatPrice(lineTotal) + '   ', col4, y + 5, { width: 60, align: 'right' });
         y += rowH;
         rowNum++;
       }
@@ -258,7 +256,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('총 주문 금액', col1, y + 9);
     doc.fontSize(9);
-    doc.text(formatPrice(order.total_amount || 0), col4, y + 10, { width: 55, align: 'right', lineBreak: false });
+    doc.text(formatPrice(order.total_amount || 0) + '   ', col4, y + 10, { width: 60, align: 'right', lineBreak: false });
     if (useKorean) doc.font('NotoSansKR');
     y += 36;
 
