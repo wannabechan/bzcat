@@ -774,7 +774,7 @@ function init() {
       return;
     }
     const card = btn.closest('.profile-order-card');
-    const orderId = card && parseInt(card.dataset.orderId, 10);
+    const orderId = card?.dataset?.orderId;
     const order = orderId && profileOrdersData[orderId];
     if (!order) return;
     if (btn.dataset.action === 'detail') {
