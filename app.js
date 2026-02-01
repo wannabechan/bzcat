@@ -426,14 +426,33 @@ function renderOrderSummaryList(entries) {
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
+  const categoryTotals = {};
+  for (const slug of Object.keys(byCategory)) {
+    categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
+  }
+  const renderDetailItem = ({ item, qty }) => `
+    <div class="order-detail-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${formatPrice(item.price)} × ${qty}</div>
+      </div>
+    </div>
+  `;
   return categoryOrder
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
       const categoryTitle = MENU_DATA[slug]?.title || slug;
-      const itemsHtml = byCategory[slug]
-        .map(({ item, qty }) => `<li><span>${item.name} × ${qty}</span><span>${formatPrice(item.price * qty)}</span></li>`)
-        .join('');
-      return `<li class="order-detail-category"><span class="order-detail-category-title">${categoryTitle}</span></li>${itemsHtml}`;
+      const catTotal = categoryTotals[slug] || 0;
+      const itemsHtml = byCategory[slug].map(renderDetailItem).join('');
+      return `
+        <div class="cart-category-group">
+          <div class="cart-category-header">
+            <span class="cart-category-title">${categoryTitle}</span>
+            <span class="cart-category-total met">${formatPrice(catTotal)}</span>
+          </div>
+          ${itemsHtml}
+        </div>
+      `;
     })
     .join('');
 }
@@ -448,7 +467,7 @@ function openCheckoutModal() {
   checkoutOrderTime.textContent = formatOrderTime(orderTime);
   checkoutAmount.textContent = formatPrice(total);
 
-  orderDetailContent.innerHTML = `<ul class="order-detail-list">${renderOrderSummaryList(entries)}</ul>`;
+  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${renderOrderSummaryList(entries)}</div>`;
 
   const categoryIds = new Set();
   for (const [itemId] of entries) {

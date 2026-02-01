@@ -1076,20 +1076,24 @@ body {
   border-bottom: 1px solid #f0f0f0;
 }
 
-.order-detail-list li.order-detail-category {
-  border-bottom: none;
-  padding-top: 12px;
-  padding-bottom: 4px;
+.order-detail-cart-style {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.order-detail-list li.order-detail-category:first-child {
-  padding-top: 0;
+.order-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
 }
 
-.order-detail-category-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+.order-detail-item .cart-item-info {
+  flex: 1;
 }
 
 .checkout-form {
@@ -1113,6 +1117,10 @@ body {
 .form-row-inline .form-field {
   flex: 1;
   min-width: 0;
+}
+
+.form-row-delivery-datetime {
+  margin-top: 10px;
 }
 
 .form-field .form-label {
