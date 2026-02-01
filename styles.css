@@ -907,6 +907,7 @@ body {
 }
 
 .cart-min-order-notice.notice-blink {
+  color: #202124;
   animation: notice-blink 0.4s ease-in-out 3;
 }
 
