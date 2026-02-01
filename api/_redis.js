@@ -128,6 +128,15 @@ async function updateOrderStatus(orderId, status) {
   return order;
 }
 
+async function updateOrderPdfUrl(orderId, pdfUrl) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.pdf_url = pdfUrl;
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
 // ===== Stores & Menus (Admin) =====
 
 const STORES_KEY = 'app:stores';
@@ -235,6 +244,7 @@ module.exports = {
   getOrdersByUser,
   getOrderById,
   updateOrderStatus,
+  updateOrderPdfUrl,
   getStores,
   getMenus,
   saveStoresAndMenus,
