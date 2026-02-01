@@ -8,7 +8,7 @@ const { getOrdersByUser } = require('../_redis');
 
 const STATUS_LABELS = {
   submitted: '주문 신청 완료',
-  payment_link_issued: '결제 링크 발급',
+  payment_link_issued: '결제 링크 보기',
   payment_completed: '결제 완료',
   delivery_completed: '배송 완료',
   cancelled: '주문 취소',
