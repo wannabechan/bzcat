@@ -26,29 +26,25 @@ function formatPrice(price) {
   return Number(price).toLocaleString() + '원';
 }
 
-function formatDate(isoStr) {
+function formatDateKST(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}.${m}.${day} ${h}:${min}`;
+  const formatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  return `${get('year')}.${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`;
 }
 
-function formatFooterDate(date) {
-  const d = date || new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}.${m}.${day} ${h}:${min}`;
-}
-
-async function generateOrderPdf(order, stores = []) {
-  const pdfGeneratedAt = new Date();
+async function generateOrderPdf(order, stores = [], options = {}) {
+  const isCancelled = options.isCancelled === true;
   const slugToTitle = {};
   for (const s of stores) {
     slugToTitle[s.slug || s.id] = s.title || s.id;
@@ -93,6 +89,11 @@ async function generateOrderPdf(order, stores = []) {
     // ===== 헤더 =====
     doc.fontSize(24);
     doc.text('BzCat', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
+    if (isCancelled) {
+      doc.fontSize(10).fillColor('#c5221f');
+      doc.text('*주문 취소건', PAGE_WIDTH - MARGIN - 80, MARGIN, { align: 'right', width: 80 });
+      doc.fillColor('#000');
+    }
     doc.fontSize(14);
     y = doc.y + 4;
     doc.text('비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
@@ -130,7 +131,7 @@ async function generateOrderPdf(order, stores = []) {
     doc.fillColor('#000').fontSize(10);
     y += 14;
     doc.text(`주문번호: #${order.id}`, MARGIN + 12, y);
-    doc.text(`주문일시: ${formatDate(order.created_at)}`, MARGIN + 12, y + 18);
+    doc.text(`주문일시: ${formatDateKST(order.created_at)}`, MARGIN + 12, y + 18);
     doc.text(`배송희망일: ${order.delivery_date || '—'} ${order.delivery_time || ''}`, MARGIN + 12, y + 36);
     doc.text(`배송주소: ${order.delivery_address || '—'} ${order.detail_address || ''}`, MARGIN + 12, y + 54);
     y = orderBoxY + 90 + 20;
@@ -178,6 +179,7 @@ async function generateOrderPdf(order, stores = []) {
     doc.rect(MARGIN, y, CONTENT_WIDTH, discTotalH).stroke('#ddd').fill('#fafafa');
     y += 12;
     for (const d of disclaimer) {
+      doc.fillColor('#000');
       doc.text(d, MARGIN + 12, y, { width: discWidth });
       y += discLineH;
     }
@@ -262,7 +264,7 @@ async function generateOrderPdf(order, stores = []) {
 
     // 푸터 (마지막 페이지 최하단)
     doc.fontSize(8).fillColor('#000');
-    doc.text(`작성일시: ${formatFooterDate(pdfGeneratedAt)}  |  BzCat 비즈니스 케이터링`, MARGIN, PAGE_HEIGHT - MARGIN - 12, {
+    doc.text('BzCat 비즈니스 케이터링', MARGIN, PAGE_HEIGHT - MARGIN - 12, {
       align: 'center',
       width: CONTENT_WIDTH,
     });
