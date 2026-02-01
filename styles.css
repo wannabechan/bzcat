@@ -1407,13 +1407,6 @@ body {
   }
 }
 
-/* ===== Desktop: 4 columns ===== */
-@media (min-width: 900px) {
-  .menu-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 /* ===== Touch & Accessibility ===== */
 @media (hover: hover) {
   .cart-toggle:hover {
