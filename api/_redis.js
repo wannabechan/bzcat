@@ -87,7 +87,7 @@ async function createOrder(orderData) {
   const order = {
     id,
     ...orderData,
-    status: 'pending',
+    status: 'submitted',
     created_at: new Date().toISOString(),
   };
   const key = `order:${id}`;
@@ -95,6 +95,21 @@ async function createOrder(orderData) {
   const score = Date.now();
   await redis.zadd(`orders:by_user:${order.user_email}`, { score, member: String(id) });
   return order;
+}
+
+async function getOrdersByUser(email) {
+  const redis = getRedis();
+  const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1, { rev: true });
+  if (!ids || ids.length === 0) return [];
+  const orders = [];
+  for (const id of ids) {
+    const raw = await redis.get(`order:${id}`);
+    if (raw) {
+      const order = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      orders.push(order);
+    }
+  }
+  return orders;
 }
 
 // ===== Stores & Menus (Admin) =====
@@ -201,6 +216,7 @@ module.exports = {
   createUser,
   updateUserLogin,
   createOrder,
+  getOrdersByUser,
   getStores,
   getMenus,
   saveStoresAndMenus,
