@@ -73,6 +73,8 @@ const profileClose = document.getElementById('profileClose');
 const profileEmpty = document.getElementById('profileEmpty');
 const profileOrders = document.getElementById('profileOrders');
 
+let profileOrdersData = {};
+
 const ORDER_STATUS_STEPS = [
   { key: 'submitted', label: '주문 신청 완료' },
   { key: 'payment_link_issued', label: '결제 링크 발급' },
@@ -444,11 +446,33 @@ function renderOrderSummaryList(entries) {
     if (!item) continue;
     const slug = getCategoryForItem(itemId);
     if (!byCategory[slug]) byCategory[slug] = [];
-    byCategory[slug].push({ itemId, qty, item });
+    byCategory[slug].push({ item, qty });
   }
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
+  return renderOrderDetailByCategory(byCategory, categoryOrder);
+}
+
+function renderOrderSummaryFromOrderItems(orderItems) {
+  const categoryOrder = Object.keys(MENU_DATA);
+  const byCategory = {};
+  for (const oi of orderItems || []) {
+    const itemId = oi.id || '';
+    const slug = getCategoryForItem(itemId);
+    const item = { name: oi.name || '', price: oi.price || 0 };
+    const qty = oi.quantity || 0;
+    if (!slug || qty <= 0) continue;
+    if (!byCategory[slug]) byCategory[slug] = [];
+    byCategory[slug].push({ item, qty });
+  }
+  for (const slug of Object.keys(byCategory)) {
+    byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
+  }
+  return renderOrderDetailByCategory(byCategory, categoryOrder);
+}
+
+function renderOrderDetailByCategory(byCategory, categoryOrder) {
   const categoryTotals = {};
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
@@ -545,6 +569,45 @@ function closeProfile() {
   document.body.style.overflow = '';
 }
 
+function openProfileOrderDetail(order) {
+  const html = renderOrderSummaryFromOrderItems(order.orderItems || []);
+  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
+  const totalEl = document.getElementById('orderDetailTotal');
+  if (totalEl) totalEl.textContent = formatPrice(order.totalAmount || 0);
+  orderDetailOverlay.classList.add('visible');
+  orderDetailOverlay.setAttribute('aria-hidden', 'false');
+}
+
+async function confirmAndCancelOrder(order) {
+  if (!confirm('주문을 취소하시겠습니까?')) return;
+  const token = window.BzCatAuth?.getToken();
+  if (!token) {
+    alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+    window.location.reload();
+    return;
+  }
+  try {
+    const res = await fetch('/api/orders/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ orderId: order.id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || '주문 취소에 실패했습니다.');
+      return;
+    }
+    alert('주문이 취소되었습니다.');
+    await fetchAndRenderProfileOrders();
+  } catch (err) {
+    console.error('Cancel order error:', err);
+    alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+  }
+}
+
 async function fetchAndRenderProfileOrders() {
   const token = window.BzCatAuth?.getToken();
   if (!token) {
@@ -581,9 +644,12 @@ async function fetchAndRenderProfileOrders() {
 
     const stepIndex = (key) => ORDER_STATUS_STEPS.findIndex((s) => s.key === key);
     const isCancelled = (status) => status === 'cancelled';
+    const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
 
+    profileOrdersData = {};
     profileOrders.innerHTML = orders
       .map((o) => {
+        profileOrdersData[o.id] = o;
         const cancelled = isCancelled(o.status);
         const currentIdx = cancelled ? -1 : stepIndex(o.status);
         const stepsHtml = ORDER_STATUS_STEPS.map((s, i) => {
@@ -597,16 +663,21 @@ async function fetchAndRenderProfileOrders() {
           }
           return `<span class="${cls}">${s.label}</span>`;
         }).join('');
+        const showCancelBtn = canCancel(o.status);
 
         return `
-          <div class="profile-order-card">
+          <div class="profile-order-card" data-order-id="${o.id}">
             <div class="profile-order-card-header">
-              <div>
-                <div class="profile-order-id">주문 #${o.id}</div>
-                <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
+              <div class="profile-order-header-left">
+                <span class="profile-order-id">주문 #${o.id}</span>
+                <div class="profile-order-actions">
+                  <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
+                  ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
+                </div>
               </div>
               <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
             </div>
+            <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
             <div class="profile-order-status-steps">${stepsHtml}${cancelled ? '<span class="step cancelled">주문 취소</span>' : ''}</div>
             <div class="profile-order-amount">${formatPrice(o.totalAmount || 0)}</div>
           </div>
@@ -647,6 +718,19 @@ function init() {
   profileClose.addEventListener('click', closeProfile);
   profileOverlay.addEventListener('click', (e) => {
     if (e.target === profileOverlay) closeProfile();
+  });
+  profileOrders.addEventListener('click', (e) => {
+    const btn = e.target.closest('.profile-btn');
+    if (!btn) return;
+    const card = btn.closest('.profile-order-card');
+    const orderId = card && parseInt(card.dataset.orderId, 10);
+    const order = orderId && profileOrdersData[orderId];
+    if (!order) return;
+    if (btn.dataset.action === 'detail') {
+      openProfileOrderDetail(order);
+    } else if (btn.dataset.action === 'cancel') {
+      confirmAndCancelOrder(order);
+    }
   });
   btnCheckout.addEventListener('click', (e) => {
     const entries = Object.entries(cart).filter(([, qty]) => qty > 0);

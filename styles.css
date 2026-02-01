@@ -1026,7 +1026,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
+}
+
+.profile-order-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .profile-order-id {
@@ -1035,9 +1042,45 @@ body {
   color: var(--color-text-secondary);
 }
 
+.profile-order-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.profile-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-btn-detail {
+  color: var(--color-primary);
+  background: rgba(230, 123, 25, 0.1);
+  border: 1px solid var(--color-primary);
+}
+
+.profile-btn-detail:active {
+  background: rgba(230, 123, 25, 0.2);
+}
+
+.profile-btn-cancel {
+  color: #c5221f;
+  background: rgba(197, 34, 31, 0.08);
+  border: 1px solid #c5221f;
+}
+
+.profile-btn-cancel:active {
+  background: rgba(197, 34, 31, 0.15);
+}
+
 .profile-order-date {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
+  margin-bottom: 8px;
 }
 
 .profile-order-status {
@@ -1698,6 +1741,14 @@ body {
 @media (hover: hover) {
   .header-icon-btn:hover {
     background: rgba(0, 0, 0, 0.04);
+  }
+
+  .profile-btn-detail:hover {
+    background: rgba(230, 123, 25, 0.2);
+  }
+
+  .profile-btn-cancel:hover {
+    background: rgba(197, 34, 31, 0.12);
   }
 
   .category-tab:hover {
