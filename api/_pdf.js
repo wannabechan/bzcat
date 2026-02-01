@@ -197,8 +197,12 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       }
     }
 
+    function drawHLine(atY, color = '#ccc') {
+      doc.strokeColor(color).lineWidth(0.5).moveTo(MARGIN, atY).lineTo(MARGIN + CONTENT_WIDTH, atY).stroke();
+    }
+
     function drawTableHeader() {
-      doc.rect(MARGIN, y, CONTENT_WIDTH, 24).fill('#e8e8e8').stroke('#ccc');
+      drawHLine(y, '#ccc');
       doc.fillColor('#000').fontSize(9);
       if (!useKorean) doc.font('Helvetica-Bold');
       doc.text('메뉴명', col1, y + 8);
@@ -207,6 +211,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       doc.text('금액', col4, y + 8);
       if (useKorean) doc.font('NotoSansKR');
       y += 24;
+      drawHLine(y, '#ccc');
     }
 
     doc.fontSize(12);
@@ -222,7 +227,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     for (const slug of orderedSlugs) {
       const title = getCategoryTitle(slug);
       ensureSpace(20);
-      doc.rect(MARGIN, y, CONTENT_WIDTH, 20).fill('#f5f5f5').stroke('#ddd');
+      drawHLine(y, '#ddd');
       doc.fontSize(10).fillColor('#000');
       if (!useKorean) doc.font('Helvetica-Bold');
       else doc.font('NotoSansKR');
@@ -230,20 +235,20 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       if (!useKorean) doc.font('Helvetica');
       if (useKorean) doc.font('NotoSansKR');
       y += 20;
+      drawHLine(y, '#ddd');
       rowNum++;
 
       for (const item of byCategory[slug]) {
         const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
         const rowH = 18;
         ensureSpace(rowH);
-        if (rowNum % 2 === 0) doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).fill('#fafafa');
-        doc.rect(MARGIN, y, CONTENT_WIDTH, rowH).stroke('#eee');
         doc.fontSize(9).fillColor('#000');
         doc.text(`- ${String(item.name || '')}`, col1, y + 5, { width: col2 - col1 - 8 });
         doc.text(String(item.qty || 0), col2, y + 5);
         doc.text(formatPrice(item.price || 0), col3, y + 5);
-        doc.text(formatPrice(lineTotal) + '   ', col4, y + 5, { width: 60, align: 'right' });
+        doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
         y += rowH;
+        drawHLine(y, '#eee');
         rowNum++;
       }
     }
@@ -251,14 +256,15 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     // 총 금액 행
     ensureSpace(36);
     y += 8;
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 28).fill('#f0f0f0').stroke('#ccc');
+    drawHLine(y, '#ccc');
     doc.fontSize(10).fillColor('#000');
     if (!useKorean) doc.font('Helvetica-Bold');
     doc.text('총 주문 금액', col1, y + 9);
     doc.fontSize(9);
-    doc.text(formatPrice(order.total_amount || 0) + '   ', col4, y + 10, { width: 60, align: 'right', lineBreak: false });
+    doc.text(formatPrice(order.total_amount || 0), col4, y + 10, { width: 55, align: 'right', lineBreak: false });
     if (useKorean) doc.font('NotoSansKR');
-    y += 36;
+    y += 28;
+    drawHLine(y, '#ccc');
 
     // 푸터 (마지막 페이지 최하단)
     doc.fontSize(8).fillColor('#000');
