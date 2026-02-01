@@ -1373,7 +1373,7 @@ body {
   }
 
   .menu-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 
@@ -1404,6 +1404,13 @@ body {
 
   .modal-overlay.visible .checkout-modal {
     transform: scale(1);
+  }
+}
+
+/* ===== Desktop: 4 columns ===== */
+@media (min-width: 900px) {
+  .menu-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
