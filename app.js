@@ -79,7 +79,7 @@ let profileVisibleCount = 10;
 const PROFILE_PAGE_SIZE = 10;
 
 const ORDER_STATUS_STEPS = [
-  { key: 'submitted', label: '주문 신청 완료' },
+  { key: 'submitted', label: '신청 완료' },
   { key: 'payment_link_issued', label: '결제 링크 보기' },
   { key: 'payment_completed', label: '결제 완료' },
   { key: 'delivery_completed', label: '배송 완료' },
