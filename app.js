@@ -337,13 +337,13 @@ function renderCartItems() {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
 
-  const CATEGORY_MIN = 150000;
+  const TOTAL_MIN = 300000;
   const categoryTotals = {};
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
   }
-  const allCategoriesMeetMin = Object.keys(byCategory).every((slug) => categoryTotals[slug] >= CATEGORY_MIN);
-  btnCheckout.classList.toggle('below-minimum', !allCategoriesMeetMin);
+  const totalMeetMin = total >= TOTAL_MIN;
+  btnCheckout.classList.toggle('below-minimum', !totalMeetMin);
 
   const renderCartItem = ({ itemId, qty, item }) => `
     <div class="cart-item" data-id="${itemId}">
@@ -370,7 +370,7 @@ function renderCartItems() {
     .map((slug) => {
       const categoryTitle = MENU_DATA[slug]?.title || slug;
       const catTotal = categoryTotals[slug] || 0;
-      const meetMin = catTotal >= CATEGORY_MIN;
+      const meetMin = catTotal >= TOTAL_MIN;
       const totalClass = meetMin ? 'cart-category-total met' : 'cart-category-total below';
       const itemsHtml = byCategory[slug].map(renderCartItem).join('');
       return `
@@ -836,17 +836,12 @@ function init() {
   });
   btnCheckout.addEventListener('click', (e) => {
     const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
-    const byCategory = {};
-    for (const [itemId, qty] of entries) {
-      const item = findItemById(itemId);
-      if (!item) continue;
-      const slug = getCategoryForItem(itemId);
-      if (!byCategory[slug]) byCategory[slug] = 0;
-      byCategory[slug] += item.price * qty;
-    }
-    const CATEGORY_MIN = 150000;
-    const allMeet = Object.keys(byCategory).every((slug) => byCategory[slug] >= CATEGORY_MIN);
-    if (!allMeet) {
+    const total = entries.reduce((sum, [id, qty]) => {
+      const item = findItemById(id);
+      return sum + (item ? item.price * qty : 0);
+    }, 0);
+    const TOTAL_MIN = 300000;
+    if (total < TOTAL_MIN) {
       cartMinOrderNotice.classList.remove('notice-blink');
       cartMinOrderNotice.offsetHeight;
       cartMinOrderNotice.classList.add('notice-blink');
