@@ -155,6 +155,31 @@ async function updateOrderPdfUrl(orderId, pdfUrl) {
   return order;
 }
 
+async function updateOrderPaymentLink(orderId, paymentLink) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.payment_link = paymentLink || '';
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
+async function getAllOrders() {
+  const redis = getRedis();
+  const keys = await redis.keys('order:*');
+  if (!keys || keys.length === 0) return [];
+  const orders = [];
+  for (const key of keys) {
+    const raw = await redis.get(key);
+    if (raw) {
+      const order = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      orders.push(order);
+    }
+  }
+  orders.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  return orders;
+}
+
 // ===== Stores & Menus (Admin) =====
 
 const STORES_KEY = 'app:stores';
@@ -263,6 +288,8 @@ module.exports = {
   getOrderById,
   updateOrderStatus,
   updateOrderPdfUrl,
+  updateOrderPaymentLink,
+  getAllOrders,
   getStores,
   getMenus,
   saveStoresAndMenus,
