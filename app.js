@@ -577,6 +577,19 @@ async function confirmAndCancelOrder(order) {
   }
 }
 
+function isPaymentLinkActive(order) {
+  if (!order.paymentLink || order.status === 'cancelled') return false;
+  if (order.status === 'payment_completed' || order.status === 'delivery_completed') return false;
+  
+  const deliveryDate = new Date(order.deliveryDate);
+  deliveryDate.setHours(0, 0, 1, 0);
+  const fiveDaysBefore = new Date(deliveryDate);
+  fiveDaysBefore.setDate(fiveDaysBefore.getDate() - 5);
+  
+  const now = new Date();
+  return now >= fiveDaysBefore;
+}
+
 function renderProfileOrdersList() {
   const orders = profileAllOrders;
   const visible = orders.slice(0, profileVisibleCount);
@@ -592,6 +605,7 @@ function renderProfileOrdersList() {
   const cardsHtml = visible
     .map((o) => {
       profileOrdersData[o.id] = o;
+      const paymentLinkActive = isPaymentLinkActive(o);
       const cancelled = isCancelled(o.status);
       const currentIdx = cancelled ? -1 : stepIndex(o.status);
       let stepsHtml;
@@ -605,7 +619,12 @@ function renderProfileOrdersList() {
           if (i < currentIdx) cls += ' done';
           else if (i === currentIdx) cls += ' active';
           else cls += ' pending';
-          return `<span class="${cls}">${s.label}</span>`;
+          
+          if (s.key === 'payment_link_issued' && paymentLinkActive) {
+            cls += ' payment-link-ready';
+          }
+          
+          return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${s.label}</span>`;
         }).join('');
       }
       const showCancelBtn = canCancel(o.status);
@@ -752,6 +771,17 @@ function init() {
     if (e.target === profileOverlay) closeProfile();
   });
   profileOrders.addEventListener('click', (e) => {
+    const paymentLinkStep = e.target.closest('[data-action="open-payment-link"]');
+    if (paymentLinkStep) {
+      const card = paymentLinkStep.closest('.profile-order-card');
+      const orderId = card?.dataset?.orderId;
+      const order = orderId && profileOrdersData[orderId];
+      if (order?.paymentLink) {
+        window.open(order.paymentLink, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+    
     const btn = e.target.closest('.profile-btn');
     if (!btn) return;
     if (btn.dataset.action === 'load-more') {

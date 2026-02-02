@@ -1124,6 +1124,20 @@ body {
   color: #c5221f;
 }
 
+.profile-order-status-steps .step.payment-link-ready {
+  cursor: pointer;
+  animation: payment-link-blink 2s ease-in-out infinite;
+}
+
+.profile-order-status-steps .step.payment-link-ready:hover {
+  opacity: 0.8;
+}
+
+@keyframes payment-link-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 .profile-order-amount.cancelled {
   text-decoration: line-through;
   color: var(--color-text-secondary);
