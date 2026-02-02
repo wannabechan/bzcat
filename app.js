@@ -111,6 +111,16 @@ function formatOrderDate(isoStr) {
   return `${y}년 ${m}월 ${day}일 | ${h}시 ${min}분`;
 }
 
+// 유틸: 배송희망일 날짜만 (yy년 mm월 dd일)
+function formatDeliveryDateOnly(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  const y = String(d.getFullYear()).slice(-2);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}년 ${m}월 ${day}일`;
+}
+
 // 유틸: 입금기한 표시용 (mm월 dd일 hh시 mm분)
 function formatDeadlineShort(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -641,7 +651,7 @@ function renderProfileOrdersList() {
             </div>
             <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
           </div>
-          <div class="profile-order-date">${formatOrderDate(o.createdAt)}</div>
+          <div class="profile-order-date">배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)} (주문일시 : ${formatOrderDate(o.createdAt)})</div>
           <div class="profile-order-status-steps">${stepsHtml}</div>
           <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
         </div>
