@@ -6,6 +6,9 @@ const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
 const FETCH_TIMEOUT_MS = 15000;
 
+let adminPaymentOrders = [];
+let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
+
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
@@ -302,101 +305,143 @@ function setupTabs() {
   });
 }
 
+function sortPaymentOrders(orders, sortBy) {
+  const copy = orders.slice();
+  if (sortBy === 'created_at') {
+    copy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  } else {
+    copy.sort((a, b) => {
+      const da = (a.delivery_date || '') + ' ' + (a.delivery_time || '00:00');
+      const db = (b.delivery_date || '') + ' ' + (b.delivery_time || '00:00');
+      return new Date(da) - new Date(db);
+    });
+  }
+  return copy;
+}
+
+function renderPaymentList() {
+  const content = document.getElementById('adminPaymentContent');
+  const sorted = sortPaymentOrders(adminPaymentOrders, adminPaymentSortBy);
+
+  const sortBar = `
+    <div class="admin-payment-sort">
+      <span class="admin-payment-sort-label">정렬 기준</span>
+      <div class="admin-payment-sort-btns">
+        <button type="button" class="admin-payment-sort-btn ${adminPaymentSortBy === 'created_at' ? 'active' : ''}" data-sort="created_at">주문시간</button>
+        <button type="button" class="admin-payment-sort-btn ${adminPaymentSortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date">배송희망일시</button>
+      </div>
+    </div>
+  `;
+
+  const ordersHtml = sorted.map(order => {
+    const deliveryDate = new Date(order.delivery_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
+    const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
+
+    return `
+      <div class="admin-payment-order" data-order-id="${order.id}">
+        <div class="admin-payment-order-header">
+          <span class="admin-payment-order-id">주문 #${order.id}</span>
+          <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
+        </div>
+        <div class="admin-payment-order-info">
+          <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
+          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}</div>
+          <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
+          <div>총액: ${formatAdminPrice(order.total_amount)}</div>
+        </div>
+        <div class="admin-payment-link-row">
+          <input 
+            type="url" 
+            class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
+            value="${order.payment_link || ''}" 
+            placeholder="결제 링크 URL 입력"
+            data-order-id="${order.id}"
+          >
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-primary admin-payment-link-btn" 
+            data-save-link="${order.id}"
+          >저장</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  content.innerHTML = sortBar + ordersHtml;
+
+  content.querySelectorAll('[data-sort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminPaymentSortBy = btn.dataset.sort;
+      renderPaymentList();
+    });
+  });
+
+  content.querySelectorAll('[data-save-link]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.dataset.saveLink;
+      const input = content.querySelector(`.admin-payment-link-input[data-order-id="${orderId}"]`);
+      const paymentLink = input?.value?.trim() || '';
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API_BASE}/api/admin/payment-link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId, paymentLink }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || '저장에 실패했습니다.');
+        }
+
+        const order = adminPaymentOrders.find(o => o.id === orderId);
+        if (order) order.payment_link = paymentLink;
+        alert('저장되었습니다.');
+        renderPaymentList();
+      } catch (e) {
+        alert(e.message || '저장에 실패했습니다.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '저장';
+      }
+    });
+  });
+}
+
 async function loadPaymentManagement() {
   const content = document.getElementById('adminPaymentContent');
   content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
-  
+
   try {
     const token = await getToken();
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || '주문 목록을 불러올 수 없습니다.');
     }
-    
+
     const { orders } = await res.json();
-    const activeOrders = orders.filter(o => o.status !== 'cancelled');
-    
-    if (activeOrders.length === 0) {
+    adminPaymentOrders = orders.filter(o => o.status !== 'cancelled');
+
+    if (adminPaymentOrders.length === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
       return;
     }
-    
-    content.innerHTML = activeOrders.map(order => {
-      const deliveryDate = new Date(order.delivery_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
-      const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
-      
-      return `
-        <div class="admin-payment-order" data-order-id="${order.id}">
-          <div class="admin-payment-order-header">
-            <span class="admin-payment-order-id">주문 #${order.id}</span>
-            <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
-          </div>
-          <div class="admin-payment-order-info">
-            <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-            <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}</div>
-            <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
-            <div>총액: ${formatAdminPrice(order.total_amount)}</div>
-          </div>
-          <div class="admin-payment-link-row">
-            <input 
-              type="url" 
-              class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
-              value="${order.payment_link || ''}" 
-              placeholder="결제 링크 URL 입력"
-              data-order-id="${order.id}"
-            >
-            <button 
-              type="button" 
-              class="admin-btn admin-btn-primary admin-payment-link-btn" 
-              data-save-link="${order.id}"
-            >저장</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    // 결제 링크 저장 버튼 핸들러
-    content.querySelectorAll('[data-save-link]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const orderId = btn.dataset.saveLink;
-        const input = content.querySelector(`.admin-payment-link-input[data-order-id="${orderId}"]`);
-        const paymentLink = input?.value?.trim() || '';
-        
-        btn.disabled = true;
-        btn.textContent = '저장 중...';
-        
-        try {
-          const token = await getToken();
-          const res = await fetch(`${API_BASE}/api/admin/payment-link`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ orderId, paymentLink }),
-          });
-          
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || '저장에 실패했습니다.');
-          }
-          
-          alert('저장되었습니다.');
-          loadPaymentManagement(); // 새로고침
-        } catch (e) {
-          alert(e.message || '저장에 실패했습니다.');
-          btn.disabled = false;
-          btn.textContent = '저장';
-        }
-      });
-    });
+
+    renderPaymentList();
   } catch (e) {
     content.innerHTML = `<div class="admin-loading admin-error"><p>${e.message || '오류가 발생했습니다.'}</p></div>`;
   }
