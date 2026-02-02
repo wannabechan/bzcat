@@ -35,6 +35,7 @@ let pendingQty = {};
 
 // DOM 요소
 const categoryTabs = document.getElementById('categoryTabs');
+const categoryNotice = document.getElementById('categoryNotice');
 const menuSectionTitle = document.getElementById('menuSectionTitle');
 const menuGrid = document.getElementById('menuGrid');
 const cartToggle = document.getElementById('cartToggle');
@@ -167,6 +168,13 @@ function getCategoryForItem(itemId) {
   return itemId.split('-')[0];
 }
 
+// 장바구니에 담긴 카테고리 (1가지만 허용)
+function getCartCategory() {
+  const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
+  if (itemIds.length === 0) return null;
+  return getCategoryForItem(itemIds[0]);
+}
+
 // 장바구니에 포함된 첫 매장의 결제정보
 function getPaymentForCart() {
   const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
@@ -204,10 +212,15 @@ function updateCartQty(itemId, delta) {
   renderCartItems();
 }
 
-// 담기: 카드에 설정한 수량만큼 장바구니에 추가
+// 담기: 카드에 설정한 수량만큼 장바구니에 추가 (1카테고리만 허용)
 function addToCartFromPending(itemId) {
   const qty = pendingQty[itemId] || 0;
   if (qty <= 0) return;
+  const cartCategory = getCartCategory();
+  const itemCategory = getCategoryForItem(itemId);
+  if (cartCategory !== null && itemCategory !== cartCategory) {
+    return; // 다른 카테고리 담기 불가
+  }
   cart[itemId] = (cart[itemId] || 0) + qty;
   delete pendingQty[itemId];
   updateCartCount();
@@ -249,10 +262,14 @@ function renderMenuCards() {
   const emoji = getCategoryEmoji(category);
 
   const items = data.items || [];
+  const cartCategory = getCartCategory();
+  const canAddFromCategory = cartCategory === null || category === cartCategory;
+
   menuGrid.innerHTML = items
     .map((item) => {
-      const qty = pendingQty[item.id] || 0;
-      const addDisabled = qty === 0;
+      const qty = canAddFromCategory ? (pendingQty[item.id] || 0) : 0;
+      const addDisabled = canAddFromCategory ? qty === 0 : false;
+      const qtyDisabled = !canAddFromCategory;
       const imgContent = item.imageUrl
         ? `<div class="menu-card-image"><img src="${item.imageUrl.replace(/"/g, '&quot;')}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
@@ -272,9 +289,9 @@ function renderMenuCards() {
             <p class="menu-card-price">${formatPrice(item.price)}</p>
             <div class="menu-card-actions">
               <div class="menu-qty-controls">
-                <button class="menu-qty-btn" data-action="decrease" data-id="${item.id}" ${qty === 0 ? 'disabled' : ''}>−</button>
+                <button class="menu-qty-btn" data-action="decrease" data-id="${item.id}" ${qty === 0 || qtyDisabled ? 'disabled' : ''}>−</button>
                 <span class="menu-qty-value">${qty}</span>
-                <button class="menu-qty-btn" data-action="increase" data-id="${item.id}">+</button>
+                <button class="menu-qty-btn" data-action="increase" data-id="${item.id}" ${qtyDisabled ? 'disabled' : ''}>+</button>
               </div>
               <button class="menu-add-btn" data-id="${item.id}" ${addDisabled ? 'disabled' : ''} aria-label="장바구니 담기">
                 <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -729,7 +746,19 @@ function handleMenuGridClick(e) {
   }
   const addBtn = e.target.closest('.menu-add-btn');
   if (addBtn) {
-    addToCartFromPending(addBtn.dataset.id);
+    const itemId = addBtn.dataset.id;
+    const cartCategory = getCartCategory();
+    const itemCategory = getCategoryForItem(itemId);
+    if (cartCategory !== null && itemCategory !== cartCategory) {
+      if (categoryNotice) {
+        categoryNotice.classList.remove('notice-blink');
+        void categoryNotice.offsetWidth;
+        categoryNotice.classList.add('notice-blink');
+        setTimeout(() => categoryNotice.classList.remove('notice-blink'), 1200);
+      }
+      return;
+    }
+    addToCartFromPending(itemId);
     return;
   }
   const infoBtn = e.target.closest('.menu-info-btn');
