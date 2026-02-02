@@ -293,7 +293,7 @@ function renderMenuCards() {
                 <span class="menu-qty-value">${qty}</span>
                 <button class="menu-qty-btn" data-action="increase" data-id="${item.id}" ${qtyDisabled ? 'disabled' : ''}>+</button>
               </div>
-              <button class="menu-add-btn" data-id="${item.id}" ${addDisabled ? 'disabled' : ''} aria-label="장바구니 담기">
+              <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${item.id}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
                 <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                   <line x1="3" y1="6" x2="21" y2="6"/>

@@ -603,17 +603,23 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.menu-add-btn:not(:disabled) {
+.menu-add-btn:not(:disabled):not(.menu-add-btn-other-category) {
   animation: menu-add-blink 1.2s ease-in-out infinite;
 }
 
-.menu-add-btn:disabled {
+.menu-add-btn:disabled,
+.menu-add-btn.menu-add-btn-other-category {
   background: var(--color-border);
   color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.menu-add-btn:disabled {
   cursor: not-allowed;
 }
 
-.menu-add-btn:disabled:active {
+.menu-add-btn:disabled:active,
+.menu-add-btn.menu-add-btn-other-category:active {
   background: var(--color-border);
 }
 
