@@ -651,7 +651,7 @@ function renderProfileOrdersList() {
             </div>
             <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
           </div>
-          <div class="profile-order-date">배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)} (주문일시 : ${formatOrderDate(o.createdAt)})</div>
+          <div class="profile-order-date">주문일시 : ${formatOrderDate(o.createdAt)}<br>배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)}</div>
           <div class="profile-order-status-steps">${stepsHtml}</div>
           <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
         </div>
