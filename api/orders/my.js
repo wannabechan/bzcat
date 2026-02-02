@@ -50,6 +50,7 @@ module.exports = async (req, res) => {
         totalAmount: o.total_amount,
         orderItems: o.order_items || [],
         pdfUrl: o.pdf_url || null,
+        paymentLink: o.payment_link || null,
       };
     });
 
