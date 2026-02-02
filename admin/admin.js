@@ -282,12 +282,160 @@ function showLoadingError(msg, showRetry = false) {
   }
 }
 
+function setupTabs() {
+  const tabs = document.querySelectorAll('.admin-tab');
+  const views = document.querySelectorAll('.admin-view');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      views.forEach(v => v.classList.remove('active'));
+      tab.classList.add('active');
+      if (targetTab === 'stores') {
+        document.getElementById('storesView').classList.add('active');
+      } else if (targetTab === 'payments') {
+        document.getElementById('paymentsView').classList.add('active');
+        loadPaymentManagement();
+      }
+    });
+  });
+}
+
+async function loadPaymentManagement() {
+  const content = document.getElementById('adminPaymentContent');
+  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  
+  try {
+    const token = await getToken();
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '주문 목록을 불러올 수 없습니다.');
+    }
+    
+    const { orders } = await res.json();
+    const activeOrders = orders.filter(o => o.status !== 'cancelled');
+    
+    if (activeOrders.length === 0) {
+      content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
+      return;
+    }
+    
+    content.innerHTML = activeOrders.map(order => {
+      const deliveryDate = new Date(order.delivery_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
+      const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
+      
+      return `
+        <div class="admin-payment-order" data-order-id="${order.id}">
+          <div class="admin-payment-order-header">
+            <span class="admin-payment-order-id">주문 #${order.id}</span>
+            <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
+          </div>
+          <div class="admin-payment-order-info">
+            <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
+            <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}</div>
+            <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
+            <div>총액: ${formatAdminPrice(order.total_amount)}</div>
+          </div>
+          <div class="admin-payment-link-row">
+            <input 
+              type="url" 
+              class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
+              value="${order.payment_link || ''}" 
+              placeholder="결제 링크 URL 입력"
+              data-order-id="${order.id}"
+            >
+            <button 
+              type="button" 
+              class="admin-btn admin-btn-primary admin-payment-link-btn" 
+              data-save-link="${order.id}"
+            >저장</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // 결제 링크 저장 버튼 핸들러
+    content.querySelectorAll('[data-save-link]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const orderId = btn.dataset.saveLink;
+        const input = content.querySelector(`.admin-payment-link-input[data-order-id="${orderId}"]`);
+        const paymentLink = input?.value?.trim() || '';
+        
+        btn.disabled = true;
+        btn.textContent = '저장 중...';
+        
+        try {
+          const token = await getToken();
+          const res = await fetch(`${API_BASE}/api/admin/payment-link`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ orderId, paymentLink }),
+          });
+          
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || '저장에 실패했습니다.');
+          }
+          
+          alert('저장되었습니다.');
+          loadPaymentManagement(); // 새로고침
+        } catch (e) {
+          alert(e.message || '저장에 실패했습니다.');
+          btn.disabled = false;
+          btn.textContent = '저장';
+        }
+      });
+    });
+  } catch (e) {
+    content.innerHTML = `<div class="admin-loading admin-error"><p>${e.message || '오류가 발생했습니다.'}</p></div>`;
+  }
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    submitted: '신청 완료',
+    payment_link_issued: '결제 링크 발급',
+    payment_completed: '결제 완료',
+    delivery_completed: '배송 완료',
+    cancelled: '주문 취소',
+  };
+  return labels[status] || status;
+}
+
+function formatAdminOrderDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${day} ${h}:${min}`;
+}
+
+function formatAdminPrice(price) {
+  return Number(price || 0).toLocaleString() + '원';
+}
+
 async function init() {
   const authResult = await checkAdmin();
   if (!authResult.ok) {
     showLoadingError(authResult.error || '접근할 수 없습니다.');
     return;
   }
+  
+  setupTabs();
 
   try {
     const { stores, menus } = await fetchStores();
