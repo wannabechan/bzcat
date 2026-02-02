@@ -55,7 +55,6 @@ const checkoutOrderTime = document.getElementById('checkoutOrderTime');
 const inputDepositor = document.getElementById('inputDepositor');
 const inputContact = document.getElementById('inputContact');
 const checkoutForm = document.getElementById('checkoutForm');
-const checkoutStep1 = document.getElementById('checkoutStep1');
 const inputDeliveryDate = document.getElementById('inputDeliveryDate');
 const inputDeliveryTime = document.getElementById('inputDeliveryTime');
 const inputDeliveryAddress = document.getElementById('inputDeliveryAddress');
@@ -142,10 +141,6 @@ function calculateTotal() {
   return total;
 }
 
-function getCartTotalAmount() {
-  return calculateTotal();
-}
-
 // 메뉴 아이템 찾기
 function findItemById(itemId) {
   for (const cat of Object.values(MENU_DATA)) {
@@ -170,10 +165,6 @@ function getPaymentForCart() {
   const storeSlug = firstId.split('-')[0];
   const storeData = MENU_DATA[storeSlug];
   return storeData?.payment || MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
-}
-
-function findMenuItem(itemId) {
-  return findItemById(itemId);
 }
 
 // 카트 버튼 카운트 갱신
@@ -288,47 +279,12 @@ function renderMenuCards() {
       `;
     })
     .join('');
-
-  menuGrid.querySelectorAll('.menu-qty-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      setPendingQty(id, action === 'increase' ? 1 : -1);
-    });
-  });
-
-  menuGrid.querySelectorAll('.menu-add-btn').forEach((btn) => {
-    btn.addEventListener('click', () => addToCartFromPending(btn.dataset.id));
-  });
-
-  // 정보 버튼 클릭 이벤트
-  menuGrid.querySelectorAll('.menu-info-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.id;
-      const overlay = menuGrid.querySelector(`.menu-info-overlay[data-id="${id}"]`);
-      const wasActive = overlay.classList.contains('active');
-      
-      // 다른 모든 오버레이 닫기
-      menuGrid.querySelectorAll('.menu-info-overlay').forEach((o) => o.classList.remove('active'));
-      
-      // 현재 오버레이 토글
-      if (!wasActive) overlay.classList.add('active');
-    });
-  });
-
-  // 오버레이 클릭하면 닫기
-  menuGrid.querySelectorAll('.menu-info-overlay').forEach((overlay) => {
-    overlay.addEventListener('click', () => {
-      overlay.classList.remove('active');
-    });
-  });
 }
 
 // 장바구니 아이템 렌더
 function renderCartItems() {
   const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
-  const total = getCartTotalAmount();
+  const total = calculateTotal();
 
   if (entries.length === 0) {
     cartEmpty.style.display = 'block';
@@ -344,7 +300,7 @@ function renderCartItems() {
   const categoryOrder = Object.keys(MENU_DATA);
   const byCategory = {};
   for (const [itemId, qty] of entries) {
-    const item = findMenuItem(itemId);
+    const item = findItemById(itemId);
     if (!item) continue;
     const slug = getCategoryForItem(itemId);
     if (!byCategory[slug]) byCategory[slug] = [];
@@ -401,19 +357,6 @@ function renderCartItems() {
       `;
     })
     .join('');
-
-  cartItems.querySelectorAll('[data-action]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      updateCartQty(btn.dataset.id, btn.dataset.action === 'increase' ? 1 : -1);
-    });
-  });
-
-  cartItems.querySelectorAll('.cart-item-remove').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      updateCartQty(id, -(cart[id] || 0));
-    });
-  });
 }
 
 // 장바구니 열기/닫기
@@ -447,7 +390,7 @@ function renderOrderSummaryList(entries) {
   const categoryOrder = Object.keys(MENU_DATA);
   const byCategory = {};
   for (const [itemId, qty] of entries) {
-    const item = findMenuItem(itemId);
+    const item = findItemById(itemId);
     if (!item) continue;
     const slug = getCategoryForItem(itemId);
     if (!byCategory[slug]) byCategory[slug] = [];
@@ -511,7 +454,7 @@ function renderOrderDetailByCategory(byCategory, categoryOrder) {
 
 // 결제 모달 열기
 function openCheckoutModal() {
-  const total = getCartTotalAmount();
+  const total = calculateTotal();
   const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
   const orderTime = new Date();
   const deadlineTime = new Date(orderTime.getTime() + 24 * 60 * 60 * 1000);
@@ -753,9 +696,52 @@ function handleCategoryClick(e) {
   renderMenuCards();
 }
 
+// 메뉴 그리드 클릭 위임 (이벤트 리스너 최소화)
+function handleMenuGridClick(e) {
+  const qtyBtn = e.target.closest('.menu-qty-btn');
+  if (qtyBtn) {
+    const id = qtyBtn.dataset.id;
+    const action = qtyBtn.dataset.action;
+    setPendingQty(id, action === 'increase' ? 1 : -1);
+    return;
+  }
+  const addBtn = e.target.closest('.menu-add-btn');
+  if (addBtn) {
+    addToCartFromPending(addBtn.dataset.id);
+    return;
+  }
+  const infoBtn = e.target.closest('.menu-info-btn');
+  if (infoBtn) {
+    e.stopPropagation();
+    const id = infoBtn.dataset.id;
+    const overlay = menuGrid.querySelector(`.menu-info-overlay[data-id="${id}"]`);
+    if (overlay) {
+      const wasActive = overlay.classList.contains('active');
+      menuGrid.querySelectorAll('.menu-info-overlay').forEach((o) => o.classList.remove('active'));
+      if (!wasActive) overlay.classList.add('active');
+    }
+    return;
+  }
+  const overlay = e.target.closest('.menu-info-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
 // 이벤트 바인딩
 function init() {
   categoryTabs.addEventListener('click', handleCategoryClick);
+  menuGrid.addEventListener('click', handleMenuGridClick);
+  cartItems.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (btn) {
+      updateCartQty(btn.dataset.id, btn.dataset.action === 'increase' ? 1 : -1);
+      return;
+    }
+    const removeBtn = e.target.closest('.cart-item-remove');
+    if (removeBtn) {
+      const id = removeBtn.dataset.id;
+      updateCartQty(id, -(cart[id] || 0));
+    }
+  });
   cartToggle.addEventListener('click', openCart);
   cartClose.addEventListener('click', closeCart);
   cartOverlay.addEventListener('click', closeCart);
@@ -787,7 +773,7 @@ function init() {
     const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
     const byCategory = {};
     for (const [itemId, qty] of entries) {
-      const item = findMenuItem(itemId);
+      const item = findItemById(itemId);
       if (!item) continue;
       const slug = getCategoryForItem(itemId);
       if (!byCategory[slug]) byCategory[slug] = 0;
