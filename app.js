@@ -590,14 +590,7 @@ async function confirmAndCancelOrder(order) {
 function isPaymentLinkActive(order) {
   if (!order.paymentLink || order.status === 'cancelled') return false;
   if (order.status === 'payment_completed' || order.status === 'delivery_completed') return false;
-  
-  const deliveryDate = new Date(order.deliveryDate);
-  deliveryDate.setHours(0, 0, 1, 0);
-  const fiveDaysBefore = new Date(deliveryDate);
-  fiveDaysBefore.setDate(fiveDaysBefore.getDate() - 5);
-  
-  const now = new Date();
-  return now >= fiveDaysBefore;
+  return true;
 }
 
 function renderProfileOrdersList() {
@@ -786,8 +779,11 @@ function init() {
       const card = paymentLinkStep.closest('.profile-order-card');
       const orderId = card?.dataset?.orderId;
       const order = orderId && profileOrdersData[orderId];
+      console.log('Payment link clicked:', { orderId, order, paymentLink: order?.paymentLink });
       if (order?.paymentLink) {
         window.open(order.paymentLink, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('결제 링크가 설정되지 않았습니다.');
       }
       return;
     }
