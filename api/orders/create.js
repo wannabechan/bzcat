@@ -51,20 +51,11 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '필수 정보를 모두 입력해 주세요.' });
     }
 
-    // 카테고리별 최소 주문 금액 검증 (15만원)
-    const CATEGORY_MIN = 150000;
-    let totals = categoryTotals || {};
-    if (Object.keys(totals).length === 0 && Array.isArray(orderItems) && orderItems.length > 0) {
-      totals = orderItems.reduce((acc, it) => {
-        const slug = (it.id || '').split('-')[0] || 'default';
-        if (!acc[slug]) acc[slug] = 0;
-        acc[slug] += (it.price || 0) * (it.quantity || 0);
-        return acc;
-      }, {});
-    }
-    const belowMin = Object.keys(totals).some((slug) => totals[slug] < CATEGORY_MIN);
-    if (belowMin) {
-      return apiResponse(res, 400, { error: '각 카테고리별 최소 주문 금액은 150,000원입니다.' });
+    // 최소 주문 금액 검증 (30만원)
+    const TOTAL_MIN = 300000;
+    const orderTotal = Number(totalAmount) || 0;
+    if (orderTotal < TOTAL_MIN) {
+      return apiResponse(res, 400, { error: '최소 주문 금액은 300,000원입니다.' });
     }
 
     // 주문 생성 (Redis)
