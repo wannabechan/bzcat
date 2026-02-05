@@ -117,7 +117,7 @@ async function createOrder(orderData) {
 
 async function getOrdersByUser(email) {
   const redis = getRedis();
-  const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1, { rev: true });
+  const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1);
   if (!ids || ids.length === 0) return [];
   const orders = [];
   for (const id of ids) {
