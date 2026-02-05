@@ -9,6 +9,8 @@ const FETCH_TIMEOUT_MS = 15000;
 let adminPaymentOrders = [];
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentShowAll = false; // false: 취소 제외, true: 전체(취소 포함)
+let adminStoresMap = {};
+let adminStoreOrder = []; // slug order for order detail
 
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
@@ -348,7 +350,7 @@ function renderPaymentList() {
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
         <div class="admin-payment-order-header">
-          <span class="admin-payment-order-id">주문 #${order.id}</span>
+          <span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>
           <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
         </div>
         <div class="admin-payment-order-info">
@@ -392,6 +394,14 @@ function renderPaymentList() {
     renderPaymentList();
   });
 
+  content.querySelectorAll('[data-order-detail]').forEach(el => {
+    el.addEventListener('click', () => {
+      const orderId = el.dataset.orderDetail;
+      const order = adminPaymentOrders.find(o => o.id === orderId);
+      if (order) openAdminOrderDetail(order);
+    });
+  });
+
   content.querySelectorAll('[data-save-link]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.saveLink;
@@ -418,7 +428,14 @@ function renderPaymentList() {
         }
 
         const order = adminPaymentOrders.find(o => o.id === orderId);
-        if (order) order.payment_link = paymentLink;
+        if (order) {
+          order.payment_link = paymentLink;
+          if (!paymentLink.trim() && order.status === 'payment_link_issued') {
+            order.status = 'submitted';
+          } else if (paymentLink.trim() && order.status === 'submitted') {
+            order.status = 'payment_link_issued';
+          }
+        }
         alert('저장되었습니다.');
         renderPaymentList();
       } catch (e) {
@@ -448,6 +465,22 @@ async function loadPaymentManagement() {
 
     const { orders } = await res.json();
     adminPaymentOrders = orders || [];
+
+    try {
+      const storesRes = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (storesRes.ok) {
+        const { stores } = await storesRes.json();
+        adminStoresMap = {};
+        adminStoreOrder = [];
+        (stores || []).forEach(s => {
+          const slug = s.slug || s.id;
+          adminStoresMap[slug] = s.title || slug;
+          adminStoreOrder.push(slug);
+        });
+      }
+    } catch (_) {}
 
     if (adminPaymentOrders.length === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
@@ -486,6 +519,85 @@ function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
 }
 
+function renderAdminOrderDetailHtml(order) {
+  const orderItems = order.order_items || [];
+  const byCategory = {};
+  for (const oi of orderItems) {
+    const itemId = oi.id || '';
+    const slug = (itemId.split('-')[0] || 'default');
+    const item = { name: oi.name || '', price: Number(oi.price) || 0 };
+    const qty = Number(oi.quantity) || 0;
+    if (qty <= 0) continue;
+    if (!byCategory[slug]) byCategory[slug] = [];
+    byCategory[slug].push({ item, qty });
+  }
+  const categoryOrder = adminStoreOrder.length ? adminStoreOrder : Object.keys(byCategory).sort();
+  for (const slug of Object.keys(byCategory)) {
+    byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
+  }
+  const categoryTotals = {};
+  for (const slug of Object.keys(byCategory)) {
+    categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
+  }
+  const renderItem = ({ item, qty }) => `
+    <div class="admin-order-detail-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${(item.name || '').replace(/</g, '&lt;')}</div>
+        <div class="cart-item-price">${formatAdminPrice(item.price)} × ${qty}</div>
+      </div>
+    </div>
+  `;
+  return categoryOrder
+    .filter(slug => byCategory[slug]?.length)
+    .map(slug => {
+      const title = adminStoresMap[slug] || slug;
+      const catTotal = categoryTotals[slug] || 0;
+      const itemsHtml = byCategory[slug].map(renderItem).join('');
+      return `
+        <div class="cart-category-group">
+          <div class="cart-category-header">
+            <span class="cart-category-title">${(title || '').replace(/</g, '&lt;')}</span>
+            <span class="cart-category-total met">${formatAdminPrice(catTotal)}</span>
+          </div>
+          ${itemsHtml}
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function openAdminOrderDetail(order) {
+  const content = document.getElementById('adminOrderDetailContent');
+  const totalEl = document.getElementById('adminOrderDetailTotal');
+  const pdfBtn = document.getElementById('adminOrderDetailPdfBtn');
+  const overlay = document.getElementById('adminOrderDetailOverlay');
+  const panel = overlay?.querySelector('.admin-order-detail-panel');
+  if (!content || !overlay) return;
+  const html = renderAdminOrderDetailHtml(order);
+  content.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
+  if (totalEl) totalEl.textContent = formatAdminPrice(order.total_amount || 0);
+  if (panel) panel.classList.toggle('admin-order-detail-cancelled', order.status === 'cancelled');
+  if (pdfBtn) {
+    if (order.pdf_url) {
+      pdfBtn.href = order.pdf_url;
+      pdfBtn.style.display = '';
+    } else {
+      pdfBtn.href = '#';
+      pdfBtn.style.display = 'none';
+    }
+  }
+  overlay.classList.add('visible');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function closeAdminOrderDetail() {
+  const overlay = document.getElementById('adminOrderDetailOverlay');
+  if (overlay) {
+    overlay.classList.remove('visible');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+}
+
 async function init() {
   const authResult = await checkAdmin();
   if (!authResult.ok) {
@@ -494,6 +606,12 @@ async function init() {
   }
   
   setupTabs();
+  loadPaymentManagement();
+
+  document.getElementById('adminOrderDetailClose')?.addEventListener('click', closeAdminOrderDetail);
+  document.getElementById('adminOrderDetailOverlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'adminOrderDetailOverlay') closeAdminOrderDetail();
+  });
 
   try {
     const { stores, menus } = await fetchStores();
