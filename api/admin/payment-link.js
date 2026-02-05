@@ -4,7 +4,7 @@
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
-const { getOrderById, updateOrderPaymentLink } = require('../_redis');
+const { getOrderById, updateOrderPaymentLink, updateOrderStatus } = require('../_redis');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -46,11 +46,14 @@ module.exports = async (req, res) => {
 
     await updateOrderPaymentLink(orderId, paymentLink || '');
 
-    // 결제 링크가 입력되면 상태를 payment_link_issued로 변경
-    if (paymentLink && paymentLink.trim()) {
-      const { updateOrderStatus } = require('../_redis');
+    const trimmed = (paymentLink || '').trim();
+    if (trimmed) {
       if (order.status === 'submitted') {
         await updateOrderStatus(orderId, 'payment_link_issued');
+      }
+    } else {
+      if (order.status === 'payment_link_issued') {
+        await updateOrderStatus(orderId, 'submitted');
       }
     }
 
