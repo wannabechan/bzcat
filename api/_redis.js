@@ -117,7 +117,7 @@ async function createOrder(orderData) {
 
 async function getOrdersByUser(email) {
   const redis = getRedis();
-  const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1);
+  const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1, { rev: true });
   if (!ids || ids.length === 0) return [];
   const orders = [];
   for (const id of ids) {
@@ -160,6 +160,9 @@ async function updateOrderPaymentLink(orderId, paymentLink) {
   const order = await getOrderById(orderId);
   if (!order) return null;
   order.payment_link = paymentLink || '';
+  if (!(paymentLink || '').trim() && order.status === 'payment_link_issued') {
+    order.status = 'submitted';
+  }
   await redis.set(`order:${orderId}`, JSON.stringify(order));
   return order;
 }
