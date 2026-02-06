@@ -10,13 +10,17 @@
 
 const { Redis } = require('@upstash/redis');
 
+let _redisClient = null;
+
 function getRedis() {
+  if (_redisClient) return _redisClient;
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
     throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN (or UPSTASH_* equivalents) are required');
   }
-  return new Redis({ url, token });
+  _redisClient = new Redis({ url, token });
+  return _redisClient;
 }
 
 const CODE_TTL_SECONDS = 120; // 2분
@@ -119,9 +123,11 @@ async function getOrdersByUser(email) {
   const redis = getRedis();
   const ids = await redis.zrange(`orders:by_user:${email}`, 0, -1, { rev: true });
   if (!ids || ids.length === 0) return [];
+  const keys = ids.map((id) => `order:${id}`);
+  const raws = await redis.mget(...keys);
   const orders = [];
-  for (const id of ids) {
-    const raw = await redis.get(`order:${id}`);
+  for (let i = 0; i < raws.length; i++) {
+    const raw = raws[i];
     if (raw) {
       const order = typeof raw === 'string' ? JSON.parse(raw) : raw;
       orders.push(order);
@@ -183,9 +189,10 @@ async function getAllOrders() {
   const redis = getRedis();
   const keys = await redis.keys('order:*');
   if (!keys || keys.length === 0) return [];
+  const raws = await redis.mget(...keys);
   const orders = [];
-  for (const key of keys) {
-    const raw = await redis.get(key);
+  for (let i = 0; i < raws.length; i++) {
+    const raw = raws[i];
     if (raw) {
       const order = typeof raw === 'string' ? JSON.parse(raw) : raw;
       orders.push(order);
@@ -284,10 +291,19 @@ async function saveStoresAndMenus(stores, menusByStore) {
 
 async function getMenuDataForApp() {
   const stores = await getStores();
+  if (!stores || stores.length === 0) return {};
+  const redis = getRedis();
+  const menuKeys = stores.map((s) => `app:menus:${s.id}`);
+  const menusRaw = await redis.mget(...menuKeys);
   const result = {};
-  for (const store of stores) {
-    const items = await getMenus(store.id);
-    result[store.slug] = { title: store.title, items, payment: store.payment };
+  for (let i = 0; i < stores.length; i++) {
+    const raw = menusRaw[i];
+    const items = raw
+      ? typeof raw === 'string'
+        ? JSON.parse(raw)
+        : raw
+      : DEFAULT_MENUS[stores[i].id] || [];
+    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment };
   }
   return result;
 }
