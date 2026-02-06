@@ -616,7 +616,7 @@ async function confirmAndCancelOrder(order) {
 }
 
 function isPaymentLinkActive(order) {
-  if (order.status === 'cancelled' || order.status === 'payment_completed' || order.status === 'delivery_completed') return false;
+  if (order.status === 'cancelled' || order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed') return false;
   return order.status === 'submitted' || order.status === 'payment_link_issued';
 }
 
@@ -625,7 +625,10 @@ function renderProfileOrdersList() {
   const visible = orders.slice(0, profileVisibleCount);
   const hasMore = orders.length > profileVisibleCount;
 
-  const stepIndex = (key) => ORDER_STATUS_STEPS.findIndex((s) => s.key === key);
+  const stepIndex = (status) => {
+    if (status === 'shipping' || status === 'delivery_completed') return 3;
+    return ORDER_STATUS_STEPS.findIndex((s) => s.key === status);
+  };
   const isCancelled = (status) => status === 'cancelled';
   const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
 
@@ -638,6 +641,7 @@ function renderProfileOrdersList() {
       const paymentLinkActive = isPaymentLinkActive(o);
       const cancelled = isCancelled(o.status);
       const currentIdx = cancelled ? -1 : stepIndex(o.status);
+      const step4Label = o.status === 'delivery_completed' ? '배송 완료' : '배송중';
       let stepsHtml;
       if (cancelled) {
         stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)
@@ -653,8 +657,8 @@ function renderProfileOrdersList() {
           if (s.key === 'payment_link_issued' && paymentLinkActive) {
             cls += ' payment-link-ready';
           }
-          
-          return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${s.label}</span>`;
+          const label = (i === 3) ? step4Label : s.label;
+          return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${label}</span>`;
         }).join('');
       }
       const showCancelBtn = canCancel(o.status);
