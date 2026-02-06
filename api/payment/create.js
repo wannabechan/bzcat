@@ -81,6 +81,7 @@ module.exports = async (req, res) => {
 
     const body = {
       amount,
+      currency: 'KRW',
       orderId: String(orderId),
       orderName: `BzCat 주문 #${orderId}`,
       successUrl,
@@ -100,8 +101,17 @@ module.exports = async (req, res) => {
     const data = await createRes.json().catch(() => ({}));
 
     if (!createRes.ok) {
-      const msg = data.message || data.code || '결제 요청에 실패했습니다.';
-      return apiResponse(res, createRes.status >= 500 ? 502 : 400, { error: msg });
+      console.error('Toss payment create failed:', createRes.status, data);
+      const msg =
+        data.message ||
+        data.msg ||
+        data.error ||
+        data.errorMessage ||
+        (data.code ? String(data.code) : '') ||
+        '결제 요청에 실패했습니다.';
+      return apiResponse(res, createRes.status >= 500 ? 502 : 400, {
+        error: msg.trim() || '결제 요청에 실패했습니다.',
+      });
     }
 
     const checkoutUrl = data.nextRedirectPcUrl || data.nextRedirectMobileUrl || data.checkout?.url || data.url;
