@@ -9,7 +9,7 @@ const FETCH_TIMEOUT_MS = 15000;
 let adminPaymentOrders = [];
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
-let adminPaymentShowAll = false; // false: 취소 제외, true: 전체(취소 포함)
+let adminPaymentShowAll = true; // 항상 전체 보기
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
 
@@ -316,8 +316,8 @@ function sortPaymentOrders(orders, sortBy, dir) {
 
 function renderPaymentList() {
   const content = document.getElementById('adminPaymentContent');
-  const filtered = adminPaymentShowAll ? adminPaymentOrders : adminPaymentOrders.filter(o => o.status !== 'cancelled');
-  const sortBy = adminPaymentShowAll ? 'created_at' : adminPaymentSortBy;
+  const filtered = adminPaymentOrders;
+  const sortBy = adminPaymentSortBy;
   const dir = adminPaymentSortDir[sortBy] || 'desc';
   const sorted = sortPaymentOrders(filtered, sortBy, dir);
 
@@ -326,10 +326,9 @@ function renderPaymentList() {
     <div class="admin-payment-sort">
       <span class="admin-payment-sort-label">정렬 기준</span>
       <div class="admin-payment-sort-btns">
-        <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at" ${adminPaymentShowAll ? 'disabled' : ''}>주문시간${arrow('created_at')}</button>
-        <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date" ${adminPaymentShowAll ? 'disabled' : ''}>배송희망일시${arrow('delivery_date')}</button>
+        <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at">주문시간${arrow('created_at')}</button>
+        <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date">배송희망일시${arrow('delivery_date')}</button>
       </div>
-      <button type="button" class="admin-payment-toggle-btn" data-toggle-filter>${adminPaymentShowAll ? '취소 주문 제외' : '전체 보기'}</button>
     </div>
   `;
 
@@ -342,6 +341,7 @@ function renderPaymentList() {
     const isCancelled = order.status === 'cancelled';
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'delivery_completed';
     const inputDisabled = isCancelled || isPaymentDone;
+    const deliveryRowDisabled = order.status !== 'payment_completed';
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
@@ -357,10 +357,11 @@ function renderPaymentList() {
         </div>
         <div class="admin-payment-link-row">
           <input 
-            type="url" 
+            type="text" 
             class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
             value="${order.payment_link || ''}" 
             data-order-id="${order.id}"
+            placeholder="결제 생성 코드 입력"
             ${inputDisabled ? 'readonly disabled' : ''}
           >
           <button 
@@ -368,6 +369,23 @@ function renderPaymentList() {
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
             data-save-link="${order.id}"
             ${inputDisabled ? 'disabled' : ''}
+          >저장</button>
+        </div>
+        <div class="admin-payment-link-row">
+          <input 
+            type="text" 
+            class="admin-payment-link-input admin-delivery-input" 
+            value="" 
+            data-order-id="${order.id}"
+            data-delivery-input="${order.id}"
+            placeholder="배송 완료 코드 입력"
+            ${deliveryRowDisabled ? 'readonly disabled' : ''}
+          >
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-primary admin-payment-link-btn" 
+            data-save-delivery="${order.id}"
+            ${deliveryRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
       </div>
@@ -378,7 +396,6 @@ function renderPaymentList() {
 
   content.querySelectorAll('[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (adminPaymentShowAll) return;
       const key = btn.dataset.sort;
       if (adminPaymentSortBy === key) {
         adminPaymentSortDir[key] = adminPaymentSortDir[key] === 'asc' ? 'desc' : 'asc';
@@ -387,11 +404,6 @@ function renderPaymentList() {
       }
       renderPaymentList();
     });
-  });
-
-  content.querySelector('[data-toggle-filter]')?.addEventListener('click', () => {
-    adminPaymentShowAll = !adminPaymentShowAll;
-    renderPaymentList();
   });
 
   content.querySelectorAll('[data-order-detail]').forEach(el => {
@@ -445,6 +457,51 @@ function renderPaymentList() {
             order.status = 'payment_link_issued';
           }
         }
+        alert('저장되었습니다.');
+        renderPaymentList();
+      } catch (e) {
+        alert(e.message || '저장에 실패했습니다.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '저장';
+      }
+    });
+  });
+
+  content.querySelectorAll('[data-save-delivery]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.dataset.saveDelivery;
+      const input = content.querySelector(`.admin-delivery-input[data-order-id="${orderId}"]`);
+      const code = input?.value?.trim() || '';
+
+      const valid = code === orderId || code === `주문 #${orderId}`;
+      if (!valid) {
+        alert('입력 코드 오류');
+        if (input) input.value = '';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API_BASE}/api/admin/delivery-complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId, code }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || '저장에 실패했습니다.');
+        }
+
+        const order = adminPaymentOrders.find(o => o.id === orderId);
+        if (order) order.status = 'delivery_completed';
         alert('저장되었습니다.');
         renderPaymentList();
       } catch (e) {
