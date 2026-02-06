@@ -4,10 +4,9 @@
  * 취소 시 주문서 PDF 재생성 (주문 취소건 표시)
  */
 
-const { put } = require('@vercel/blob');
 const { verifyToken, apiResponse } = require('../_utils');
-const { getOrderById, updateOrderStatus, updateOrderPdfUrl, getStores } = require('../_redis');
-const { generateOrderPdf } = require('../_pdf');
+const { getOrderById } = require('../_redis');
+const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
 
 const CANCELABLE_STATUSES = ['submitted', 'pending', 'payment_link_issued'];
 
@@ -57,21 +56,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '이미 취소된 주문입니다.' });
     }
 
-    await updateOrderStatus(id, 'cancelled');
-    order.status = 'cancelled';
-
-    try {
-      const stores = await getStores();
-      const pdfBuffer = await generateOrderPdf(order, stores, { isCancelled: true });
-      const pathname = `orders/order-${id}.pdf`;
-      const blob = await put(pathname, pdfBuffer, {
-        access: 'public',
-        contentType: 'application/pdf',
-      });
-      await updateOrderPdfUrl(id, blob.url);
-    } catch (pdfErr) {
-      console.error('PDF regeneration on cancel:', pdfErr);
-    }
+    await cancelOrderAndRegeneratePdf(id);
 
     return apiResponse(res, 200, {
       success: true,
