@@ -188,11 +188,11 @@ async function getAllOrders() {
 const STORES_KEY = 'app:stores';
 
 const DEFAULT_STORES = [
-  { id: 'bento', slug: 'bento', title: '도시락', payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
-  { id: 'side', slug: 'side', title: '반찬', payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
-  { id: 'salad', slug: 'salad', title: '샐러드', payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
-  { id: 'beverage', slug: 'beverage', title: '음료', payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
-  { id: 'dessert', slug: 'dessert', title: '디저트', payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' } },
+  { id: 'bento', slug: 'bento', title: '도시락', payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' } },
+  { id: 'side', slug: 'side', title: '반찬', payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' } },
+  { id: 'salad', slug: 'salad', title: '샐러드', payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' } },
+  { id: 'beverage', slug: 'beverage', title: '음료', payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' } },
+  { id: 'dessert', slug: 'dessert', title: '디저트', payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' } },
 ];
 
 const DEFAULT_MENUS = {
