@@ -642,14 +642,24 @@ function openAdminOrderDetail(order) {
   if (totalEl) totalEl.textContent = formatAdminPrice(order.total_amount || 0);
   if (panel) panel.classList.toggle('admin-order-detail-cancelled', order.status === 'cancelled');
   if (pdfBtn) {
-    if (order.pdf_url) {
-      pdfBtn.href = order.pdf_url;
-      pdfBtn.style.display = '';
-      pdfBtn.textContent = order.status === 'cancelled' ? '주문서 확인 (취소 건)' : '주문서 확인';
-    } else {
-      pdfBtn.href = '#';
-      pdfBtn.style.display = 'none';
-    }
+    pdfBtn.href = '#';
+    pdfBtn.style.display = '';
+    pdfBtn.textContent = order.status === 'cancelled' ? '주문서 확인 (취소 건)' : '주문서 확인';
+    const orderIdForPdf = order.id;
+    pdfBtn.onclick = async (e) => {
+      e.preventDefault();
+      const token = await getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (_) {}
+    };
   }
   overlay.classList.add('visible');
   overlay.setAttribute('aria-hidden', 'false');
