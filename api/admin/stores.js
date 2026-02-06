@@ -6,10 +6,8 @@
 const { getStores, getMenus, saveStoresAndMenus } = require('../_redis');
 const { verifyToken, apiResponse } = require('../_utils');
 
-const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
-
 function isAdmin(user) {
-  return user && (user.level === 'admin' || (user.email || '').toLowerCase() === ADMIN_EMAIL);
+  return user && user.level === 'admin';
 }
 
 module.exports = async (req, res) => {

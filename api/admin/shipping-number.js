@@ -6,10 +6,8 @@
 const { verifyToken, apiResponse } = require('../_utils');
 const { getOrderById, updateOrderShippingNumber } = require('../_redis');
 
-const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
-
 function isAdmin(user) {
-  return user && (user.level === 'admin' || (user.email || '').toLowerCase() === ADMIN_EMAIL);
+  return user && user.level === 'admin';
 }
 
 function isValidTrackingNumber(value) {

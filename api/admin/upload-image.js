@@ -9,12 +9,11 @@ const { put } = require('@vercel/blob');
 const formidable = require('formidable');
 const { verifyToken, apiResponse } = require('../_utils');
 
-const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 
 function isAdmin(user) {
-  return user && (user.level === 'admin' || (user.email || '').toLowerCase() === ADMIN_EMAIL);
+  return user && user.level === 'admin';
 }
 
 module.exports = async (req, res) => {

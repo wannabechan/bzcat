@@ -28,8 +28,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '유효하지 않은 토큰입니다.' });
     }
 
-    const email = (user.email || '').toLowerCase();
-    const isAdmin = user.level === 'admin' || email === 'bzcatmanager@gmail.com';
+    const isAdmin = user.level === 'admin';
     if (!isAdmin) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
