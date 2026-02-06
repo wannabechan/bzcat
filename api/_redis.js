@@ -167,6 +167,18 @@ async function updateOrderPaymentLink(orderId, paymentLink) {
   return order;
 }
 
+async function updateOrderShippingNumber(orderId, trackingNumber) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.tracking_number = (trackingNumber || '').trim();
+  if (order.status === 'payment_completed') {
+    order.status = 'shipping';
+  }
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
 async function getAllOrders() {
   const redis = getRedis();
   const keys = await redis.keys('order:*');
@@ -292,6 +304,7 @@ module.exports = {
   updateOrderStatus,
   updateOrderPdfUrl,
   updateOrderPaymentLink,
+  updateOrderShippingNumber,
   getAllOrders,
   getStores,
   getMenus,
