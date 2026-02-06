@@ -563,6 +563,7 @@ function openProfileOrderDetail(order) {
   if (pdfBtn) {
     pdfBtn.style.display = '';
     pdfBtn.href = '#';
+    pdfBtn.textContent = order.status === 'cancelled' ? '주문서 확인 (취소 건)' : '주문서 확인';
     const orderIdForPdf = order.id;
     pdfBtn.onclick = async (e) => {
       e.preventDefault();
