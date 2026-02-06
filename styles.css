@@ -611,11 +611,20 @@ body {
 .menu-add-btn.menu-add-btn-other-category {
   background: var(--color-border);
   color: var(--color-text-secondary);
-  cursor: pointer;
 }
 
 .menu-add-btn:disabled {
   cursor: not-allowed;
+}
+
+.menu-add-btn.menu-add-btn-other-category {
+  cursor: not-allowed;
+}
+
+.menu-add-btn.menu-add-btn-other-category:hover,
+.menu-add-btn.menu-add-btn-other-category:active {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .menu-add-btn:disabled:active,
@@ -1835,7 +1844,7 @@ body {
     background: #f8f9fa;
   }
 
-  .menu-add-btn:hover:not(:disabled) {
+  .menu-add-btn:hover:not(:disabled):not(.menu-add-btn-other-category) {
     background: var(--color-primary-hover);
   }
 
