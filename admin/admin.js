@@ -340,7 +340,7 @@ function renderPaymentList() {
     const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
     const isCancelled = order.status === 'cancelled';
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
-    const inputDisabled = isCancelled || isPaymentDone;
+    const paymentLinkRowDisabled = isCancelled || isPaymentDone || !!(order.payment_link && String(order.payment_link).trim());
     const shippingRowDisabled = order.status !== 'payment_completed';
     const deliveryRowDisabled = order.status !== 'shipping';
     const shippingValue = (order.status === 'shipping' || order.status === 'delivery_completed') ? (order.tracking_number || '') : '';
@@ -364,13 +364,13 @@ function renderPaymentList() {
             value="${order.payment_link || ''}" 
             data-order-id="${order.id}"
             placeholder="결제 생성 코드 입력"
-            ${inputDisabled ? 'readonly disabled' : ''}
+            ${paymentLinkRowDisabled ? 'readonly disabled' : ''}
           >
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
             data-save-link="${order.id}"
-            ${inputDisabled ? 'disabled' : ''}
+            ${paymentLinkRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
         <div class="admin-payment-link-row">
