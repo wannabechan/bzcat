@@ -337,7 +337,7 @@ function renderCartItems() {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
 
-  const TOTAL_MIN = 300000;
+  const TOTAL_MIN = 100;
   const categoryTotals = {};
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
@@ -862,7 +862,7 @@ function init() {
       const item = findItemById(id);
       return sum + (item ? item.price * qty : 0);
     }, 0);
-    const TOTAL_MIN = 300000;
+    const TOTAL_MIN = 100;
     if (total < TOTAL_MIN) {
       cartMinOrderNotice.classList.remove('notice-blink');
       cartMinOrderNotice.offsetHeight;
