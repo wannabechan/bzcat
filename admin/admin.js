@@ -375,7 +375,7 @@ function renderPaymentList() {
           <input 
             type="text" 
             class="admin-payment-link-input admin-delivery-input" 
-            value="" 
+            value="${order.status === 'delivery_completed' ? `주문 #${order.id}` : ''}" 
             data-order-id="${order.id}"
             data-delivery-input="${order.id}"
             placeholder="배송 완료 코드 입력"
@@ -420,13 +420,11 @@ function renderPaymentList() {
       const input = content.querySelector(`.admin-payment-link-input[data-order-id="${orderId}"]`);
       const paymentLink = input?.value?.trim() || '';
 
-      if (paymentLink) {
-        const approvedPhrase = orderId === paymentLink || `주문 #${orderId}` === paymentLink;
-        if (!approvedPhrase) {
-          alert('결제 진행 승인 코드 오류');
-          if (input) input.value = '';
-          return;
-        }
+      const approvedPhrase = paymentLink && (orderId === paymentLink || `주문 #${orderId}` === paymentLink);
+      if (!approvedPhrase) {
+        alert('결제 진행 승인 코드 오류');
+        if (input) input.value = '';
+        return;
       }
 
       btn.disabled = true;
