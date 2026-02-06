@@ -9,7 +9,6 @@ if (process.env.NODE_ENV === 'production' && !rawSecret) {
   throw new Error('JWT_SECRET is required in production. Set it in Vercel Environment Variables.');
 }
 const JWT_SECRET = rawSecret || 'default-secret-change-in-production';
-const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
 
 /**
  * JWT 토큰 생성
@@ -34,12 +33,12 @@ function verifyToken(token) {
 }
 
 /**
- * 사용자 레벨 결정
+ * 사용자 레벨 결정 (관리자 이메일은 Vercel 환경 변수 EMAIL_ADMIN 사용)
  */
 function getUserLevel(email) {
-  const normalized = email.toLowerCase().trim();
-  if (normalized === ADMIN_EMAIL.toLowerCase()) return 'admin';
-  // TODO: manager 이메일 목록은 DB에서 조회하도록 확장 가능
+  const normalized = (email || '').toLowerCase().trim();
+  const adminEmail = (process.env.EMAIL_ADMIN || '').toLowerCase().trim();
+  if (adminEmail && normalized === adminEmail) return 'admin';
   return 'user';
 }
 
