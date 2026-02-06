@@ -1,7 +1,6 @@
 {
   "buildCommand": null,
   "outputDirectory": ".",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ]
+  "rewrites": [{"source": "/api/(.*)", "destination": "/api/$1"}],
+  "crons": [{"path": "/api/cron/auto-cancel-orders", "schedule": "0 16 * * *"}]
 }
