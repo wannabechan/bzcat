@@ -820,7 +820,11 @@ function init() {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ orderId }),
           });
-          const data = await res.json();
+          const text = await res.text();
+          let data = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch (_) {}
           if (!res.ok) {
             alert(data.error || '결제 요청에 실패했습니다.');
             return;
