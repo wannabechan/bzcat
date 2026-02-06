@@ -32,25 +32,33 @@ function getAppOrigin(req) {
   return `${proto}://${host}`;
 }
 
+function pickQuery(req, key) {
+  const v = req.query[key] ?? req.query[key.toLowerCase()];
+  return Array.isArray(v) ? v[0] : v;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).end();
   }
 
-  const orderId = req.query.orderId;
-  const paymentKey = req.query.paymentKey;
-  const amount = req.query.amount;
+  const orderId = pickQuery(req, 'orderId');
+  const paymentKey = pickQuery(req, 'paymentKey');
+  const amount = pickQuery(req, 'amount');
 
   const origin = getAppOrigin(req);
   const redirectBase = `${origin}/`;
 
   if (!orderId || !paymentKey || amount === undefined) {
+    console.error('Payment success: missing params', { orderId, paymentKey, amount });
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
-  const order = await getOrderById(orderId);
+  const orderIdStr = String(orderId).trim();
+  const order = await getOrderById(orderIdStr);
   if (!order) {
+    console.error('Payment success: order not found', orderIdStr);
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
@@ -69,17 +77,19 @@ module.exports = async (req, res) => {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
-        paymentKey,
-        orderId: String(orderId),
+        paymentKey: String(paymentKey).trim(),
+        orderId: orderIdStr,
         amount: amountNum,
       }),
     });
 
     if (!confirmRes.ok) {
+      const errBody = await confirmRes.text();
+      console.error('Payment success: confirm failed', confirmRes.status, errBody);
       return res.redirect(302, `${redirectBase}?payment=error`);
     }
 
-    await updateOrderStatus(orderId, 'payment_completed');
+    await updateOrderStatus(orderIdStr, 'payment_completed');
     return res.redirect(302, `${redirectBase}?payment=success`);
   } catch (err) {
     console.error('Payment success handler error:', err);
