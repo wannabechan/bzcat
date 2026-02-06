@@ -423,7 +423,7 @@ function renderPaymentList() {
       if (paymentLink) {
         const approvedPhrase = orderId === paymentLink || `주문 #${orderId}` === paymentLink;
         if (!approvedPhrase) {
-          alert('결제 진행 승인 문구가 틀렸습니다.');
+          alert('결제 진행 승인 코드 오류');
           if (input) input.value = '';
           return;
         }
@@ -476,7 +476,7 @@ function renderPaymentList() {
 
       const valid = code === orderId || code === `주문 #${orderId}`;
       if (!valid) {
-        alert('입력 코드 오류');
+        alert('배송 완료 승인 코드 오류');
         if (input) input.value = '';
         return;
       }
