@@ -4,7 +4,11 @@
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-in-production';
+const rawSecret = process.env.JWT_SECRET;
+if (process.env.NODE_ENV === 'production' && !rawSecret) {
+  throw new Error('JWT_SECRET is required in production. Set it in Vercel Environment Variables.');
+}
+const JWT_SECRET = rawSecret || 'default-secret-change-in-production';
 const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
 
 /**
