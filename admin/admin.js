@@ -108,7 +108,7 @@ function generateStoreId() {
 }
 
 function renderStore(store, menus) {
-  const payment = store.payment || { accountHolder: '', bankName: '', accountNumber: '' };
+  const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY' };
   const items = menus || [];
 
   return `
@@ -150,21 +150,14 @@ function renderStore(store, menus) {
           </div>
         </div>
         <div class="admin-section">
-          <div class="admin-section-title">결제 정보</div>
+          <div class="admin-section-title">API키 환경변수</div>
           <div class="admin-form-row">
-            <div class="admin-form-field">
-              <label>예금주</label>
-              <input type="text" data-field="accountHolder" value="${(payment.accountHolder || '').replace(/"/g, '&quot;')}" placeholder="예: (주)케이터링서비스">
-            </div>
-            <div class="admin-form-field">
-              <label>은행</label>
-              <input type="text" data-field="bankName" value="${(payment.bankName || '').replace(/"/g, '&quot;')}" placeholder="예: 신한은행">
-            </div>
-            <div class="admin-form-field">
-              <label>계좌번호</label>
-              <input type="text" data-field="accountNumber" value="${(payment.accountNumber || '').replace(/"/g, '&quot;')}" placeholder="예: 110-123-456789">
+            <div class="admin-form-field" style="flex: 1;">
+              <label>환경변수 명칭</label>
+              <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="예: TOSS_SECRET_KEY">
             </div>
           </div>
+          <p class="admin-form-hint">Vercel(또는 배포 환경)의 환경변수에 위 명칭으로 토스페이먼츠 시크릿 키를 설정하세요. 키 값은 화면에 입력하지 마세요.</p>
         </div>
         <div class="admin-section">
           <div class="admin-section-title">메뉴</div>
@@ -232,14 +225,10 @@ function collectData() {
     const brandInput = storeEl.querySelector('input[data-field="brand"]');
     const storeAddressInput = storeEl.querySelector('input[data-field="storeAddress"]');
     const storeContactInput = storeEl.querySelector('input[data-field="storeContact"]');
-    const accountHolderInput = storeEl.querySelector('input[data-field="accountHolder"]');
-    const bankNameInput = storeEl.querySelector('input[data-field="bankName"]');
-    const accountNumberInput = storeEl.querySelector('input[data-field="accountNumber"]');
+    const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
 
     const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', payment: {
-      accountHolder: accountHolderInput?.value?.trim() || '',
-      bankName: bankNameInput?.value?.trim() || '',
-      accountNumber: accountNumberInput?.value?.trim() || '',
+      apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
 
@@ -651,7 +640,7 @@ async function init() {
           brand: '',
           storeAddress: '',
           storeContact: '',
-          payment: { accountHolder: '(주)케이터링서비스', bankName: '신한은행', accountNumber: '110-123-456789' },
+          payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');
         div.innerHTML = renderStore(newStore, []);
