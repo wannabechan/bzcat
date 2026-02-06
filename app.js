@@ -617,7 +617,7 @@ async function confirmAndCancelOrder(order) {
 
 function isPaymentLinkActive(order) {
   if (order.status === 'cancelled' || order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed') return false;
-  return order.status === 'submitted' || order.status === 'payment_link_issued';
+  return order.status === 'payment_link_issued';
 }
 
 function renderProfileOrdersList() {
