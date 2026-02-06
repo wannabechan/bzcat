@@ -13,6 +13,10 @@ let adminPaymentShowAll = true; // 항상 전체 보기
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
 
+const PAYMENT_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
+let paymentIdleTimerId = null;
+let paymentIdleListenersAttached = false;
+
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
@@ -290,9 +294,10 @@ function setupTabs() {
       tab.classList.add('active');
       if (targetTab === 'stores') {
         document.getElementById('storesView').classList.add('active');
+        clearPaymentIdleTimer();
       } else if (targetTab === 'payments') {
         document.getElementById('paymentsView').classList.add('active');
-        loadPaymentManagement();
+        loadPaymentManagement().then(() => startPaymentIdleRefresh());
       }
     });
   });
@@ -620,6 +625,57 @@ async function loadPaymentManagement() {
     renderPaymentList();
   } catch (e) {
     content.innerHTML = `<div class="admin-loading admin-error"><p>${e.message || '오류가 발생했습니다.'}</p></div>`;
+  }
+}
+
+async function refetchPaymentOrdersAndRender() {
+  const content = document.getElementById('adminPaymentContent');
+  try {
+    const token = await getToken();
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const { orders } = await res.json();
+    adminPaymentOrders = orders || [];
+    if (adminPaymentOrders.length === 0) {
+      content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
+      return;
+    }
+    renderPaymentList();
+  } catch (_) {}
+}
+
+function resetPaymentIdleTimer() {
+  if (paymentIdleTimerId != null) clearTimeout(paymentIdleTimerId);
+  paymentIdleTimerId = setTimeout(() => {
+    refetchPaymentOrdersAndRender().then(() => resetPaymentIdleTimer());
+  }, PAYMENT_IDLE_MS);
+}
+
+function startPaymentIdleRefresh() {
+  if (paymentIdleTimerId != null) clearTimeout(paymentIdleTimerId);
+  paymentIdleTimerId = setTimeout(() => {
+    refetchPaymentOrdersAndRender().then(() => resetPaymentIdleTimer());
+  }, PAYMENT_IDLE_MS);
+  if (!paymentIdleListenersAttached) {
+    paymentIdleListenersAttached = true;
+    document.addEventListener('click', resetPaymentIdleTimer);
+    document.addEventListener('keydown', resetPaymentIdleTimer);
+    document.addEventListener('input', resetPaymentIdleTimer);
+  }
+}
+
+function clearPaymentIdleTimer() {
+  if (paymentIdleTimerId != null) {
+    clearTimeout(paymentIdleTimerId);
+    paymentIdleTimerId = null;
+  }
+  if (paymentIdleListenersAttached) {
+    paymentIdleListenersAttached = false;
+    document.removeEventListener('click', resetPaymentIdleTimer);
+    document.removeEventListener('keydown', resetPaymentIdleTimer);
+    document.removeEventListener('input', resetPaymentIdleTimer);
   }
 }
 
