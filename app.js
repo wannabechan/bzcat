@@ -78,6 +78,11 @@ let profileAllOrders = [];
 let profileVisibleCount = 10;
 const PROFILE_PAGE_SIZE = 10;
 
+// 180초 무활동 시 API 재호출 + 주문 목록 영역만 다시 그리기
+const PROFILE_IDLE_MS = 180000;
+let profileIdleTimerId = null;
+let profileIdleListenersAttached = false;
+
 const ORDER_STATUS_STEPS = [
   { key: 'submitted', label: '신청 완료' },
   { key: 'payment_link_issued', label: '결제 진행하기' },
@@ -734,6 +739,26 @@ async function fetchAndRenderProfileOrders() {
   }
 }
 
+function resetProfileIdleTimer() {
+  if (profileIdleTimerId != null) clearTimeout(profileIdleTimerId);
+  profileIdleTimerId = setTimeout(() => {
+    fetchAndRenderProfileOrders().then(() => resetProfileIdleTimer());
+  }, PROFILE_IDLE_MS);
+}
+
+function startProfileIdleRefresh() {
+  if (profileIdleTimerId != null) clearTimeout(profileIdleTimerId);
+  profileIdleTimerId = setTimeout(() => {
+    fetchAndRenderProfileOrders().then(() => resetProfileIdleTimer());
+  }, PROFILE_IDLE_MS);
+  if (!profileIdleListenersAttached) {
+    profileIdleListenersAttached = true;
+    document.addEventListener('click', resetProfileIdleTimer);
+    document.addEventListener('keydown', resetProfileIdleTimer);
+    document.addEventListener('input', resetProfileIdleTimer);
+  }
+}
+
 function closeCheckoutModal() {
   checkoutModal.classList.remove('visible');
   checkoutModal.setAttribute('aria-hidden', 'true');
@@ -811,6 +836,7 @@ function init() {
   cartClose.addEventListener('click', closeCart);
   cartOverlay.addEventListener('click', closeCart);
 
+  startProfileIdleRefresh();
   profileToggle.addEventListener('click', openProfile);
   profileClose.addEventListener('click', closeProfile);
   profileOverlay.addEventListener('click', (e) => {
