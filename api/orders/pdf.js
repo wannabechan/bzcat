@@ -8,8 +8,6 @@ const { verifyToken, setCorsHeaders } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 
-const ADMIN_EMAIL = 'bzcatmanager@gmail.com';
-
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
     setCorsHeaders(res);
@@ -45,7 +43,7 @@ module.exports = async (req, res) => {
     return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
   }
 
-  const isAdmin = user.level === 'admin' || (user.email || '').toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = user.level === 'admin';
   if (order.user_email !== user.email && !isAdmin) {
     setCorsHeaders(res);
     return res.status(403).json({ error: '해당 주문을 볼 수 없습니다.' });
