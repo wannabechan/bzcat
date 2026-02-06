@@ -339,9 +339,11 @@ function renderPaymentList() {
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
     const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
     const isCancelled = order.status === 'cancelled';
-    const isPaymentDone = order.status === 'payment_completed' || order.status === 'delivery_completed';
+    const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
     const inputDisabled = isCancelled || isPaymentDone;
-    const deliveryRowDisabled = order.status !== 'payment_completed';
+    const shippingRowDisabled = order.status !== 'payment_completed';
+    const deliveryRowDisabled = order.status !== 'shipping';
+    const shippingValue = (order.status === 'shipping' || order.status === 'delivery_completed') ? (order.tracking_number || '') : '';
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
@@ -369,6 +371,23 @@ function renderPaymentList() {
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
             data-save-link="${order.id}"
             ${inputDisabled ? 'disabled' : ''}
+          >저장</button>
+        </div>
+        <div class="admin-payment-link-row">
+          <input 
+            type="text" 
+            class="admin-payment-link-input admin-shipping-input" 
+            value="${(shippingValue || '').replace(/"/g, '&quot;')}" 
+            data-order-id="${order.id}"
+            data-shipping-input="${order.id}"
+            placeholder="배송 번호 입력"
+            ${shippingRowDisabled ? 'readonly disabled' : ''}
+          >
+          <button 
+            type="button" 
+            class="admin-btn admin-btn-primary admin-payment-link-btn" 
+            data-save-shipping="${order.id}"
+            ${shippingRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
         <div class="admin-payment-link-row">
@@ -454,6 +473,53 @@ function renderPaymentList() {
           } else if (paymentLink.trim() && order.status === 'submitted') {
             order.status = 'payment_link_issued';
           }
+        }
+        alert('저장되었습니다.');
+        renderPaymentList();
+      } catch (e) {
+        alert(e.message || '저장에 실패했습니다.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '저장';
+      }
+    });
+  });
+
+  content.querySelectorAll('[data-save-shipping]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.dataset.saveShipping;
+      const input = content.querySelector(`.admin-shipping-input[data-order-id="${orderId}"]`);
+      const trackingNumber = input?.value?.trim() || '';
+
+      const digitsOnly = /^\d{9,11}$/;
+      if (!digitsOnly.test(trackingNumber)) {
+        alert('배송 번호 입력 오류');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API_BASE}/api/admin/shipping-number`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId, trackingNumber }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || '저장에 실패했습니다.');
+        }
+
+        const order = adminPaymentOrders.find(o => o.id === orderId);
+        if (order) {
+          order.status = 'shipping';
+          order.tracking_number = trackingNumber;
         }
         alert('저장되었습니다.');
         renderPaymentList();
@@ -562,6 +628,7 @@ function getStatusLabel(status) {
     submitted: '신청 완료',
     payment_link_issued: '결제 링크 발급',
     payment_completed: '결제 완료',
+    shipping: '배송중',
     delivery_completed: '배송 완료',
     cancelled: '주문 취소',
   };
