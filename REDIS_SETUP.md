@@ -92,3 +92,22 @@ Admin 이메일(`bzcatmanager@gmail.com`)은 코드에서 자동으로 처리됩
 UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
 UPSTASH_REDIS_REST_TOKEN=AXxxxxxx
 ```
+
+---
+
+## 주문 데이터 전부 지우기 (테스트 초기화)
+
+**방법 1 – 스크립트 (권장)**  
+프로젝트 루트에서 실행 (`.env.local`이 있으면 자동으로 사용):
+
+```bash
+node scripts/clear-orders.js
+```
+
+`order:*`, `orders:by_user:*`, `orders:count:*` 키가 전부 삭제됩니다.
+
+**방법 2 – Upstash 콘솔에서 직접**  
+1. [Upstash Console](https://console.upstash.com/) 로그인 후 해당 Redis DB 선택  
+2. **Data Browser**에서 키 목록 확인  
+3. `order:*`, `orders:by_user:*`, `orders:count:*` 패턴에 해당하는 키를 골라 삭제  
+   (또는 CLI에서 `SCAN`/`KEYS`로 찾은 뒤 `DEL`로 삭제)
