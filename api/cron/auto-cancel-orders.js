@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
   const secret = process.env.CRON_SECRET;
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : req.query?.secret;
-  if (secret && token !== secret) {
+  if (!secret || token !== secret) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
