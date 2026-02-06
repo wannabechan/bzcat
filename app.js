@@ -67,6 +67,8 @@ const orderDetailOverlay = document.getElementById('orderDetailOverlay');
 const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
 const profileToggle = document.getElementById('profileToggle');
+const profileMenuToggle = document.getElementById('profileMenuToggle');
+const profileMenuDropdown = document.getElementById('profileMenuDropdown');
 const profileOverlay = document.getElementById('profileOverlay');
 const profileDrawer = document.getElementById('profileDrawer');
 const profileClose = document.getElementById('profileClose');
@@ -556,6 +558,25 @@ function closeProfile() {
   document.body.style.overflow = '';
 }
 
+function openProfileMenu() {
+  profileMenuDropdown.classList.add('open');
+  profileMenuToggle.setAttribute('aria-expanded', 'true');
+  profileMenuDropdown.setAttribute('aria-hidden', 'false');
+  const closeOnOutside = (e) => {
+    if (!profileMenuDropdown.contains(e.target) && e.target !== profileMenuToggle) {
+      closeProfileMenu();
+      document.removeEventListener('click', closeOnOutside);
+    }
+  };
+  requestAnimationFrame(() => document.addEventListener('click', closeOnOutside));
+}
+
+function closeProfileMenu() {
+  profileMenuDropdown.classList.remove('open');
+  profileMenuToggle.setAttribute('aria-expanded', 'false');
+  profileMenuDropdown.setAttribute('aria-hidden', 'true');
+}
+
 function openProfileOrderDetail(order) {
   const html = renderOrderSummaryFromOrderItems(order.orderItems || []);
   orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
@@ -837,6 +858,13 @@ function init() {
   cartOverlay.addEventListener('click', closeCart);
 
   startProfileIdleRefresh();
+  profileMenuToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (profileMenuDropdown.classList.contains('open')) closeProfileMenu();
+    else openProfileMenu();
+  });
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) btnLogout.addEventListener('click', closeProfileMenu);
   profileToggle.addEventListener('click', openProfile);
   profileClose.addEventListener('click', closeProfile);
   profileOverlay.addEventListener('click', (e) => {
@@ -1078,7 +1106,9 @@ function init() {
   // ESC 키로 모달/오버레이 닫기
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (orderDetailOverlay.classList.contains('visible')) {
+      if (profileMenuDropdown.classList.contains('open')) {
+        closeProfileMenu();
+      } else if (orderDetailOverlay.classList.contains('visible')) {
         closeOrderDetailOverlay();
       } else if (profileDrawer.classList.contains('open')) {
         closeProfile();

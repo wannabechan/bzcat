@@ -255,23 +255,6 @@ body {
   gap: 8px;
 }
 
-.header-logout {
-  padding: 8px 12px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  font-family: inherit;
-  color: var(--color-text-secondary);
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.header-logout:active {
-  background: #f0f0f0;
-}
-
 .header-icon-btn {
   position: relative;
   width: 44px;
@@ -314,6 +297,66 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 프로필 메뉴(하위 네비) 드롭다운 */
+.header-profile-wrap {
+  position: relative;
+}
+
+.header-icon.profile-menu-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.header-profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  padding: 6px 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.header-profile-dropdown.open {
+  display: block;
+}
+
+.header-profile-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+
+.header-profile-dropdown-item:hover,
+.header-profile-dropdown-item:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.header-profile-dropdown-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* ===== Main Content ===== */

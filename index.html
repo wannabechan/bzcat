@@ -50,7 +50,24 @@
         <a href="/admin" class="header-admin-link" id="headerAdminLink" style="display: none;">admin</a>
       </div>
       <div class="header-actions">
-        <button class="header-logout" id="btnLogout" aria-label="로그아웃" title="로그아웃">로그아웃</button>
+        <div class="header-profile-wrap">
+          <button class="header-icon-btn profile-menu-toggle" id="profileMenuToggle" aria-label="프로필 메뉴" title="프로필 메뉴" aria-expanded="false" aria-haspopup="true">
+            <svg class="header-icon profile-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </button>
+          <div class="header-profile-dropdown" id="profileMenuDropdown" aria-hidden="true">
+            <button type="button" class="header-profile-dropdown-item" id="btnLogout" aria-label="로그아웃">
+              <svg class="header-profile-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              로그아웃
+            </button>
+          </div>
+        </div>
         <button class="header-icon-btn profile-toggle" id="profileToggle" aria-label="내 주문 보기" title="내 주문 보기">
           <svg class="header-icon profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
