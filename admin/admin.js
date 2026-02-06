@@ -329,7 +329,6 @@ function renderPaymentList() {
   const arrow = (key) => (adminPaymentSortDir[key] === 'asc' ? ' ↑' : ' ↓');
   const sortBar = `
     <div class="admin-payment-sort">
-      <span class="admin-payment-sort-label">정렬 기준</span>
       <div class="admin-payment-sort-btns">
         <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at">주문시간${arrow('created_at')}</button>
         <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date">배송희망일시${arrow('delivery_date')}</button>
