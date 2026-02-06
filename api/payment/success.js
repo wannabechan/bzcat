@@ -3,10 +3,28 @@
  * Toss 결제 성공 리다이렉트: 확인 후 주문 상태를 결제 완료로 변경
  */
 
-const { getOrderById, updateOrderStatus } = require('../_redis');
+const { getOrderById, updateOrderStatus, getStores } = require('../_redis');
 
-const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 const TOSS_CONFIRM = 'https://api.tosspayments.com/v1/payments/confirm';
+
+function getStoreSlugFromOrder(order) {
+  const items = order.order_items;
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const firstId = items[0]?.id;
+  if (!firstId || typeof firstId !== 'string') return null;
+  const slug = firstId.split('-')[0];
+  return slug || null;
+}
+
+async function getTossSecretKeyForOrder(order) {
+  const stores = await getStores();
+  const slug = getStoreSlugFromOrder(order);
+  const store = slug
+    ? stores.find((s) => (s.id === slug || s.slug === slug))
+    : null;
+  const envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
+  return process.env[envVarName] || '';
+}
 
 function getAppOrigin(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host || '';
@@ -31,16 +49,17 @@ module.exports = async (req, res) => {
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
+  const order = await getOrderById(orderId);
+  if (!order) {
+    return res.redirect(302, `${redirectBase}?payment=error`);
+  }
+
+  const TOSS_SECRET_KEY = await getTossSecretKeyForOrder(order);
   if (!TOSS_SECRET_KEY) {
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
   try {
-    const order = await getOrderById(orderId);
-    if (!order) {
-      return res.redirect(302, `${redirectBase}?payment=error`);
-    }
-
     const amountNum = Number(amount);
     const auth = Buffer.from(`${TOSS_SECRET_KEY}:`, 'utf8').toString('base64');
     const confirmRes = await fetch(TOSS_CONFIRM, {

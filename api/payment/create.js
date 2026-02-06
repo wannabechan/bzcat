@@ -4,10 +4,28 @@
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
-const { getOrderById } = require('../_redis');
+const { getOrderById, getStores } = require('../_redis');
 
-const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 const TOSS_API = 'https://api.tosspayments.com/v1/payments';
+
+function getStoreSlugFromOrder(order) {
+  const items = order.order_items;
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const firstId = items[0]?.id;
+  if (!firstId || typeof firstId !== 'string') return null;
+  const slug = firstId.split('-')[0];
+  return slug || null;
+}
+
+async function getTossSecretKeyForOrder(order) {
+  const stores = await getStores();
+  const slug = getStoreSlugFromOrder(order);
+  const store = slug
+    ? stores.find((s) => (s.id === slug || s.slug === slug))
+    : null;
+  const envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
+  return process.env[envVarName] || '';
+}
 
 function getAppOrigin(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host || '';
@@ -20,10 +38,6 @@ module.exports = async (req, res) => {
 
   if (req.method !== 'POST') {
     return apiResponse(res, 405, { error: 'Method not allowed' });
-  }
-
-  if (!TOSS_SECRET_KEY) {
-    return apiResponse(res, 503, { error: '결제 설정이 되어 있지 않습니다.' });
   }
 
   try {
@@ -54,6 +68,11 @@ module.exports = async (req, res) => {
     const amount = Number(order.total_amount);
     if (!Number.isInteger(amount) || amount < 100) {
       return apiResponse(res, 400, { error: '유효한 결제 금액이 아닙니다.' });
+    }
+
+    const TOSS_SECRET_KEY = await getTossSecretKeyForOrder(order);
+    if (!TOSS_SECRET_KEY) {
+      return apiResponse(res, 503, { error: '결제 설정이 되어 있지 않습니다.' });
     }
 
     const origin = getAppOrigin(req);
