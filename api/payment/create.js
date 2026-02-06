@@ -80,6 +80,7 @@ module.exports = async (req, res) => {
     const failUrl = `${origin}/api/payment/fail?orderId=${encodeURIComponent(orderId)}`;
 
     const body = {
+      method: 'CARD',
       amount,
       currency: 'KRW',
       orderId: String(orderId),
