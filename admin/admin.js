@@ -340,6 +340,8 @@ function renderPaymentList() {
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
     const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
     const isCancelled = order.status === 'cancelled';
+    const isPaymentDone = order.status === 'payment_completed' || order.status === 'delivery_completed';
+    const inputDisabled = isCancelled || isPaymentDone;
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
@@ -358,15 +360,14 @@ function renderPaymentList() {
             type="url" 
             class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
             value="${order.payment_link || ''}" 
-            placeholder="결제 링크 URL 입력"
             data-order-id="${order.id}"
-            ${isCancelled ? 'readonly disabled' : ''}
+            ${inputDisabled ? 'readonly disabled' : ''}
           >
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
             data-save-link="${order.id}"
-            ${isCancelled ? 'disabled' : ''}
+            ${inputDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
       </div>
@@ -406,6 +407,15 @@ function renderPaymentList() {
       const orderId = btn.dataset.saveLink;
       const input = content.querySelector(`.admin-payment-link-input[data-order-id="${orderId}"]`);
       const paymentLink = input?.value?.trim() || '';
+
+      if (paymentLink) {
+        const approvedPhrase = orderId === paymentLink || `주문 #${orderId}` === paymentLink;
+        if (!approvedPhrase) {
+          alert('결제 진행 승인 문구가 틀렸습니다.');
+          if (input) input.value = '';
+          return;
+        }
+      }
 
       btn.disabled = true;
       btn.textContent = '저장 중...';
