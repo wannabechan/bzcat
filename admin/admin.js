@@ -39,8 +39,7 @@ async function checkAdmin() {
     });
     if (!res.ok) return { ok: false, error: '세션이 만료되었습니다.' };
     const data = await res.json();
-    const email = (data.user?.email || '').toLowerCase();
-    const isAdmin = data.user?.level === 'admin' || email === 'bzcatmanager@gmail.com';
+    const isAdmin = data.user?.level === 'admin';
     return { ok: isAdmin, error: isAdmin ? null : '관리자만 접근할 수 있습니다.' };
   } catch (e) {
     return { ok: false, error: e.name === 'AbortError' ? '요청 시간이 초과되었습니다.' : (e.message || '연결에 실패했습니다.') };
