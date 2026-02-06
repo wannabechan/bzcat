@@ -59,7 +59,7 @@ function showApp(user) {
   document.getElementById('mainApp').style.display = 'flex';
   const adminLink = document.getElementById('headerAdminLink');
   if (adminLink) {
-    const isAdmin = user && (user.level === 'admin' || (user.email || '').toLowerCase() === 'bzcatmanager@gmail.com');
+    const isAdmin = user && user.level === 'admin';
     adminLink.style.display = isAdmin ? '' : 'none';
   }
 }
