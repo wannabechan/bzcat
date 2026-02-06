@@ -605,9 +605,8 @@ async function confirmAndCancelOrder(order) {
 }
 
 function isPaymentLinkActive(order) {
-  if (!order.paymentLink || order.status === 'cancelled') return false;
-  if (order.status === 'payment_completed' || order.status === 'delivery_completed') return false;
-  return true;
+  if (order.status === 'cancelled' || order.status === 'payment_completed' || order.status === 'delivery_completed') return false;
+  return order.status === 'submitted' || order.status === 'payment_link_issued';
 }
 
 function renderProfileOrdersList() {
@@ -808,12 +807,31 @@ function init() {
       const card = paymentLinkStep.closest('.profile-order-card');
       const orderId = card?.dataset?.orderId;
       const order = orderId && profileOrdersData[orderId];
-      console.log('Payment link clicked:', { orderId, order, paymentLink: order?.paymentLink });
-      if (order?.paymentLink) {
-        window.open(order.paymentLink, '_blank', 'noopener,noreferrer');
-      } else {
-        alert('결제 링크가 설정되지 않았습니다.');
-      }
+      if (!order) return;
+      (async () => {
+        const token = window.BzCatAuth?.getToken();
+        if (!token) {
+          alert('로그인이 필요합니다.');
+          return;
+        }
+        try {
+          const res = await fetch('/api/payment/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ orderId }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || '결제 요청에 실패했습니다.');
+            return;
+          }
+          if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+          else alert('결제 URL을 받지 못했습니다.');
+        } catch (err) {
+          console.error(err);
+          alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+        }
+      })();
       return;
     }
     
@@ -1031,6 +1049,29 @@ function init() {
     renderCartItems();
     updateCartCount();
   });
+
+  const params = new URLSearchParams(window.location.search);
+  const paymentResult = params.get('payment');
+  if (paymentResult === 'cancel') {
+    const clearParam = () => {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('payment');
+      window.history.replaceState({}, '', u.pathname + (u.search || '') + (u.hash || ''));
+    };
+    openProfile().then(() => {
+      alert('사용자의 요청에 의해 결제가 중지되었습니다.');
+      clearParam();
+    });
+  } else if (paymentResult === 'success' || paymentResult === 'error') {
+    const clearParam = () => {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('payment');
+      window.history.replaceState({}, '', u.pathname + (u.search || '') + (u.hash || ''));
+    };
+    openProfile().then(() => {
+      clearParam();
+    });
+  }
 }
 
 init();
