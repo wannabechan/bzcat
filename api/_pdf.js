@@ -91,7 +91,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     doc.text('BzCat', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
     doc.fontSize(14);
     y = doc.y + 4;
-    doc.text(isCancelled ? '비즈니스 케이터링 주문서 (취소 주문 건)' : '비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
+    doc.text(isCancelled ? '비즈니스 케이터링 주문서 (취소 건)' : '비즈니스 케이터링 주문서', MARGIN, y, { align: 'center', width: CONTENT_WIDTH });
     y = doc.y + 20;
 
     // 구분선
