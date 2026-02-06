@@ -342,7 +342,7 @@ function renderPaymentList() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
-    const isUrgent = daysUntilDelivery <= 6 && !order.payment_link;
+    const isUrgent = daysUntilDelivery <= 7 && !(order.payment_link && String(order.payment_link).trim());
     const isCancelled = order.status === 'cancelled';
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
     const paymentLinkRowDisabled = isCancelled || isPaymentDone || !!(order.payment_link && String(order.payment_link).trim());
