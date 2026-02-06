@@ -561,13 +561,23 @@ function openProfileOrderDetail(order) {
 
   const pdfBtn = document.getElementById('orderDetailPdfBtn');
   if (pdfBtn) {
-    if (order.pdfUrl) {
-      pdfBtn.href = order.pdfUrl;
-      pdfBtn.style.display = '';
-    } else {
-      pdfBtn.href = '#';
-      pdfBtn.style.display = 'none';
-    }
+    pdfBtn.style.display = '';
+    pdfBtn.href = '#';
+    const orderIdForPdf = order.id;
+    pdfBtn.onclick = async (e) => {
+      e.preventDefault();
+      const token = window.BzCatAuth?.getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (_) {}
+    };
   }
 
   orderDetailOverlay.classList.add('visible');
