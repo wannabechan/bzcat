@@ -1038,6 +1038,7 @@ function init() {
         renderCartItems();
         renderMenuCards();
         closeCheckoutModal();
+        openProfile();
 
       } catch (error) {
         console.error('Order submission error:', error);
