@@ -47,7 +47,7 @@ module.exports = async (req, res) => {
     const codeTrim = (code || '').trim();
     const valid = codeTrim === orderId || codeTrim === `주문 #${orderId}`;
     if (!valid) {
-      return apiResponse(res, 400, { error: '입력 코드 오류' });
+      return apiResponse(res, 400, { error: '배송 완료 승인 코드 오류' });
     }
 
     await updateOrderStatus(orderId, 'delivery_completed');
