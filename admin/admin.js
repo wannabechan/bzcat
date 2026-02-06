@@ -8,6 +8,7 @@ const FETCH_TIMEOUT_MS = 15000;
 
 let adminPaymentOrders = [];
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
+let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
 let adminPaymentShowAll = false; // false: 취소 제외, true: 전체(취소 포함)
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
@@ -297,17 +298,19 @@ function setupTabs() {
   });
 }
 
-function sortPaymentOrders(orders, sortBy) {
+function sortPaymentOrders(orders, sortBy, dir) {
   const copy = orders.slice();
+  const asc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   if (sortBy === 'created_at') {
-    copy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    copy.sort((a, b) => asc(new Date(a.created_at), new Date(b.created_at)));
   } else {
     copy.sort((a, b) => {
       const da = (a.delivery_date || '') + ' ' + (a.delivery_time || '00:00');
       const db = (b.delivery_date || '') + ' ' + (b.delivery_time || '00:00');
-      return new Date(da) - new Date(db);
+      return asc(new Date(da), new Date(db));
     });
   }
+  if (dir === 'desc') copy.reverse();
   return copy;
 }
 
@@ -315,14 +318,16 @@ function renderPaymentList() {
   const content = document.getElementById('adminPaymentContent');
   const filtered = adminPaymentShowAll ? adminPaymentOrders : adminPaymentOrders.filter(o => o.status !== 'cancelled');
   const sortBy = adminPaymentShowAll ? 'created_at' : adminPaymentSortBy;
-  const sorted = sortPaymentOrders(filtered, sortBy);
+  const dir = adminPaymentSortDir[sortBy] || 'desc';
+  const sorted = sortPaymentOrders(filtered, sortBy, dir);
 
+  const arrow = (key) => (adminPaymentSortDir[key] === 'asc' ? ' ↑' : ' ↓');
   const sortBar = `
     <div class="admin-payment-sort">
       <span class="admin-payment-sort-label">정렬 기준</span>
       <div class="admin-payment-sort-btns">
-        <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at" ${adminPaymentShowAll ? 'disabled' : ''}>주문시간</button>
-        <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date" ${adminPaymentShowAll ? 'disabled' : ''}>배송희망일시</button>
+        <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at" ${adminPaymentShowAll ? 'disabled' : ''}>주문시간${arrow('created_at')}</button>
+        <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date" ${adminPaymentShowAll ? 'disabled' : ''}>배송희망일시${arrow('delivery_date')}</button>
       </div>
       <button type="button" class="admin-payment-toggle-btn" data-toggle-filter>${adminPaymentShowAll ? '취소 주문 제외' : '전체 보기'}</button>
     </div>
@@ -373,7 +378,12 @@ function renderPaymentList() {
   content.querySelectorAll('[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (adminPaymentShowAll) return;
-      adminPaymentSortBy = btn.dataset.sort;
+      const key = btn.dataset.sort;
+      if (adminPaymentSortBy === key) {
+        adminPaymentSortDir[key] = adminPaymentSortDir[key] === 'asc' ? 'desc' : 'asc';
+      } else {
+        adminPaymentSortBy = key;
+      }
       renderPaymentList();
     });
   });
