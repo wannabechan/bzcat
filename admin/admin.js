@@ -647,6 +647,7 @@ function openAdminOrderDetail(order) {
     if (order.pdf_url) {
       pdfBtn.href = order.pdf_url;
       pdfBtn.style.display = '';
+      pdfBtn.textContent = order.status === 'cancelled' ? '주문서 확인 (취소 건)' : '주문서 확인';
     } else {
       pdfBtn.href = '#';
       pdfBtn.style.display = 'none';
