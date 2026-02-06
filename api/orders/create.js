@@ -51,11 +51,11 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '필수 정보를 모두 입력해 주세요.' });
     }
 
-    // 최소 주문 금액 검증 (30만원)
-    const TOTAL_MIN = 300000;
+    // 최소 주문 금액 검증 (테스트용 100원)
+    const TOTAL_MIN = 100;
     const orderTotal = Number(totalAmount) || 0;
     if (orderTotal < TOTAL_MIN) {
-      return apiResponse(res, 400, { error: '최소 주문 금액은 300,000원입니다.' });
+      return apiResponse(res, 400, { error: '최소 주문 금액은 100원입니다.' });
     }
 
     // 주문 생성 (Redis)
