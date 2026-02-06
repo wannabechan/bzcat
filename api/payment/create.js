@@ -102,15 +102,17 @@ module.exports = async (req, res) => {
 
     if (!createRes.ok) {
       console.error('Toss payment create failed:', createRes.status, data);
+      const errObj = data.error;
       const msg =
+        (typeof errObj === 'object' && errObj !== null && errObj.message) ||
         data.message ||
         data.msg ||
-        data.error ||
         data.errorMessage ||
         (data.code ? String(data.code) : '') ||
         '결제 요청에 실패했습니다.';
+      const errorText = typeof msg === 'string' ? msg.trim() : String(msg || '').trim();
       return apiResponse(res, createRes.status >= 500 ? 502 : 400, {
-        error: msg.trim() || '결제 요청에 실패했습니다.',
+        error: errorText || '결제 요청에 실패했습니다.',
       });
     }
 
