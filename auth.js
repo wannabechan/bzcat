@@ -62,6 +62,15 @@ function showApp(user) {
     const isAdmin = user && user.level === 'admin';
     adminLink.style.display = isAdmin ? '' : 'none';
   }
+  // 신규 로그인 시 기본 화면으로: 내 주문 보기 드로어 닫기
+  const profileDrawer = document.getElementById('profileDrawer');
+  const profileOverlay = document.getElementById('profileOverlay');
+  if (profileDrawer) profileDrawer.classList.remove('open');
+  if (profileOverlay) {
+    profileOverlay.classList.remove('visible');
+    profileOverlay.setAttribute('aria-hidden', 'true');
+  }
+  document.body.style.overflow = '';
 }
 
 async function initAuth() {

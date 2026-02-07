@@ -1013,6 +1013,7 @@ body {
 .profile-logout-wrap {
   margin-top: 16px;
   padding-top: 16px;
+  padding-right: 5px;
   text-align: right;
 }
 
