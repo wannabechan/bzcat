@@ -1116,6 +1116,16 @@ body {
   border-radius: var(--radius);
 }
 
+.profile-order-card-delivered {
+  opacity: 0.78;
+  background: #f5f5f5;
+  color: var(--color-text-secondary);
+}
+
+.profile-order-card-delivered .profile-order-status {
+  color: var(--color-text-secondary);
+}
+
 .profile-order-card-header {
   display: flex;
   justify-content: space-between;

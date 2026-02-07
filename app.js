@@ -667,7 +667,7 @@ function renderProfileOrdersList() {
       const showCancelBtn = canCancel(o.status);
 
       return `
-        <div class="profile-order-card" data-order-id="${o.id}">
+        <div class="profile-order-card ${o.status === 'delivery_completed' ? 'profile-order-card-delivered' : ''}" data-order-id="${o.id}">
           <div class="profile-order-card-header">
             <div class="profile-order-header-left">
               <span class="profile-order-id">주문 #${o.id}</span>
