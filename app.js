@@ -667,7 +667,7 @@ function renderProfileOrdersList() {
       const showCancelBtn = canCancel(o.status);
 
       return `
-        <div class="profile-order-card ${o.status === 'delivery_completed' ? 'profile-order-card-delivered' : ''}" data-order-id="${o.id}">
+        <div class="profile-order-card" data-order-id="${o.id}">
           <div class="profile-order-card-header">
             <div class="profile-order-header-left">
               <span class="profile-order-id">주문 #${o.id}</span>
@@ -676,11 +676,11 @@ function renderProfileOrdersList() {
                 ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
               </div>
             </div>
-            <span class="profile-order-status ${cancelled ? 'cancelled' : ''}">${o.statusLabel}</span>
+            <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${o.statusLabel}</span>
           </div>
           <div class="profile-order-date">주문일시 : ${formatOrderDate(o.createdAt)}<br>배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)}</div>
           <div class="profile-order-status-steps">${stepsHtml}</div>
-          <div class="profile-order-amount ${cancelled ? 'cancelled' : ''}">${formatPrice(o.totalAmount || 0)}</div>
+          <div class="profile-order-amount ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${formatPrice(o.totalAmount || 0)}</div>
         </div>
       `;
     })
@@ -856,6 +856,8 @@ function init() {
     profileIncludeCancelledEl.addEventListener('change', () => {
       profileIncludeCancelled = profileIncludeCancelledEl.checked;
       renderProfileOrdersList();
+      const profileContent = document.getElementById('profileContent');
+      if (profileContent) profileContent.scrollTop = 0;
     });
   }
   profileOrders.addEventListener('click', (e) => {
