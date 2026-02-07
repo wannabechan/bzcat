@@ -67,8 +67,6 @@ const orderDetailOverlay = document.getElementById('orderDetailOverlay');
 const orderDetailContent = document.getElementById('orderDetailContent');
 const orderDetailClose = document.getElementById('orderDetailClose');
 const profileToggle = document.getElementById('profileToggle');
-const profileMenuToggle = document.getElementById('profileMenuToggle');
-const profileMenuDropdown = document.getElementById('profileMenuDropdown');
 const profileOverlay = document.getElementById('profileOverlay');
 const profileDrawer = document.getElementById('profileDrawer');
 const profileClose = document.getElementById('profileClose');
@@ -91,6 +89,7 @@ const ORDER_STATUS_STEPS = [
   { key: 'payment_completed', label: '결제 완료' },
   { key: 'delivery_completed', label: '배송 완료' },
 ];
+const PENDING_ORDER_STATUSES = ['submitted', 'payment_link_issued', 'payment_completed', 'shipping'];
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -508,13 +507,6 @@ function openCheckoutModal() {
   const orderDetailTotalEl = document.getElementById('orderDetailTotal');
   if (orderDetailTotalEl) orderDetailTotalEl.textContent = formatPrice(total);
 
-  const categoryIds = new Set();
-  for (const [itemId] of entries) {
-    categoryIds.add(getCategoryForItem(itemId));
-  }
-  const categoryCountEl = document.getElementById('checkoutCategoryCount');
-  if (categoryCountEl) categoryCountEl.textContent = `${categoryIds.size}개 카테고리 주문`;
-
   inputDepositor.value = '';
   inputContact.value = '';
   inputDeliveryDate.value = '';
@@ -556,25 +548,6 @@ function closeProfile() {
   profileOverlay.classList.remove('visible');
   profileOverlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
-}
-
-function openProfileMenu() {
-  profileMenuDropdown.classList.add('open');
-  profileMenuToggle.setAttribute('aria-expanded', 'true');
-  profileMenuDropdown.setAttribute('aria-hidden', 'false');
-  const closeOnOutside = (e) => {
-    if (!profileMenuDropdown.contains(e.target) && e.target !== profileMenuToggle) {
-      closeProfileMenu();
-      document.removeEventListener('click', closeOnOutside);
-    }
-  };
-  requestAnimationFrame(() => document.addEventListener('click', closeOnOutside));
-}
-
-function closeProfileMenu() {
-  profileMenuDropdown.classList.remove('open');
-  profileMenuToggle.setAttribute('aria-expanded', 'false');
-  profileMenuDropdown.setAttribute('aria-hidden', 'true');
 }
 
 function openProfileOrderDetail(order) {
@@ -716,12 +689,19 @@ function renderProfileOrdersList() {
   profileOrders.innerHTML = cardsHtml + loadMoreHtml;
 }
 
+function updateProfileButtonHighlight() {
+  const hasPending = profileAllOrders.some((o) => PENDING_ORDER_STATUSES.includes(o.status));
+  profileToggle.classList.toggle('has-pending-orders', hasPending);
+}
+
 async function fetchAndRenderProfileOrders() {
   const token = window.BzCatAuth?.getToken();
   if (!token) {
     profileEmpty.style.display = 'block';
     profileOrders.style.display = 'none';
     profileEmpty.innerHTML = '<p>로그인이 필요합니다</p>';
+    profileAllOrders = [];
+    updateProfileButtonHighlight();
     return;
   }
   profileEmpty.style.display = 'block';
@@ -740,6 +720,9 @@ async function fetchAndRenderProfileOrders() {
     }
 
     const orders = data.orders || [];
+    profileAllOrders = orders;
+    updateProfileButtonHighlight();
+
     if (orders.length === 0) {
       profileEmpty.style.display = 'block';
       profileOrders.style.display = 'none';
@@ -749,7 +732,6 @@ async function fetchAndRenderProfileOrders() {
 
     profileEmpty.style.display = 'none';
     profileOrders.style.display = 'block';
-    profileAllOrders = orders;
     profileVisibleCount = PROFILE_PAGE_SIZE;
     renderProfileOrdersList();
   } catch (err) {
@@ -858,13 +840,6 @@ function init() {
   cartOverlay.addEventListener('click', closeCart);
 
   startProfileIdleRefresh();
-  profileMenuToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (profileMenuDropdown.classList.contains('open')) closeProfileMenu();
-    else openProfileMenu();
-  });
-  const btnLogout = document.getElementById('btnLogout');
-  if (btnLogout) btnLogout.addEventListener('click', closeProfileMenu);
   profileToggle.addEventListener('click', openProfile);
   profileClose.addEventListener('click', closeProfile);
   profileOverlay.addEventListener('click', (e) => {
@@ -1106,9 +1081,7 @@ function init() {
   // ESC 키로 모달/오버레이 닫기
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (profileMenuDropdown.classList.contains('open')) {
-        closeProfileMenu();
-      } else if (orderDetailOverlay.classList.contains('visible')) {
+      if (orderDetailOverlay.classList.contains('visible')) {
         closeOrderDetailOverlay();
       } else if (profileDrawer.classList.contains('open')) {
         closeProfile();
