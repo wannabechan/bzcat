@@ -143,7 +143,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       '· 배송 희망일 최소 6일전 결제 링크가 생성되고, 등록하신 연락처로 안내 메세지를 보내드립니다.',
       '· 홈페이지 \'내 주문 보기\'에서 해당 주문의 [결제 진행하기] 버튼을 누르시고 결제를 진행하시면 됩니다.',
       '· 배송 희망일 4일전까지 결제 완료 필수이며, 기한 내 결제되지 않은 주문은 자동 취소됩니다.',
-      '· 결제 완료된 주문은 취소되지 않으며 환불은 불가합니다.',
+      '· 결제 취소는 배송 희망일 4일전까지만 허용되며, 이후에는 환불되지 않습니다.',
     ];
     doc.rect(MARGIN, y, CONTENT_WIDTH, notices.length * 22 + 16).stroke('#ccc').fill('#fcfcfc');
     doc.fillColor('#000').fontSize(9);
