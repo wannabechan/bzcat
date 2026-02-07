@@ -72,10 +72,12 @@ const profileDrawer = document.getElementById('profileDrawer');
 const profileClose = document.getElementById('profileClose');
 const profileEmpty = document.getElementById('profileEmpty');
 const profileOrders = document.getElementById('profileOrders');
+const profileIncludeCancelledEl = document.getElementById('profileIncludeCancelled');
 
 let profileOrdersData = {};
 let profileAllOrders = [];
 let profileVisibleCount = 10;
+let profileIncludeCancelled = false;
 const PROFILE_PAGE_SIZE = 10;
 
 // 180초 무활동 시 API 재호출 + 주문 목록 영역만 다시 그리기
@@ -536,6 +538,8 @@ function closeOrderDetailOverlay() {
 
 // 마이프로필: 주문 내역
 async function openProfile() {
+  profileIncludeCancelled = false;
+  if (profileIncludeCancelledEl) profileIncludeCancelledEl.checked = false;
   profileDrawer.classList.add('open');
   profileOverlay.classList.add('visible');
   profileOverlay.setAttribute('aria-hidden', 'false');
@@ -620,7 +624,7 @@ function isPaymentLinkActive(order) {
 }
 
 function renderProfileOrdersList() {
-  const orders = profileAllOrders;
+  const orders = profileIncludeCancelled ? profileAllOrders : profileAllOrders.filter((o) => o.status !== 'cancelled');
   const visible = orders.slice(0, profileVisibleCount);
   const hasMore = orders.length > profileVisibleCount;
 
@@ -848,6 +852,12 @@ function init() {
   profileOverlay.addEventListener('click', (e) => {
     if (e.target === profileOverlay) closeProfile();
   });
+  if (profileIncludeCancelledEl) {
+    profileIncludeCancelledEl.addEventListener('change', () => {
+      profileIncludeCancelled = profileIncludeCancelledEl.checked;
+      renderProfileOrdersList();
+    });
+  }
   profileOrders.addEventListener('click', (e) => {
     const paymentLinkStep = e.target.closest('[data-action="open-payment-link"]');
     if (paymentLinkStep) {

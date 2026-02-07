@@ -972,12 +972,41 @@ body {
   flex-shrink: 0;
 }
 
+.profile-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .profile-header h2 {
   font-size: 1.125rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.profile-include-cancelled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #b0b0b0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-include-cancelled-input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #b0b0b0;
+}
+
+.profile-include-cancelled-label {
+  user-select: none;
 }
 
 .profile-close {
