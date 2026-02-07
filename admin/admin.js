@@ -9,7 +9,7 @@ const FETCH_TIMEOUT_MS = 15000;
 let adminPaymentOrders = [];
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
-let adminPaymentShowAll = true; // 항상 전체 보기
+let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait'
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
 
@@ -320,7 +320,24 @@ function sortPaymentOrders(orders, sortBy, dir) {
 
 function renderPaymentList() {
   const content = document.getElementById('adminPaymentContent');
-  const filtered = adminPaymentOrders;
+  const allOrders = adminPaymentOrders;
+  const cancelled = (o) => o.status === 'cancelled';
+
+  const newCount = allOrders.filter(o => !cancelled(o) && o.status === 'submitted').length;
+  const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
+  const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
+
+  let filtered;
+  if (adminPaymentSubFilter === 'new') {
+    filtered = allOrders.filter(o => o.status === 'submitted');
+  } else if (adminPaymentSubFilter === 'payment_wait') {
+    filtered = allOrders.filter(o => o.status === 'payment_link_issued');
+  } else if (adminPaymentSubFilter === 'delivery_wait') {
+    filtered = allOrders.filter(o => o.status === 'payment_completed');
+  } else {
+    filtered = allOrders.slice();
+  }
+
   const sortBy = adminPaymentSortBy;
   const dir = adminPaymentSortDir[sortBy] || 'desc';
   const sorted = sortPaymentOrders(filtered, sortBy, dir);
@@ -332,6 +349,12 @@ function renderPaymentList() {
         <button type="button" class="admin-payment-sort-btn ${sortBy === 'created_at' ? 'active' : ''}" data-sort="created_at">주문시간${arrow('created_at')}</button>
         <button type="button" class="admin-payment-sort-btn ${sortBy === 'delivery_date' ? 'active' : ''}" data-sort="delivery_date">배송희망일시${arrow('delivery_date')}</button>
       </div>
+    </div>
+    <div class="admin-payment-subfilter">
+      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
+      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
+      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
+      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
     </div>
   `;
 
@@ -425,6 +448,20 @@ function renderPaymentList() {
         adminPaymentSortBy = key;
       }
       renderPaymentList();
+    });
+  });
+
+  content.querySelectorAll('[data-subfilter]').forEach(el => {
+    const handler = () => {
+      adminPaymentSubFilter = el.dataset.subfilter;
+      renderPaymentList();
+    };
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handler();
+      }
     });
   });
 
