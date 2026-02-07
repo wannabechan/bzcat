@@ -71,6 +71,7 @@ function showApp(user) {
     profileOverlay.setAttribute('aria-hidden', 'true');
   }
   document.body.style.overflow = '';
+  if (typeof window.BzCatAppOnShow === 'function') window.BzCatAppOnShow();
 }
 
 async function initAuth() {

@@ -840,6 +840,9 @@ function init() {
   cartOverlay.addEventListener('click', closeCart);
 
   startProfileIdleRefresh();
+  window.BzCatAppOnShow = function () {
+    fetchAndRenderProfileOrders();
+  };
   profileToggle.addEventListener('click', openProfile);
   profileClose.addEventListener('click', closeProfile);
   profileOverlay.addEventListener('click', (e) => {

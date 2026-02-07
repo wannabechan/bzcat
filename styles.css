@@ -1209,11 +1209,11 @@ body {
 .profile-btn-load-more {
   padding: 8px 24px;
   font-size: 0.875rem;
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
 }
 
 .profile-btn-load-more:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-text);
 }
 
 @media (max-width: 480px) {
