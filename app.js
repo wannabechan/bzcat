@@ -272,7 +272,7 @@ function renderMenuCards() {
   const bizNo = (data.bizNo || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const titleEscaped = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   if (brand || bizNo) {
-    menuSectionTitle.innerHTML = titleEscaped + '  <span class="menu-section-madeby">made by ' + brand + ' (' + bizNo + ')</span>';
+    menuSectionTitle.innerHTML = titleEscaped + '   <span class="menu-section-madeby">made by ' + brand + ' (' + bizNo + ')</span>';
   } else {
     menuSectionTitle.textContent = data.title;
   }
