@@ -268,10 +268,14 @@ function renderMenuCards() {
     return;
   }
 
-  const brand = data.brand || '';
-  const bizNo = data.bizNo || '';
-  const madeBy = brand || bizNo ? `  |  made by ${brand} (${bizNo})` : '';
-  menuSectionTitle.textContent = data.title + madeBy;
+  const brand = (data.brand || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const bizNo = (data.bizNo || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const titleEscaped = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  if (brand || bizNo) {
+    menuSectionTitle.innerHTML = titleEscaped + '  <span class="menu-section-madeby">made by ' + brand + ' (' + bizNo + ')</span>';
+  } else {
+    menuSectionTitle.textContent = data.title;
+  }
   const emoji = getCategoryEmoji(category);
 
   const items = data.items || [];
