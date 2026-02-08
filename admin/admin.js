@@ -152,6 +152,20 @@ function renderStore(store, menus) {
               <input type="text" data-field="storeContact" value="${(store.storeContact || '').replace(/"/g, '&quot;')}" placeholder="예: 02-1234-5678">
             </div>
           </div>
+          <div class="admin-form-row">
+            <div class="admin-form-field">
+              <label>대표자</label>
+              <input type="text" data-field="representative" value="${(store.representative || '').replace(/"/g, '&quot;')}" placeholder="대표자명">
+            </div>
+            <div class="admin-form-field">
+              <label>사업자등록번호</label>
+              <input type="text" data-field="bizNo" value="${(store.bizNo || '').replace(/"/g, '&quot;')}" placeholder="예: 000-00-00000">
+            </div>
+            <div class="admin-form-field">
+              <label>suburl</label>
+              <input type="text" data-field="suburl" value="${(store.suburl || '').replace(/"/g, '&quot;')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
+            </div>
+          </div>
         </div>
         <div class="admin-section">
           <div class="admin-section-title">API키 환경변수</div>
@@ -228,9 +242,12 @@ function collectData() {
     const brandInput = storeEl.querySelector('input[data-field="brand"]');
     const storeAddressInput = storeEl.querySelector('input[data-field="storeAddress"]');
     const storeContactInput = storeEl.querySelector('input[data-field="storeContact"]');
+    const representativeInput = storeEl.querySelector('input[data-field="representative"]');
+    const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
+    const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
     const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
 
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', payment: {
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -883,6 +900,9 @@ async function init() {
           brand: '',
           storeAddress: '',
           storeContact: '',
+          representative: '',
+          bizNo: '',
+          suburl: '',
           payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');
@@ -937,6 +957,19 @@ async function init() {
       }
       if (e.target.closest('[data-save]')) {
         handleSave();
+      }
+    });
+
+    content.addEventListener('input', (e) => {
+      const input = e.target;
+      if (input?.getAttribute('data-field') === 'suburl') {
+        const cursor = input.selectionStart;
+        const raw = input.value;
+        const filtered = raw.toLowerCase().replace(/[^a-z]/g, '');
+        if (raw !== filtered) {
+          input.value = filtered;
+          input.setSelectionRange(Math.min(cursor, filtered.length), Math.min(cursor, filtered.length));
+        }
       }
     });
 

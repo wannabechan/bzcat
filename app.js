@@ -236,8 +236,8 @@ function addToCartFromPending(itemId) {
   renderCartItems();
 }
 
-// 카테고리 탭 렌더 (API 데이터 기반)
-function renderCategoryTabs() {
+// 카테고리 탭 렌더 (API 데이터 기반). initialSlug: suburl 접근 시 먼저 보여줄 카테고리 slug
+function renderCategoryTabs(initialSlug) {
   const slugs = Object.keys(MENU_DATA);
   if (slugs.length === 0) {
     categoryTabs.innerHTML = '<p class="category-empty">등록된 카테고리가 없습니다.</p>';
@@ -245,7 +245,7 @@ function renderCategoryTabs() {
     menuGrid.innerHTML = '';
     return;
   }
-  const firstSlug = slugs[0];
+  const firstSlug = (initialSlug && slugs.includes(initialSlug)) ? initialSlug : slugs[0];
   categoryTabs.innerHTML = slugs
     .map((slug) => {
       const title = MENU_DATA[slug]?.title || slug;
@@ -1108,10 +1108,23 @@ function init() {
   });
 
   loadMenuData().then(() => {
-    renderCategoryTabs();
+    const pathSeg = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0] || '';
+    let initialSlug = null;
+    if (pathSeg) {
+      if (MENU_DATA[pathSeg]) initialSlug = pathSeg;
+      else {
+        const bySuburl = Object.keys(MENU_DATA).find((slug) => (MENU_DATA[slug].suburl || '') === pathSeg);
+        if (bySuburl) initialSlug = bySuburl;
+      }
+    }
+    renderCategoryTabs(initialSlug || undefined);
     renderMenuCards();
     renderCartItems();
     updateCartCount();
+    if (initialSlug) {
+      const base = window.location.origin + '/' + (window.location.search ? window.location.search : '') + (window.location.hash || '');
+      window.history.replaceState({}, '', base);
+    }
   });
 
   const params = new URLSearchParams(window.location.search);
