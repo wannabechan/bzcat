@@ -158,10 +158,9 @@ function renderStore(store, menus) {
           <div class="admin-form-row">
             <div class="admin-form-field" style="flex: 1;">
               <label>환경변수 명칭</label>
-              <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="예: TOSS_SECRET_KEY">
+              <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="ENV. Variable">
             </div>
           </div>
-          <p class="admin-form-hint">Vercel(또는 배포 환경)의 환경변수에 위 명칭으로 토스페이먼츠 시크릿 키를 설정하세요. 키 값은 화면에 입력하지 마세요.</p>
         </div>
         <div class="admin-section">
           <div class="admin-section-title">메뉴</div>
