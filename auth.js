@@ -100,6 +100,8 @@ async function initAuth() {
   const btnLogout = document.getElementById('btnLogout');
   const loginLogo = document.getElementById('loginLogo');
 
+  const loginScreen = document.getElementById('loginScreen');
+
   if (loginLogo) {
     loginLogo.addEventListener('click', () => location.reload());
     loginLogo.addEventListener('keydown', (e) => {
@@ -109,6 +111,12 @@ async function initAuth() {
       }
     });
   }
+
+  window.addEventListener('popstate', () => {
+    if (loginScreen && loginScreen.style.display !== 'none' && loginCodeSection && loginCodeSection.style.display !== 'none') {
+      resetToStep1();
+    }
+  });
 
   function resetToStep1() {
     if (codeCountdownInterval) {
@@ -188,6 +196,7 @@ async function initAuth() {
       loginCode.focus();
       btnSendCode.style.display = 'none';
       startCodeCountdown();
+      history.pushState({ loginStep: 'code' }, '', window.location.pathname + (window.location.search || ''));
 
       // 개발 모드: 코드 표시
       if (data.devCode) {
