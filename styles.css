@@ -1612,6 +1612,63 @@ body {
   margin-top: 10px;
 }
 
+.delivery-date-picker { position: relative; }
+.delivery-date-picker-display {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+.delivery-date-picker-display:hover { border-color: #b0b0b0; }
+.delivery-date-picker-display:focus { outline: none; border-color: var(--color-primary); }
+.delivery-date-picker-panel {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 12px;
+  z-index: 50;
+  min-width: 280px;
+  max-height: 320px;
+  overflow: auto;
+  display: none;
+}
+.delivery-date-picker-panel.open { display: block; }
+.delivery-date-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.delivery-date-picker-weekday { font-size: 0.6875rem; color: var(--color-text-secondary); padding: 4px 0; }
+.delivery-date-cell {
+  padding: 8px;
+  font-size: 0.875rem;
+  border: none;
+  background: none;
+  border-radius: var(--radius);
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+.delivery-date-cell--enabled {
+  cursor: pointer;
+  color: var(--color-text);
+}
+.delivery-date-cell--enabled:hover { background: var(--color-accent-light); color: var(--color-primary); }
+.delivery-date-cell--disabled {
+  opacity: 0.45;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+.delivery-date-picker-month { font-size: 0.8125rem; font-weight: 600; margin: 12px 0 6px; color: var(--color-text-secondary); }
+.delivery-date-picker-month:first-child { margin-top: 0; }
+
 .delivery-date-hint {
   font-size: 0.75rem;
   color: var(--color-text-secondary);

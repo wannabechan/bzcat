@@ -202,7 +202,11 @@
                 <div class="form-row form-row-inline form-row-delivery-datetime">
                   <div class="form-field">
                     <label class="form-label" for="inputDeliveryDate">배송희망날짜</label>
-                    <input type="date" id="inputDeliveryDate" class="form-input" min="">
+                    <div class="delivery-date-picker">
+                      <input type="hidden" id="inputDeliveryDate" value="">
+                      <div class="delivery-date-picker-display" id="deliveryDatePickerDisplay" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">날짜 선택</div>
+                      <div class="delivery-date-picker-panel" id="deliveryDatePickerPanel" role="dialog" aria-label="배송 희망일 선택"></div>
+                    </div>
                     <p class="delivery-date-hint" id="deliveryDateHint" aria-live="polite"></p>
                   </div>
                   <div class="form-field">

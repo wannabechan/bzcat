@@ -205,6 +205,49 @@ function isBusinessDay(dateStr, categorySlug) {
   return days.includes(dayOfWeek);
 }
 
+function formatDeliveryDateDisplay(dateStr) {
+  if (!dateStr) return '날짜 선택';
+  const [y, m, d] = dateStr.split('-');
+  return `${y}. ${parseInt(m, 10)}. ${parseInt(d, 10)}.`;
+}
+
+function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
+  const minStr = getMinDeliveryDate();
+  const maxStr = getMaxDeliveryDate();
+  const minDate = new Date(minStr + 'T12:00:00');
+  const maxDate = new Date(maxStr + 'T12:00:00');
+  const businessDays = (MENU_DATA[categorySlug]?.businessDays && Array.isArray(MENU_DATA[categorySlug].businessDays))
+    ? MENU_DATA[categorySlug].businessDays
+    : [0, 1, 2, 3, 4, 5, 6];
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  let html = '<div class="delivery-date-picker-grid">';
+  weekdays.forEach((w) => { html += `<div class="delivery-date-picker-weekday">${w}</div>`; });
+  const start = new Date(minDate);
+  start.setDate(start.getDate() - start.getDay());
+  const end = new Date(maxDate);
+  end.setDate(end.getDate() + (6 - end.getDay()));
+  for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
+    const d = new Date(t);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${day}`;
+    const dayNum = d.getDate();
+    const inRange = d >= minDate && d <= maxDate;
+    const isBusiness = businessDays.includes(d.getDay());
+    const enabled = inRange && isBusiness;
+    if (enabled) {
+      html += `<button type="button" class="delivery-date-cell delivery-date-cell--enabled" data-date="${dateStr}">${dayNum}</button>`;
+    } else if (inRange) {
+      html += `<span class="delivery-date-cell delivery-date-cell--disabled">${dayNum}</span>`;
+    } else {
+      html += `<span class="delivery-date-cell delivery-date-cell--disabled" aria-hidden="true">${dayNum}</span>`;
+    }
+  }
+  html += '</div>';
+  panelEl.innerHTML = html;
+}
+
 // 장바구니에 포함된 첫 매장의 결제정보
 function getPaymentForCart() {
   const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
@@ -545,11 +588,11 @@ function openCheckoutModal() {
   inputDeliveryAddress.value = '';
   detailAddressRow.style.display = 'none';
   inputDetailAddress.value = '';
-  inputDeliveryDate.min = getMinDeliveryDate();
-  inputDeliveryDate.max = getMaxDeliveryDate();
   const deliveryDateHintEl = document.getElementById('deliveryDateHint');
   const cartCategory = getCartCategory();
   if (deliveryDateHintEl) deliveryDateHintEl.textContent = getBusinessDaysHint(cartCategory || '');
+  const deliveryDatePickerDisplay = document.getElementById('deliveryDatePickerDisplay');
+  if (deliveryDatePickerDisplay) deliveryDatePickerDisplay.textContent = formatDeliveryDateDisplay(inputDeliveryDate.value);
   btnOrderSubmit.textContent = '주문 신청';
   btnOrderSubmit.disabled = true;
 
@@ -1031,15 +1074,39 @@ function init() {
     updateOrderSubmitButton();
   });
   inputContact.addEventListener('change', updateOrderSubmitButton);
-  inputDeliveryDate.addEventListener('input', updateOrderSubmitButton);
-  inputDeliveryDate.addEventListener('change', () => {
-    const val = inputDeliveryDate.value;
-    const category = getCartCategory();
-    if (val && category && !isBusinessDay(val, category)) {
-      alert('선택한 날짜는 해당 카테고리의 영업일이 아닙니다. 영업일만 선택 가능합니다.');
-      inputDeliveryDate.value = '';
+  const deliveryDatePickerDisplay = document.getElementById('deliveryDatePickerDisplay');
+  const deliveryDatePickerPanel = document.getElementById('deliveryDatePickerPanel');
+  function openDeliveryDatePicker() {
+    const category = getCartCategory() || Object.keys(MENU_DATA)[0];
+    if (deliveryDatePickerPanel) {
+      renderDeliveryDatePickerPanel(deliveryDatePickerPanel, category);
+      deliveryDatePickerPanel.classList.add('open');
+      deliveryDatePickerDisplay?.setAttribute('aria-expanded', 'true');
+      setTimeout(() => document.addEventListener('click', closeDeliveryDatePickerOnOutside), 0);
     }
-    updateOrderSubmitButton();
+  }
+  function closeDeliveryDatePicker() {
+    if (deliveryDatePickerPanel) {
+      deliveryDatePickerPanel.classList.remove('open');
+      deliveryDatePickerDisplay?.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('click', closeDeliveryDatePickerOnOutside);
+    }
+  }
+  function closeDeliveryDatePickerOnOutside(e) {
+    if (deliveryDatePickerPanel?.classList.contains('open') && !deliveryDatePickerPanel.contains(e.target) && !deliveryDatePickerDisplay?.contains(e.target)) {
+      closeDeliveryDatePicker();
+    }
+  }
+  deliveryDatePickerDisplay?.addEventListener('click', (e) => { e.stopPropagation(); openDeliveryDatePicker(); });
+  deliveryDatePickerDisplay?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDeliveryDatePicker(); } });
+  deliveryDatePickerPanel?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.delivery-date-cell--enabled');
+    if (btn && btn.dataset.date) {
+      inputDeliveryDate.value = btn.dataset.date;
+      if (deliveryDatePickerDisplay) deliveryDatePickerDisplay.textContent = formatDeliveryDateDisplay(btn.dataset.date);
+      closeDeliveryDatePicker();
+      updateOrderSubmitButton();
+    }
   });
   inputDeliveryTime.addEventListener('input', updateOrderSubmitButton);
   inputDeliveryTime.addEventListener('change', updateOrderSubmitButton);
@@ -1106,12 +1173,6 @@ function init() {
       if (!token) {
         alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
         window.location.reload();
-        return;
-      }
-
-      const category = getCartCategory();
-      if (inputDeliveryDate.value && category && !isBusinessDay(inputDeliveryDate.value, category)) {
-        alert('선택한 날짜는 해당 카테고리의 영업일이 아닙니다. 영업일만 선택 가능합니다.');
         return;
       }
 
