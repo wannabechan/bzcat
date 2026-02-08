@@ -128,11 +128,25 @@ function renderStore(store, menus) {
       </div>
       <div class="admin-store-body">
         <div class="admin-section">
-          <div class="admin-section-title">매장 정보</div>
+          <div class="admin-section-title-row">
+            <span class="admin-section-title">매장 정보</span>
+            <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${store.id}" aria-label="API 환경변수 설정" title="API 환경변수 설정">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M19.78 4.22l-1.42 1.42M5.64 18.36l-1.42 1.42"/></svg>
+            </button>
+          </div>
           <div class="admin-form-row">
             <div class="admin-form-field">
               <label>대분류</label>
               <input type="text" data-field="title" value="${(store.title || '').replace(/"/g, '&quot;')}" placeholder="예: 도시락">
+            </div>
+          </div>
+          <div class="admin-store-settings-panel" id="admin-settings-panel-${store.id.replace(/"/g, '')}" data-store-id="${store.id}" style="display: none;">
+            <div class="admin-section-title">API키 환경변수</div>
+            <div class="admin-form-row">
+              <div class="admin-form-field" style="flex: 1;">
+                <label>환경변수 명칭</label>
+                <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="ENV. Variable">
+              </div>
             </div>
           </div>
         </div>
@@ -164,15 +178,6 @@ function renderStore(store, menus) {
             <div class="admin-form-field">
               <label>suburl</label>
               <input type="text" data-field="suburl" value="${(store.suburl || '').replace(/"/g, '&quot;')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
-            </div>
-          </div>
-        </div>
-        <div class="admin-section">
-          <div class="admin-section-title">API키 환경변수</div>
-          <div class="admin-form-row">
-            <div class="admin-form-field" style="flex: 1;">
-              <label>환경변수 명칭</label>
-              <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="ENV. Variable">
             </div>
           </div>
         </div>
@@ -397,6 +402,7 @@ function renderPaymentList() {
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
           <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''} <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span></div>
           <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
+          <div>이메일: ${order.user_email || '—'}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
         <div class="admin-payment-link-row">
@@ -884,6 +890,14 @@ async function init() {
     content.addEventListener('click', (e) => {
       if (e.target.closest('[data-scroll-top]')) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (e.target.closest('[data-store-settings]')) {
+        const btn = e.target.closest('[data-store-settings]');
+        const storeEl = btn.closest('.admin-store');
+        const panel = storeEl?.querySelector('.admin-store-settings-panel');
+        if (panel) {
+          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
       }
       if (e.target.closest('[data-goto-store]')) {
         const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
