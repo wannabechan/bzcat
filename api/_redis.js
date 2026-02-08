@@ -303,7 +303,8 @@ async function getMenuDataForApp() {
         ? JSON.parse(raw)
         : raw
       : DEFAULT_MENUS[stores[i].id] || [];
-    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || '') };
+    const businessDays = stores[i].businessDays && Array.isArray(stores[i].businessDays) ? stores[i].businessDays : [0, 1, 2, 3, 4, 5, 6];
+    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || ''), businessDays };
   }
   return result;
 }

@@ -141,6 +141,7 @@ function renderStore(store, menus) {
             </div>
           </div>
           <input type="hidden" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}">
+          <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
         </div>
         <div class="admin-section">
           <div class="admin-section-title">브랜드</div>
@@ -243,8 +244,10 @@ function collectData() {
     const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
     const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
-
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), payment: {
+    const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
+    const businessDaysStr = businessDaysInput?.value?.trim() || '0,1,2,3,4,5,6';
+    const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -870,12 +873,18 @@ async function init() {
   function applyApiSettingsModal() {
     const modal = document.getElementById('adminApiSettingsModal');
     const modalInput = document.getElementById('adminApiSettingsEnvVar');
+    const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
     const storeId = modal?.dataset?.currentStoreId;
-    if (!storeId || !modalInput) return;
+    if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
-    const hiddenInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
-    if (hiddenInput) {
-      hiddenInput.value = (modalInput.value || '').trim() || 'TOSS_SECRET_KEY';
+    const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
+    const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
+    if (apiKeyInput) apiKeyInput.value = (modalInput?.value || '').trim() || 'TOSS_SECRET_KEY';
+    if (businessDaysContainer && businessDaysInput) {
+      const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
+        .map((cb) => parseInt(cb.dataset.day, 10))
+        .sort((a, b) => a - b);
+      businessDaysInput.value = checked.length ? checked.join(',') : '0,1,2,3,4,5,6';
     }
     closeApiSettingsModal();
   }
@@ -913,17 +922,39 @@ async function init() {
         const btn = e.target.closest('[data-store-settings]');
         const storeEl = btn.closest('.admin-store');
         const storeId = storeEl?.dataset?.storeId;
-        const hiddenInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
+        const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
+        const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
         const modal = document.getElementById('adminApiSettingsModal');
         const modalInput = document.getElementById('adminApiSettingsEnvVar');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
-        if (storeId && hiddenInput && modal && modalInput) {
+        const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
+        if (storeId && apiKeyInput && modal && modalInput) {
           modal.dataset.currentStoreId = storeId;
           modalTitle.textContent = storeEl.querySelector('.admin-store-title')?.textContent || storeId;
-          modalInput.value = hiddenInput.value || 'TOSS_SECRET_KEY';
+          modalInput.value = apiKeyInput.value || 'TOSS_SECRET_KEY';
+          const daysStr = businessDaysInput?.value || '0,1,2,3,4,5,6';
+          const days = daysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+          businessDaysContainer?.querySelectorAll('input[data-day]').forEach((cb) => {
+            cb.checked = days.includes(parseInt(cb.dataset.day, 10));
+          });
+          modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.remove('active'));
+          modal.querySelector('[data-settings-tab="payment-env"]')?.classList.add('active');
+          modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
+          document.getElementById('adminSettingsPanelPaymentEnv')?.classList.add('active');
           modal.classList.add('admin-modal-visible');
           modal.setAttribute('aria-hidden', 'false');
         }
+      }
+      if (e.target.closest('[data-settings-tab]')) {
+        const tab = e.target.closest('[data-settings-tab]');
+        const modal = tab?.closest('#adminApiSettingsModal');
+        if (!modal) return;
+        const tabId = tab.dataset.settingsTab;
+        modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
+        const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays' };
+        const panelId = panelMap[tabId];
+        modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
+        if (panelId) document.getElementById(panelId)?.classList.add('active');
       }
       if (e.target.closest('[data-goto-store]')) {
         const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
@@ -943,6 +974,7 @@ async function init() {
           representative: '',
           bizNo: '',
           suburl: '',
+          businessDays: [0, 1, 2, 3, 4, 5, 6],
           payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');

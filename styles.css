@@ -1612,6 +1612,12 @@ body {
   margin-top: 10px;
 }
 
+.delivery-date-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+}
+
 .form-field .form-label {
   margin-top: 0;
 }

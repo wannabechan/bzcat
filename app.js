@@ -185,6 +185,26 @@ function getCartCategory() {
   return getCategoryForItem(itemIds[0]);
 }
 
+const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+function getBusinessDaysHint(categorySlug) {
+  const data = MENU_DATA[categorySlug];
+  const days = data?.businessDays;
+  if (!days || !Array.isArray(days) || days.length === 0) return '';
+  const names = days.slice().sort((a, b) => a - b).map((d) => DAY_NAMES_KO[d]).filter(Boolean);
+  return names.length ? `영업일: ${names.join(', ')}` : '';
+}
+
+function isBusinessDay(dateStr, categorySlug) {
+  if (!dateStr || !categorySlug) return true;
+  const data = MENU_DATA[categorySlug];
+  const days = data?.businessDays;
+  if (!days || !Array.isArray(days) || days.length === 0) return true;
+  const d = new Date(dateStr + 'T12:00:00');
+  const dayOfWeek = d.getDay();
+  return days.includes(dayOfWeek);
+}
+
 // 장바구니에 포함된 첫 매장의 결제정보
 function getPaymentForCart() {
   const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
@@ -527,6 +547,9 @@ function openCheckoutModal() {
   inputDetailAddress.value = '';
   inputDeliveryDate.min = getMinDeliveryDate();
   inputDeliveryDate.max = getMaxDeliveryDate();
+  const deliveryDateHintEl = document.getElementById('deliveryDateHint');
+  const cartCategory = getCartCategory();
+  if (deliveryDateHintEl) deliveryDateHintEl.textContent = getBusinessDaysHint(cartCategory || '');
   btnOrderSubmit.textContent = '주문 신청';
   btnOrderSubmit.disabled = true;
 
@@ -1009,7 +1032,15 @@ function init() {
   });
   inputContact.addEventListener('change', updateOrderSubmitButton);
   inputDeliveryDate.addEventListener('input', updateOrderSubmitButton);
-  inputDeliveryDate.addEventListener('change', updateOrderSubmitButton);
+  inputDeliveryDate.addEventListener('change', () => {
+    const val = inputDeliveryDate.value;
+    const category = getCartCategory();
+    if (val && category && !isBusinessDay(val, category)) {
+      alert('선택한 날짜는 해당 카테고리의 영업일이 아닙니다. 영업일만 선택 가능합니다.');
+      inputDeliveryDate.value = '';
+    }
+    updateOrderSubmitButton();
+  });
   inputDeliveryTime.addEventListener('input', updateOrderSubmitButton);
   inputDeliveryTime.addEventListener('change', updateOrderSubmitButton);
   const postcodeOverlay = document.getElementById('postcodeOverlay');
@@ -1075,6 +1106,12 @@ function init() {
       if (!token) {
         alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
         window.location.reload();
+        return;
+      }
+
+      const category = getCartCategory();
+      if (inputDeliveryDate.value && category && !isBusinessDay(inputDeliveryDate.value, category)) {
+        alert('선택한 날짜는 해당 카테고리의 영업일이 아닙니다. 영업일만 선택 가능합니다.');
         return;
       }
 

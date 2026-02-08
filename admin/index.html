@@ -73,6 +73,16 @@
     .admin-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-border); }
     .admin-form-label { display: block; font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: 4px; }
     .admin-form-input { width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.9375rem; box-sizing: border-box; }
+    .admin-modal-tabs { display: flex; gap: 0; padding: 0 20px; border-bottom: 1px solid var(--color-border); }
+    .admin-modal-tab { padding: 12px 16px; font-size: 0.875rem; font-weight: 500; border: none; background: none; color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .admin-modal-tab:hover { color: var(--color-text); }
+    .admin-modal-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+    .admin-modal-panel { display: none; }
+    .admin-modal-panel.active { display: block; }
+    .admin-modal-hint { font-size: 0.8125rem; color: var(--color-text-secondary); margin: 0 0 12px; }
+    .admin-business-days { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+    .admin-business-day { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9375rem; cursor: pointer; }
+    .admin-business-day input { width: 18px; height: 18px; }
     .admin-section-title { font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 10px; }
     .admin-form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .admin-form-row:last-child { margin-bottom: 0; }
@@ -176,14 +186,32 @@
     <div class="admin-modal-overlay" id="adminApiSettingsModal" aria-hidden="true">
       <div class="admin-modal admin-modal-api-settings">
         <div class="admin-modal-header">
-          <h3>API키 환경변수</h3>
+          <h3>매장 설정</h3>
           <button type="button" class="admin-modal-close" id="adminApiSettingsModalClose" aria-label="닫기">&times;</button>
         </div>
+        <p class="admin-modal-store-name" id="adminApiSettingsStoreTitle">—</p>
+        <div class="admin-modal-tabs">
+          <button type="button" class="admin-modal-tab active" data-settings-tab="payment-env">결제키 환경변수</button>
+          <button type="button" class="admin-modal-tab" data-settings-tab="business-days">영업 요일</button>
+        </div>
         <div class="admin-modal-body">
-          <p class="admin-modal-store-name" id="adminApiSettingsStoreTitle">—</p>
-          <div class="admin-form-field">
-            <label class="admin-form-label" for="adminApiSettingsEnvVar">환경변수 명칭</label>
-            <input type="text" id="adminApiSettingsEnvVar" class="admin-form-input" placeholder="ENV. Variable" value="">
+          <div class="admin-modal-panel active" id="adminSettingsPanelPaymentEnv">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="adminApiSettingsEnvVar">환경변수 명칭</label>
+              <input type="text" id="adminApiSettingsEnvVar" class="admin-form-input" placeholder="ENV. Variable" value="">
+            </div>
+          </div>
+          <div class="admin-modal-panel" id="adminSettingsPanelBusinessDays">
+            <p class="admin-modal-hint">배송 희망일 선택 시 이 요일만 선택 가능합니다.</p>
+            <div class="admin-business-days" id="adminApiSettingsBusinessDays">
+              <label class="admin-business-day"><input type="checkbox" data-day="0" value="0"> 일</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="1" value="1"> 월</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="2" value="2"> 화</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="3" value="3"> 수</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="4" value="4"> 목</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="5" value="5"> 금</label>
+              <label class="admin-business-day"><input type="checkbox" data-day="6" value="6"> 토</label>
+            </div>
           </div>
         </div>
         <div class="admin-modal-footer">
