@@ -268,7 +268,10 @@ function renderMenuCards() {
     return;
   }
 
-  menuSectionTitle.textContent = data.title;
+  const brand = data.brand || '';
+  const bizNo = data.bizNo || '';
+  const madeBy = brand || bizNo ? `  |  made by ${brand} (${bizNo})` : '';
+  menuSectionTitle.textContent = data.title + madeBy;
   const emoji = getCategoryEmoji(category);
 
   const items = data.items || [];

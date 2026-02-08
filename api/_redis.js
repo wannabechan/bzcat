@@ -303,7 +303,7 @@ async function getMenuDataForApp() {
         ? JSON.parse(raw)
         : raw
       : DEFAULT_MENUS[stores[i].id] || [];
-    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || '') };
+    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || '') };
   }
   return result;
 }
