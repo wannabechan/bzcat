@@ -112,9 +112,19 @@ async function initAuth() {
     });
   }
 
-  window.addEventListener('popstate', () => {
+  window.addEventListener('popstate', async () => {
     if (loginScreen && loginScreen.style.display !== 'none' && loginCodeSection && loginCodeSection.style.display !== 'none') {
       resetToStep1();
+      return;
+    }
+    const user = await checkSession();
+    showApp(user);
+  });
+
+  window.addEventListener('pageshow', async (event) => {
+    if (event.persisted) {
+      const user = await checkSession();
+      showApp(user);
     }
   });
 
