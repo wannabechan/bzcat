@@ -893,6 +893,17 @@ async function init() {
   document.getElementById('adminApiSettingsApply')?.addEventListener('click', applyApiSettingsModal);
   document.getElementById('adminApiSettingsModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'adminApiSettingsModal') closeApiSettingsModal();
+    if (e.target.closest('[data-settings-tab]')) {
+      const tab = e.target.closest('[data-settings-tab]');
+      const modal = tab.closest('#adminApiSettingsModal');
+      if (!modal) return;
+      const tabId = tab.dataset.settingsTab;
+      modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
+      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays' };
+      const panelId = panelMap[tabId];
+      modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
+      if (panelId) document.getElementById(panelId)?.classList.add('active');
+    }
   });
 
   try {
@@ -944,17 +955,6 @@ async function init() {
           modal.classList.add('admin-modal-visible');
           modal.setAttribute('aria-hidden', 'false');
         }
-      }
-      if (e.target.closest('[data-settings-tab]')) {
-        const tab = e.target.closest('[data-settings-tab]');
-        const modal = tab?.closest('#adminApiSettingsModal');
-        if (!modal) return;
-        const tabId = tab.dataset.settingsTab;
-        modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
-        const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays' };
-        const panelId = panelMap[tabId];
-        modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
-        if (panelId) document.getElementById(panelId)?.classList.add('active');
       }
       if (e.target.closest('[data-goto-store]')) {
         const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
