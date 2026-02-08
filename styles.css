@@ -89,7 +89,7 @@ body {
 .login-form {
   background: var(--color-surface);
   padding: 24px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
 }
@@ -318,7 +318,7 @@ body {
   font-weight: 600;
   color: white;
   background: var(--color-primary);
-  border-radius: 9px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,7 +391,7 @@ body {
   color: var(--color-text-secondary);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -678,7 +678,7 @@ body {
   right: 0;
   max-height: 85dvh;
   background: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   z-index: 201;
   display: flex;
   flex-direction: column;
@@ -837,7 +837,7 @@ body {
   justify-content: center;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 1rem;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -977,7 +977,7 @@ body {
   right: 0;
   max-height: 85dvh;
   background: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   z-index: 201;
   display: flex;
   flex-direction: column;
@@ -1033,7 +1033,7 @@ body {
   appearance: none;
   -webkit-appearance: none;
   border: 1px solid #b0b0b0;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--color-surface, #fff);
   cursor: pointer;
 }
@@ -1218,7 +1218,7 @@ body {
   flex-shrink: 0;
   padding: 2px 8px;
   background: var(--color-surface);
-  border-radius: 4px;
+  border-radius: var(--radius);
   border: 1px solid var(--color-border);
 }
 
@@ -1341,7 +1341,7 @@ body {
   width: 100%;
   max-width: 320px;
   background: var(--color-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   padding: 24px;
   box-shadow: var(--shadow-md);
   transform: scale(0.95);
@@ -1424,7 +1424,7 @@ body {
   max-width: 480px;
   max-height: 95dvh;
   background: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1541,7 +1541,7 @@ body {
   color: var(--color-primary);
   background: var(--color-accent-light);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
@@ -1684,7 +1684,7 @@ body {
   width: 100%;
   max-width: 500px;
   background: var(--color-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
@@ -1811,7 +1811,7 @@ body {
   max-width: 400px;
   max-height: 70dvh;
   background: var(--color-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1943,7 +1943,7 @@ body {
   color: var(--color-primary);
   background: var(--color-accent-light);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
@@ -2013,7 +2013,7 @@ body {
   }
 
   .checkout-modal {
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     max-height: 95dvh;
     transform: scale(0.95);
     transform-origin: center;
