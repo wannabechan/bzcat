@@ -74,7 +74,6 @@ const profileEmpty = document.getElementById('profileEmpty');
 const profileOrders = document.getElementById('profileOrders');
 const profileIncludeCancelledEl = document.getElementById('profileIncludeCancelled');
 const loginRequiredModal = document.getElementById('loginRequiredModal');
-const loginRequiredCancel = document.getElementById('loginRequiredCancel');
 const loginRequiredGo = document.getElementById('loginRequiredGo');
 
 let profileOrdersData = {};
@@ -961,7 +960,8 @@ function init() {
   checkoutModal.addEventListener('click', (e) => {
     if (e.target === checkoutModal) closeCheckoutModal();
   });
-  if (loginRequiredCancel) loginRequiredCancel.addEventListener('click', closeLoginRequiredModal);
+  const loginRequiredClose = document.getElementById('loginRequiredClose');
+  if (loginRequiredClose) loginRequiredClose.addEventListener('click', closeLoginRequiredModal);
   if (loginRequiredGo) {
     loginRequiredGo.addEventListener('click', () => {
       closeLoginRequiredModal();
