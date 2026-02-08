@@ -205,6 +205,15 @@ function isBusinessDay(dateStr, categorySlug) {
   return days.includes(dayOfWeek);
 }
 
+const DELIVERY_TIME_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
+
+function setDeliveryTimeOptions(allowedSlots) {
+  if (!inputDeliveryTime) return;
+  const use = (allowedSlots && Array.isArray(allowedSlots) && allowedSlots.length > 0) ? allowedSlots : DELIVERY_TIME_SLOTS;
+  const options = ['<option value="">선택</option>', ...use.map((slot) => `<option value="${slot}">${slot}</option>`)];
+  inputDeliveryTime.innerHTML = options.join('');
+}
+
 function formatDeliveryDateDisplay(dateStr) {
   if (!dateStr) return '날짜 선택';
   const [y, m, d] = dateStr.split('-');
@@ -584,13 +593,13 @@ function openCheckoutModal() {
   inputDepositor.value = '';
   inputContact.value = '';
   inputDeliveryDate.value = '';
+  const cartCategory = getCartCategory();
+  const businessHours = cartCategory != null && MENU_DATA[cartCategory]?.businessHours ? MENU_DATA[cartCategory].businessHours : null;
+  setDeliveryTimeOptions(businessHours);
   inputDeliveryTime.value = '';
   inputDeliveryAddress.value = '';
   detailAddressRow.style.display = 'none';
   inputDetailAddress.value = '';
-  const deliveryDateHintEl = document.getElementById('deliveryDateHint');
-  const cartCategory = getCartCategory();
-  if (deliveryDateHintEl) deliveryDateHintEl.textContent = getBusinessDaysHint(cartCategory || '');
   const deliveryDatePickerDisplay = document.getElementById('deliveryDatePickerDisplay');
   if (deliveryDatePickerDisplay) deliveryDatePickerDisplay.textContent = formatDeliveryDateDisplay(inputDeliveryDate.value);
   btnOrderSubmit.textContent = '주문 신청';

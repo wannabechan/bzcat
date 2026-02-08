@@ -20,6 +20,8 @@ let paymentIdleListenersAttached = false;
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
+const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
+
 async function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -142,6 +144,7 @@ function renderStore(store, menus) {
           </div>
           <input type="hidden" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}">
           <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
+          <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
         </div>
         <div class="admin-section">
           <div class="admin-section-title">브랜드</div>
@@ -245,9 +248,12 @@ function collectData() {
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
     const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
+    const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
     const businessDaysStr = businessDaysInput?.value?.trim() || '0,1,2,3,4,5,6';
     const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], payment: {
+    const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
+    const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -874,17 +880,25 @@ async function init() {
     const modal = document.getElementById('adminApiSettingsModal');
     const modalInput = document.getElementById('adminApiSettingsEnvVar');
     const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
+    const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
     const storeId = modal?.dataset?.currentStoreId;
     if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
     const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
+    const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
     if (apiKeyInput) apiKeyInput.value = (modalInput?.value || '').trim() || 'TOSS_SECRET_KEY';
     if (businessDaysContainer && businessDaysInput) {
       const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
         .map((cb) => parseInt(cb.dataset.day, 10))
         .sort((a, b) => a - b);
       businessDaysInput.value = checked.length ? checked.join(',') : '0,1,2,3,4,5,6';
+    }
+    if (businessHoursContainer && businessHoursInput) {
+      const checked = Array.from(businessHoursContainer.querySelectorAll('input[data-slot]:checked'))
+        .map((cb) => cb.dataset.slot)
+        .filter(Boolean);
+      businessHoursInput.value = checked.length ? checked.join(',') : BUSINESS_HOURS_SLOTS.join(',');
     }
     closeApiSettingsModal();
   }
@@ -899,7 +913,7 @@ async function init() {
       if (!modal) return;
       const tabId = tab.dataset.settingsTab;
       modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
-      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays' };
+      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours' };
       const panelId = panelMap[tabId];
       modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
       if (panelId) document.getElementById(panelId)?.classList.add('active');
@@ -935,10 +949,12 @@ async function init() {
         const storeId = storeEl?.dataset?.storeId;
         const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
         const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
+        const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
         const modal = document.getElementById('adminApiSettingsModal');
         const modalInput = document.getElementById('adminApiSettingsEnvVar');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
         const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
+        const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
         if (storeId && apiKeyInput && modal && modalInput) {
           modal.dataset.currentStoreId = storeId;
           modalTitle.textContent = storeEl.querySelector('.admin-store-title')?.textContent || storeId;
@@ -947,6 +963,11 @@ async function init() {
           const days = daysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
           businessDaysContainer?.querySelectorAll('input[data-day]').forEach((cb) => {
             cb.checked = days.includes(parseInt(cb.dataset.day, 10));
+          });
+          const hoursStr = businessHoursInput?.value || BUSINESS_HOURS_SLOTS.join(',');
+          const hoursSet = new Set(hoursStr.split(',').map((s) => s.trim()).filter(Boolean));
+          businessHoursContainer?.querySelectorAll('input[data-slot]').forEach((cb) => {
+            cb.checked = hoursSet.has(cb.dataset.slot);
           });
           modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.remove('active'));
           modal.querySelector('[data-settings-tab="payment-env"]')?.classList.add('active');
@@ -975,6 +996,7 @@ async function init() {
           bizNo: '',
           suburl: '',
           businessDays: [0, 1, 2, 3, 4, 5, 6],
+          businessHours: [...BUSINESS_HOURS_SLOTS],
           payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');

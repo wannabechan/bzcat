@@ -24,6 +24,7 @@ function getRedis() {
 }
 
 const CODE_TTL_SECONDS = 120; // 2분
+const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
 function normalizeCode(input) {
   return String(input || '').replace(/\D/g, '').slice(0, 6);
@@ -304,7 +305,8 @@ async function getMenuDataForApp() {
         : raw
       : DEFAULT_MENUS[stores[i].id] || [];
     const businessDays = stores[i].businessDays && Array.isArray(stores[i].businessDays) ? stores[i].businessDays : [0, 1, 2, 3, 4, 5, 6];
-    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || ''), businessDays };
+    const businessHours = stores[i].businessHours && Array.isArray(stores[i].businessHours) && stores[i].businessHours.length > 0 ? stores[i].businessHours : BUSINESS_HOURS_SLOTS;
+    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || ''), businessDays, businessHours };
   }
   return result;
 }
