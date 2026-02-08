@@ -813,6 +813,17 @@ function handleMenuGridClick(e) {
       return;
     }
     const id = qtyBtn.dataset.id;
+    const cartCategory = getCartCategory();
+    const itemCategory = getCategoryForItem(id);
+    if (cartCategory !== null && itemCategory !== cartCategory) {
+      if (categoryNotice) {
+        categoryNotice.classList.remove('notice-blink');
+        void categoryNotice.offsetWidth;
+        categoryNotice.classList.add('notice-blink');
+        setTimeout(() => categoryNotice.classList.remove('notice-blink'), 1200);
+      }
+      return;
+    }
     const action = qtyBtn.dataset.action;
     setPendingQty(id, action === 'increase' ? 1 : -1);
     return;
