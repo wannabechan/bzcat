@@ -587,6 +587,11 @@ body {
   cursor: not-allowed;
 }
 
+.menu-qty-btn.menu-qty-btn--other-category {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .menu-qty-value {
   min-width: 32px;
   text-align: center;

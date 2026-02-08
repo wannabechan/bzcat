@@ -306,9 +306,9 @@ function renderMenuCards() {
             <p class="menu-card-price">${formatPrice(item.price)}</p>
             <div class="menu-card-actions">
               <div class="menu-qty-controls">
-                <button class="menu-qty-btn" data-action="decrease" data-id="${item.id}" ${qty === 0 || qtyDisabled ? 'disabled' : ''}>−</button>
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${item.id}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
                 <span class="menu-qty-value">${qty}</span>
-                <button class="menu-qty-btn" data-action="increase" data-id="${item.id}" ${qtyDisabled ? 'disabled' : ''}>+</button>
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${item.id}" ${qtyDisabled ? '' : ''}>+</button>
               </div>
               <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${item.id}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
                 <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
