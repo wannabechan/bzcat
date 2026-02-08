@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, 500, { error: '이메일 발송 설정이 되어 있지 않습니다.' });
     }
 
-    // 발신 이메일 (Resend에서 인증한 주소, 또는 테스트용 onboarding@resend.dev)
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    // 발신 이메일 (Resend에서 bzcat.co 도메인 인증 후 사용)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
     const fromName = process.env.RESEND_FROM_NAME || 'BzCat';
 
     // 이메일 발송
