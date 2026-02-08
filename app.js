@@ -209,8 +209,12 @@ const DELIVERY_TIME_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00
 
 function setDeliveryTimeOptions(allowedSlots) {
   if (!inputDeliveryTime) return;
-  const use = (allowedSlots && Array.isArray(allowedSlots) && allowedSlots.length > 0) ? allowedSlots : DELIVERY_TIME_SLOTS;
-  const options = ['<option value="">선택</option>', ...use.map((slot) => `<option value="${slot}">${slot}</option>`)];
+  const allowedSet = (allowedSlots && Array.isArray(allowedSlots) && allowedSlots.length > 0) ? new Set(allowedSlots) : null;
+  const options = ['<option value="">선택</option>', ...DELIVERY_TIME_SLOTS.map((slot) => {
+    const isAllowed = allowedSet === null || allowedSet.has(slot);
+    if (isAllowed) return `<option value="${slot}">${slot}</option>`;
+    return `<option value="" disabled>${slot}</option>`;
+  })];
   inputDeliveryTime.innerHTML = options.join('');
 }
 

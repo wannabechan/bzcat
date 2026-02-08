@@ -1819,6 +1819,10 @@ body {
   background-position: right 12px center;
 }
 
+#inputDeliveryTime option:disabled {
+  color: #999;
+}
+
 .form-input::placeholder {
   color: var(--color-text-secondary);
   opacity: 0.7;
