@@ -1033,7 +1033,7 @@ body {
   appearance: none;
   -webkit-appearance: none;
   border: 1px solid #b0b0b0;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--color-surface, #fff);
   cursor: pointer;
 }
