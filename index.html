@@ -50,6 +50,7 @@
         <a href="/admin" class="header-admin-link" id="headerAdminLink" style="display: none;">admin</a>
       </div>
       <div class="header-actions">
+        <button type="button" class="header-btn-login" id="headerLoginBtn" style="display: none;">로그인</button>
         <button class="header-icon-btn profile-toggle" id="profileToggle" aria-label="내 주문 보기" title="내 주문 보기">
           <svg class="header-icon profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -257,6 +258,16 @@
             <span>총 금액</span>
             <strong id="orderDetailTotal">0원</strong>
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- 로그인 유도 모달 -->
+    <div class="modal-overlay login-required-modal" id="loginRequiredModal" aria-hidden="true">
+      <div class="modal login-required-modal-inner">
+        <p class="login-required-message">로그인 후 이용 가능합니다. 로그인 화면으로 이동하시겠습니까?</p>
+        <div class="login-required-actions">
+          <button type="button" class="btn-login-required-cancel" id="loginRequiredCancel">취소</button>
+          <button type="button" class="btn-login-required-go" id="loginRequiredGo">로그인</button>
         </div>
       </div>
     </div>

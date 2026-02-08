@@ -73,6 +73,9 @@ const profileClose = document.getElementById('profileClose');
 const profileEmpty = document.getElementById('profileEmpty');
 const profileOrders = document.getElementById('profileOrders');
 const profileIncludeCancelledEl = document.getElementById('profileIncludeCancelled');
+const loginRequiredModal = document.getElementById('loginRequiredModal');
+const loginRequiredCancel = document.getElementById('loginRequiredCancel');
+const loginRequiredGo = document.getElementById('loginRequiredGo');
 
 let profileOrdersData = {};
 let profileAllOrders = [];
@@ -781,10 +784,28 @@ function handleCategoryClick(e) {
   renderMenuCards();
 }
 
+// 로그인 유도 모달
+function openLoginRequiredModal() {
+  if (loginRequiredModal) {
+    loginRequiredModal.classList.add('visible');
+    loginRequiredModal.setAttribute('aria-hidden', 'false');
+  }
+}
+function closeLoginRequiredModal() {
+  if (loginRequiredModal) {
+    loginRequiredModal.classList.remove('visible');
+    loginRequiredModal.setAttribute('aria-hidden', 'true');
+  }
+}
+
 // 메뉴 그리드 클릭 위임 (이벤트 리스너 최소화)
 function handleMenuGridClick(e) {
   const qtyBtn = e.target.closest('.menu-qty-btn');
   if (qtyBtn) {
+    if (!window.BzCatAuth?.getToken()) {
+      openLoginRequiredModal();
+      return;
+    }
     const id = qtyBtn.dataset.id;
     const action = qtyBtn.dataset.action;
     setPendingQty(id, action === 'increase' ? 1 : -1);
@@ -792,6 +813,10 @@ function handleMenuGridClick(e) {
   }
   const addBtn = e.target.closest('.menu-add-btn');
   if (addBtn) {
+    if (!window.BzCatAuth?.getToken()) {
+      openLoginRequiredModal();
+      return;
+    }
     const itemId = addBtn.dataset.id;
     const cartCategory = getCartCategory();
     const itemCategory = getCategoryForItem(itemId);
@@ -936,6 +961,18 @@ function init() {
   checkoutModal.addEventListener('click', (e) => {
     if (e.target === checkoutModal) closeCheckoutModal();
   });
+  if (loginRequiredCancel) loginRequiredCancel.addEventListener('click', closeLoginRequiredModal);
+  if (loginRequiredGo) {
+    loginRequiredGo.addEventListener('click', () => {
+      closeLoginRequiredModal();
+      if (window.BzCatAuth?.showLogin) window.BzCatAuth.showLogin();
+    });
+  }
+  if (loginRequiredModal) {
+    loginRequiredModal.addEventListener('click', (e) => {
+      if (e.target === loginRequiredModal) closeLoginRequiredModal();
+    });
+  }
   function updateOrderSubmitButton() {
     const hasName = (inputDepositor.value || '').trim().length > 0;
     const hasContact = (inputContact.value || '').trim().length > 0;

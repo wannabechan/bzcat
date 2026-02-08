@@ -62,6 +62,18 @@ function showApp(user) {
     const isAdmin = user && user.level === 'admin';
     adminLink.style.display = isAdmin ? '' : 'none';
   }
+  const profileToggle = document.getElementById('profileToggle');
+  const cartToggle = document.getElementById('cartToggle');
+  const headerLoginBtn = document.getElementById('headerLoginBtn');
+  if (user) {
+    if (profileToggle) profileToggle.style.display = '';
+    if (cartToggle) cartToggle.style.display = '';
+    if (headerLoginBtn) headerLoginBtn.style.display = 'none';
+  } else {
+    if (profileToggle) profileToggle.style.display = 'none';
+    if (cartToggle) cartToggle.style.display = 'none';
+    if (headerLoginBtn) headerLoginBtn.style.display = '';
+  }
   // 신규 로그인 시 기본 화면으로: 내 주문 보기 드로어 닫기
   const profileDrawer = document.getElementById('profileDrawer');
   const profileOverlay = document.getElementById('profileOverlay');
@@ -76,12 +88,7 @@ function showApp(user) {
 
 async function initAuth() {
   const user = await checkSession();
-  
-  if (user) {
-    showApp(user);
-  } else {
-    showLogin();
-  }
+  showApp(user);
 
   const loginForm = document.getElementById('loginForm');
   const loginEmail = document.getElementById('loginEmail');
@@ -254,8 +261,15 @@ async function initAuth() {
     btnLogout.addEventListener('click', () => {
       clearToken();
       resetToStep1();
-      showLogin();
+      showApp(null);
       if (loginForm) loginForm.reset();
+    });
+  }
+
+  const headerLoginBtn = document.getElementById('headerLoginBtn');
+  if (headerLoginBtn) {
+    headerLoginBtn.addEventListener('click', () => {
+      showLogin();
     });
   }
 }
@@ -264,6 +278,7 @@ async function initAuth() {
 window.BzCatAuth = {
   getToken,
   checkSession,
+  showLogin,
 };
 
 document.addEventListener('DOMContentLoaded', initAuth);
