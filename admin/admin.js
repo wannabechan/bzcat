@@ -131,7 +131,7 @@ function renderStore(store, menus) {
           <div class="admin-section-title-row">
             <span class="admin-section-title">매장 정보</span>
             <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${store.id}" aria-label="API 환경변수 설정" title="API 환경변수 설정">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M19.78 4.22l-1.42 1.42M5.64 18.36l-1.42 1.42"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
           </div>
           <div class="admin-form-row">
@@ -140,15 +140,7 @@ function renderStore(store, menus) {
               <input type="text" data-field="title" value="${(store.title || '').replace(/"/g, '&quot;')}" placeholder="예: 도시락">
             </div>
           </div>
-          <div class="admin-store-settings-panel" id="admin-settings-panel-${store.id.replace(/"/g, '')}" data-store-id="${store.id}" style="display: none;">
-            <div class="admin-section-title">API키 환경변수</div>
-            <div class="admin-form-row">
-              <div class="admin-form-field" style="flex: 1;">
-                <label>환경변수 명칭</label>
-                <input type="text" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}" placeholder="ENV. Variable">
-              </div>
-            </div>
-          </div>
+          <input type="hidden" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}">
         </div>
         <div class="admin-section">
           <div class="admin-section-title">브랜드</div>
@@ -868,6 +860,32 @@ async function init() {
     if (e.target.id === 'adminOrderDetailOverlay') closeAdminOrderDetail();
   });
 
+  function closeApiSettingsModal() {
+    const modal = document.getElementById('adminApiSettingsModal');
+    if (modal) {
+      modal.classList.remove('admin-modal-visible');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+  function applyApiSettingsModal() {
+    const modal = document.getElementById('adminApiSettingsModal');
+    const modalInput = document.getElementById('adminApiSettingsEnvVar');
+    const storeId = modal?.dataset?.currentStoreId;
+    if (!storeId || !modalInput) return;
+    const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
+    const hiddenInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
+    if (hiddenInput) {
+      hiddenInput.value = (modalInput.value || '').trim() || 'TOSS_SECRET_KEY';
+    }
+    closeApiSettingsModal();
+  }
+  document.getElementById('adminApiSettingsModalClose')?.addEventListener('click', closeApiSettingsModal);
+  document.getElementById('adminApiSettingsCancel')?.addEventListener('click', closeApiSettingsModal);
+  document.getElementById('adminApiSettingsApply')?.addEventListener('click', applyApiSettingsModal);
+  document.getElementById('adminApiSettingsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'adminApiSettingsModal') closeApiSettingsModal();
+  });
+
   try {
     const { stores, menus } = await fetchStores();
     const content = document.getElementById('adminContent');
@@ -894,9 +912,17 @@ async function init() {
       if (e.target.closest('[data-store-settings]')) {
         const btn = e.target.closest('[data-store-settings]');
         const storeEl = btn.closest('.admin-store');
-        const panel = storeEl?.querySelector('.admin-store-settings-panel');
-        if (panel) {
-          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        const storeId = storeEl?.dataset?.storeId;
+        const hiddenInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
+        const modal = document.getElementById('adminApiSettingsModal');
+        const modalInput = document.getElementById('adminApiSettingsEnvVar');
+        const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
+        if (storeId && hiddenInput && modal && modalInput) {
+          modal.dataset.currentStoreId = storeId;
+          modalTitle.textContent = storeEl.querySelector('.admin-store-title')?.textContent || storeId;
+          modalInput.value = hiddenInput.value || 'TOSS_SECRET_KEY';
+          modal.classList.add('admin-modal-visible');
+          modal.setAttribute('aria-hidden', 'false');
         }
       }
       if (e.target.closest('[data-goto-store]')) {
