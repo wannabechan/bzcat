@@ -231,6 +231,14 @@ body {
   line-height: 0;
 }
 
+.logo-link {
+  display: block;
+  line-height: 0;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .header-admin-link {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
