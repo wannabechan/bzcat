@@ -208,11 +208,14 @@ async function initAuth() {
       startCodeCountdown();
       history.pushState({ loginStep: 'code' }, '', window.location.pathname + (window.location.search || ''));
 
-      // 개발 모드: 코드 표시
+      // 개발 모드: 코드 표시 (textContent로 넣어 XSS 방지)
+      loginCodeHint.textContent = '';
+      loginCodeHint.appendChild(document.createTextNode('이메일로 발송된 인증 코드를 입력하세요.'));
       if (data.devCode) {
-        loginCodeHint.innerHTML = `이메일로 발송된 인증 코드를 입력하세요. <span class="login-dev-code">[개발] 코드: ${data.devCode}</span>`;
-      } else {
-        loginCodeHint.textContent = '이메일로 발송된 인증 코드를 입력하세요.';
+        const devSpan = document.createElement('span');
+        devSpan.className = 'login-dev-code';
+        devSpan.textContent = ` [개발] 코드: ${data.devCode}`;
+        loginCodeHint.appendChild(devSpan);
       }
 
     } catch (error) {

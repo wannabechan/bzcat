@@ -17,13 +17,16 @@ function getStoreSlugFromOrder(order) {
   return slug || null;
 }
 
+const ALLOWED_TOSS_ENV_NAMES = ['TOSS_SECRET_KEY', 'TOSS_SECRET_KEY_TEST'];
+
 async function getTossSecretKeyForOrder(order) {
   const stores = await getStores();
   const slug = getStoreSlugFromOrder(order);
   const store = slug
     ? stores.find((s) => (s.id === slug || s.slug === slug))
     : null;
-  const envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
+  let envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
+  if (!ALLOWED_TOSS_ENV_NAMES.includes(envVarName)) envVarName = 'TOSS_SECRET_KEY';
   return process.env[envVarName] || '';
 }
 

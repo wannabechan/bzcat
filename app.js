@@ -100,6 +100,13 @@ function formatPrice(price) {
   return price.toLocaleString() + '원';
 }
 
+// 유틸: HTML 이스케이프 (XSS 방지)
+function escapeHtml(s) {
+  if (s == null || s === '') return '';
+  const t = String(s);
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // 유틸: 주문시간 포맷 (yy년 mm월 dd일 hh시 mm분)
 function formatOrderTime(date) {
   const y = String(date.getFullYear()).slice(-2);
@@ -363,30 +370,33 @@ function renderMenuCards() {
       const qty = canAddFromCategory ? (pendingQty[item.id] || 0) : 0;
       const addDisabled = canAddFromCategory ? qty === 0 : false;
       const qtyDisabled = !canAddFromCategory;
+      const idEsc = escapeHtml(item.id);
+      const nameEsc = escapeHtml(item.name);
+      const descEsc = escapeHtml(item.description || '상세 설명이 없습니다.');
       const imgContent = item.imageUrl
         ? `<div class="menu-card-image"><img src="${item.imageUrl.replace(/"/g, '&quot;')}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
       return `
-        <article class="menu-card" data-id="${item.id}">
+        <article class="menu-card" data-id="${idEsc}">
           <div class="menu-card-image-wrapper">
             ${imgContent}
-            <button class="menu-info-btn" data-id="${item.id}" aria-label="상세 정보">
+            <button class="menu-info-btn" data-id="${idEsc}" aria-label="상세 정보">
               <i>i</i>
             </button>
-            <div class="menu-info-overlay" data-id="${item.id}">
-              <p>${item.description || '상세 설명이 없습니다.'}</p>
+            <div class="menu-info-overlay" data-id="${idEsc}">
+              <p>${descEsc}</p>
             </div>
           </div>
           <div class="menu-card-body">
-            <h3 class="menu-card-name">${item.name}</h3>
+            <h3 class="menu-card-name">${nameEsc}</h3>
             <p class="menu-card-price">${formatPrice(item.price)}</p>
             <div class="menu-card-actions">
               <div class="menu-qty-controls">
-                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${item.id}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${idEsc}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
                 <span class="menu-qty-value">${qty}</span>
-                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${item.id}" ${qtyDisabled ? '' : ''}>+</button>
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${idEsc}" ${qtyDisabled ? '' : ''}>+</button>
               </div>
-              <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${item.id}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
+              <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${idEsc}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
                 <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                   <line x1="3" y1="6" x2="21" y2="6"/>

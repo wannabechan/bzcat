@@ -4,11 +4,10 @@
 
 const jwt = require('jsonwebtoken');
 
-const rawSecret = process.env.JWT_SECRET;
-if (process.env.NODE_ENV === 'production' && !rawSecret) {
-  throw new Error('JWT_SECRET is required in production. Set it in Vercel Environment Variables.');
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 16) {
+  throw new Error('JWT_SECRET is required and must be at least 16 characters. Set it in Vercel Environment Variables (and .env.local for local dev).');
 }
-const JWT_SECRET = rawSecret || 'default-secret-change-in-production';
 
 /**
  * JWT 토큰 생성
