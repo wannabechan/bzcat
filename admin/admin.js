@@ -939,7 +939,7 @@ async function init() {
       <button type="button" class="admin-btn admin-btn-secondary admin-btn-add-store" data-add-store>+ 카테고리 추가</button>
     `;
 
-    content.addEventListener('click', (e) => {
+    content.addEventListener('click', async (e) => {
       if (e.target.closest('[data-scroll-top]')) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -1028,6 +1028,11 @@ async function init() {
           const gotoBtn = content.querySelector(`[data-goto-store="${storeEl.dataset.storeId}"]`);
           if (gotoBtn) gotoBtn.remove();
           storeEl.remove();
+          try {
+            await handleSave();
+          } catch (err) {
+            showError(err.message);
+          }
         }
       }
       if (e.target.closest('[data-upload-btn]')) {

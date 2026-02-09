@@ -284,9 +284,16 @@ async function getMenus(storeId) {
 
 async function saveStoresAndMenus(stores, menusByStore) {
   const redis = getRedis();
+  const previousStores = await getStores();
+  const previousIds = new Set((previousStores || []).map((s) => s.id));
+  const newIds = new Set((stores || []).map((s) => s.id));
+  const removedIds = [...previousIds].filter((id) => !newIds.has(id));
   await redis.set(STORES_KEY, JSON.stringify(stores));
   for (const [storeId, menus] of Object.entries(menusByStore)) {
     await redis.set(`app:menus:${storeId}`, JSON.stringify(menus));
+  }
+  for (const storeId of removedIds) {
+    await redis.del(`app:menus:${storeId}`);
   }
 }
 
