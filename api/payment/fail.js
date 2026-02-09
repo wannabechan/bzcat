@@ -5,12 +5,7 @@
 
 const { getOrderById } = require('../_redis');
 const { isPastPaymentDeadline, cancelOrderAndRegeneratePdf } = require('../_orderCancel');
-
-function getAppOrigin(req) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-  const proto = req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-  return `${proto}://${host}`;
-}
+const { getAppOrigin } = require('./_helpers');
 
 const STATUSES_APPLY_DEADLINE = ['submitted', 'payment_link_issued'];
 

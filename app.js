@@ -351,9 +351,9 @@ function renderMenuCards() {
     return;
   }
 
-  const brand = (data.brand || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const bizNo = (data.bizNo || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const titleEscaped = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const brand = escapeHtml(data.brand || '');
+  const bizNo = escapeHtml(data.bizNo || '');
+  const titleEscaped = escapeHtml(data.title || '');
   if (brand || bizNo) {
     menuSectionTitle.innerHTML = titleEscaped + '   <span class="menu-section-madeby">made by ' + brand + ' (' + bizNo + ')</span>';
   } else {

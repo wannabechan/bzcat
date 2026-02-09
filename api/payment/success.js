@@ -3,37 +3,10 @@
  * Toss 결제 성공 리다이렉트: 확인 후 주문 상태를 결제 완료로 변경
  */
 
-const { getOrderById, updateOrderStatus, getStores } = require('../_redis');
+const { getOrderById, updateOrderStatus } = require('../_redis');
+const { getAppOrigin, getTossSecretKeyForOrder } = require('./_helpers');
 
 const TOSS_CONFIRM = 'https://api.tosspayments.com/v1/payments/confirm';
-
-function getStoreSlugFromOrder(order) {
-  const items = order.order_items;
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const firstId = items[0]?.id;
-  if (!firstId || typeof firstId !== 'string') return null;
-  const slug = firstId.split('-')[0];
-  return slug || null;
-}
-
-const ALLOWED_TOSS_ENV_NAMES = ['TOSS_SECRET_KEY', 'TOSS_SECRET_KEY_TEST'];
-
-async function getTossSecretKeyForOrder(order) {
-  const stores = await getStores();
-  const slug = getStoreSlugFromOrder(order);
-  const store = slug
-    ? stores.find((s) => (s.id === slug || s.slug === slug))
-    : null;
-  let envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
-  if (!ALLOWED_TOSS_ENV_NAMES.includes(envVarName)) envVarName = 'TOSS_SECRET_KEY';
-  return process.env[envVarName] || '';
-}
-
-function getAppOrigin(req) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-  const proto = req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-  return `${proto}://${host}`;
-}
 
 function pickQuery(req, key) {
   const v = req.query[key] ?? req.query[key.toLowerCase()];
