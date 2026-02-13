@@ -457,7 +457,7 @@ function renderPaymentList() {
           >저장</button>
         </div>
         <div class="admin-payment-order-delete-row">
-          <button type="button" class="admin-btn admin-btn-danger" data-delete-order="${order.id}">삭제</button>
+          <button type="button" class="admin-payment-delete-btn" data-delete-order="${order.id}">삭제</button>
         </div>
       </div>
     `;
