@@ -3,7 +3,7 @@
  * PUT /api/admin/stores - 매장·메뉴 데이터 저장 (admin 전용)
  */
 
-const { getStores, getMenus, saveStoresAndMenus } = require('../_redis');
+const { getStores, getMenus, getAllOrders, saveStoresAndMenus } = require('../_redis');
 const { verifyToken, apiResponse } = require('../_utils');
 
 function isAdmin(user) {
@@ -43,6 +43,32 @@ module.exports = async (req, res) => {
       const { stores, menus } = req.body;
       if (!stores || !menus) {
         return apiResponse(res, 400, { error: 'stores와 menus 데이터가 필요합니다.' });
+      }
+      const oldStores = await getStores();
+      const oldMenus = {};
+      for (const s of oldStores) {
+        oldMenus[s.id] = await getMenus(s.id);
+      }
+      const deletedMenuIds = [];
+      for (const s of oldStores) {
+        const newList = menus[s.id] || [];
+        const oldList = oldMenus[s.id] || [];
+        const newIds = new Set(newList.map((m) => m.id));
+        for (const oldItem of oldList) {
+          if (oldItem.id && !newIds.has(oldItem.id)) deletedMenuIds.push(oldItem.id);
+        }
+      }
+      if (deletedMenuIds.length > 0) {
+        const allOrders = await getAllOrders();
+        for (const order of allOrders) {
+          if (order.status === 'cancelled') continue;
+          const items = order.order_items || [];
+          for (const oi of items) {
+            if (oi.id && deletedMenuIds.includes(oi.id)) {
+              return apiResponse(res, 400, { error: '해당 메뉴는 주문 진행중입니다.' });
+            }
+          }
+        }
       }
       await saveStoresAndMenus(stores, menus);
       return apiResponse(res, 200, { success: true });
