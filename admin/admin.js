@@ -1052,7 +1052,26 @@ async function init() {
         list.appendChild(itemEl);
       }
       if (e.target.closest('[data-remove-menu]')) {
-        e.target.closest('.admin-menu-item')?.remove();
+        const btn = e.target.closest('[data-remove-menu]');
+        const itemEl = btn?.closest('.admin-menu-item');
+        const menuId = itemEl?.dataset?.menuId;
+        if (menuId) {
+          try {
+            const token = await getToken();
+            const res = await fetch(`${API_BASE}/api/admin/check-menu-in-use?menuId=${encodeURIComponent(menuId)}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json().catch(() => ({}));
+            if (data.inUse === true) {
+              alert('해당 메뉴는 주문 진행중입니다.');
+              return;
+            }
+          } catch (err) {
+            alert(err.message || '확인에 실패했습니다.');
+            return;
+          }
+        }
+        itemEl?.remove();
       }
       if (e.target.closest('[data-save]')) {
         handleSave();
