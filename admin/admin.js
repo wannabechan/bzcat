@@ -457,6 +457,7 @@ function renderPaymentList() {
           >저장</button>
         </div>
         <div class="admin-payment-order-delete-row">
+          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${order.id}">취소</button>` : ''}
           <button type="button" class="admin-payment-delete-btn" data-delete-order="${order.id}">삭제</button>
         </div>
       </div>
@@ -643,12 +644,46 @@ function renderPaymentList() {
     });
   });
 
+  content.querySelectorAll('[data-cancel-order]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.dataset.cancelOrder;
+      const code = prompt('취소 코드를 입력해주세요.');
+      if (code === null) return;
+      const trimmed = String(code).trim();
+      if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {
+        alert('주문 번호가 일치하지 않습니다.');
+        return;
+      }
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/admin/cancel-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.error || '취소에 실패했습니다.');
+          return;
+        }
+        const order = adminPaymentOrders.find((o) => o.id === orderId);
+        if (order) order.status = 'cancelled';
+        alert('주문이 취소되었습니다.');
+        renderPaymentList();
+      } catch (err) {
+        alert(err.message || '취소에 실패했습니다.');
+      }
+    });
+  });
+
   content.querySelectorAll('[data-delete-order]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.deleteOrder;
       const code = prompt('삭제 코드를 입력해주세요.');
       if (code === null) return;
-      if (String(code).trim() !== orderId) {
+      const trimmed = String(code).trim();
+      if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {
         alert('주문 번호가 일치하지 않습니다.');
         return;
       }
