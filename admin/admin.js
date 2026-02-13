@@ -456,6 +456,9 @@ function renderPaymentList() {
             ${deliveryRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
+        <div class="admin-payment-order-delete-row">
+          <button type="button" class="admin-btn admin-btn-danger" data-delete-order="${order.id}">삭제</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -636,6 +639,36 @@ function renderPaymentList() {
       } finally {
         btn.disabled = false;
         btn.textContent = '저장';
+      }
+    });
+  });
+
+  content.querySelectorAll('[data-delete-order]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.dataset.deleteOrder;
+      const code = prompt('삭제 코드를 입력해주세요.');
+      if (code === null) return;
+      if (String(code).trim() !== orderId) {
+        alert('주문 번호가 일치하지 않습니다.');
+        return;
+      }
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/admin/delete-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ orderId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.error || '삭제에 실패했습니다.');
+          return;
+        }
+        adminPaymentOrders = adminPaymentOrders.filter((o) => o.id !== orderId);
+        renderPaymentList();
+      } catch (err) {
+        alert(err.message || '삭제에 실패했습니다.');
       }
     });
   });

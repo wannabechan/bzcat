@@ -144,6 +144,15 @@ async function getOrderById(orderId) {
   return typeof raw === 'string' ? JSON.parse(raw) : raw;
 }
 
+async function deleteOrder(orderId) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return false;
+  await redis.del(`order:${orderId}`);
+  await redis.zrem(`orders:by_user:${order.user_email}`, orderId);
+  return true;
+}
+
 async function updateOrderStatus(orderId, status) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
@@ -327,6 +336,7 @@ module.exports = {
   createOrder,
   getOrdersByUser,
   getOrderById,
+  deleteOrder,
   updateOrderStatus,
   updateOrderPdfUrl,
   updateOrderPaymentLink,
