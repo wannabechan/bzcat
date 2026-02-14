@@ -418,9 +418,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.category-chat-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--color-text);
+.category-chat-btn:hover,
+.category-chat-btn:active,
+.category-chat-btn:focus,
+.category-chat-btn:focus-visible {
+  background: transparent;
+  color: var(--color-text-secondary);
 }
 
 .category-chat-icon {
