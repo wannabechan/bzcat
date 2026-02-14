@@ -873,6 +873,40 @@ function handleCategoryClick(e) {
   if (!tab) return;
   document.querySelectorAll('.category-tab').forEach((t) => t.classList.remove('active'));
   tab.classList.add('active');
+  // 클릭한 탭이 잘려 보이면 스크롤해서 전체가 보이도록
+  const container = categoryTabs;
+  const tabLeft = tab.offsetLeft;
+  const tabRight = tabLeft + tab.offsetWidth;
+  const scrollLeft = container.scrollLeft;
+  const visibleRight = scrollLeft + container.clientWidth;
+  if (tabLeft < scrollLeft) {
+    // 왼쪽이 잘린 경우: 1·2번째는 맨 처음처럼, 3번째 이상은 앞 버튼 일부가 보이도록
+    const tabs = container.querySelectorAll('.category-tab');
+    const index = Array.from(tabs).indexOf(tab);
+    if (index <= 1) {
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      const prevTab = tabs[index - 1];
+      const targetScroll = Math.max(prevTab.offsetLeft, tabRight - container.clientWidth);
+      container.scrollTo({ left: Math.max(0, targetScroll), behavior: 'smooth' });
+    }
+  } else if (tabRight > visibleRight) {
+    // 오른쪽이 잘린 경우: 마지막 버튼이면 완전히 보이게, 아니면 다음 버튼 50%가 보이도록 더 이동
+    const tabs = container.querySelectorAll('.category-tab');
+    const index = Array.from(tabs).indexOf(tab);
+    const isLast = index === tabs.length - 1;
+    if (isLast) {
+      container.scrollTo({ left: tabRight - container.clientWidth, behavior: 'smooth' });
+    } else {
+      const nextTab = tabs[index + 1];
+      const halfNext = nextTab.offsetLeft + nextTab.offsetWidth / 2;
+      const targetScroll = Math.max(
+        tabRight - container.clientWidth,
+        Math.min(tabLeft, halfNext - container.clientWidth)
+      );
+      container.scrollTo({ left: Math.max(0, targetScroll), behavior: 'smooth' });
+    }
+  }
   renderMenuCards();
 }
 
