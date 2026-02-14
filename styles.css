@@ -384,6 +384,7 @@ body {
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  max-width: 75vw;
 }
 
 .category-tabs::-webkit-scrollbar {
@@ -440,6 +441,7 @@ body {
 .menu-card-image-wrapper {
   position: relative;
   aspect-ratio: 1;
+  cursor: pointer;
 }
 
 .menu-card-image {
@@ -514,6 +516,7 @@ body {
   transition: opacity 0.25s, visibility 0.25s;
   z-index: 1;
   border: 1px solid var(--color-border);
+  cursor: pointer;
 }
 
 .menu-info-overlay.active {

@@ -378,11 +378,8 @@ function renderMenuCards() {
         : `<div class="menu-card-image">${emoji}</div>`;
       return `
         <article class="menu-card" data-id="${idEsc}">
-          <div class="menu-card-image-wrapper">
+          <div class="menu-card-image-wrapper" role="button" tabindex="0" aria-label="상세 정보 보기">
             ${imgContent}
-            <button class="menu-info-btn" data-id="${idEsc}" aria-label="상세 정보">
-              <i>i</i>
-            </button>
             <div class="menu-info-overlay" data-id="${idEsc}">
               <p>${descEsc}</p>
             </div>
@@ -938,20 +935,20 @@ function handleMenuGridClick(e) {
     addToCartFromPending(itemId);
     return;
   }
-  const infoBtn = e.target.closest('.menu-info-btn');
-  if (infoBtn) {
+  const wrapper = e.target.closest('.menu-card-image-wrapper');
+  if (wrapper) {
     e.stopPropagation();
-    const id = infoBtn.dataset.id;
-    const overlay = menuGrid.querySelector(`.menu-info-overlay[data-id="${id}"]`);
-    if (overlay) {
-      const wasActive = overlay.classList.contains('active');
+    const overlay = wrapper.querySelector('.menu-info-overlay');
+    if (e.target.closest('.menu-info-overlay')) {
+      overlay?.classList.remove('active');
+      return;
+    }
+    if (e.target.closest('.menu-card-image')) {
       menuGrid.querySelectorAll('.menu-info-overlay').forEach((o) => o.classList.remove('active'));
-      if (!wasActive) overlay.classList.add('active');
+      overlay?.classList.add('active');
     }
     return;
   }
-  const overlay = e.target.closest('.menu-info-overlay');
-  if (overlay) overlay.classList.remove('active');
 }
 
 // 이벤트 바인딩

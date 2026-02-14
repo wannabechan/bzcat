@@ -647,7 +647,7 @@ function renderPaymentList() {
   content.querySelectorAll('[data-cancel-order]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.cancelOrder;
-      const code = prompt('취소 코드를 입력해주세요.');
+      const code = prompt('주문 손님도 알고 계신거죠?\n취소 코드를 입력해주세요.');
       if (code === null) return;
       const trimmed = String(code).trim();
       if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {
@@ -680,7 +680,7 @@ function renderPaymentList() {
   content.querySelectorAll('[data-delete-order]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.deleteOrder;
-      const code = prompt('삭제 코드를 입력해주세요.');
+      const code = prompt('주문 내역이 완전히 삭제됩니다.\n삭제 코드를 입력해주세요.');
       if (code === null) return;
       const trimmed = String(code).trim();
       if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {

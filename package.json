@@ -4,7 +4,7 @@
   "description": "BzCat - 비즈니스 케이터링 주문 시스템",
   "private": true,
   "scripts": {
-    "dev": "vercel dev",
+    "local": "vercel dev",
     "build": "echo 'Static site - no build needed'"
   },
   "dependencies": {
