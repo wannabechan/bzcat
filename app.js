@@ -75,6 +75,9 @@ const profileOrders = document.getElementById('profileOrders');
 const profileIncludeCancelledEl = document.getElementById('profileIncludeCancelled');
 const loginRequiredModal = document.getElementById('loginRequiredModal');
 const loginRequiredGo = document.getElementById('loginRequiredGo');
+const chatIntroModal = document.getElementById('chatIntroModal');
+const chatIntroClose = document.getElementById('chatIntroClose');
+const categoryChatBtn = document.getElementById('categoryChatBtn');
 
 let profileOrdersData = {};
 let profileAllOrders = [];
@@ -446,17 +449,17 @@ function renderCartItems() {
   btnCheckout.classList.toggle('below-minimum', !totalMeetMin);
 
   const renderCartItem = ({ itemId, qty, item }) => `
-    <div class="cart-item" data-id="${itemId}">
+    <div class="cart-item" data-id="${escapeHtml(itemId)}">
       <div class="cart-item-info">
-        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-name">${escapeHtml(item.name)}</div>
         <div class="cart-item-price">${formatPrice(item.price)} × ${qty}</div>
       </div>
       <div class="cart-item-qty">
-        <button type="button" data-action="decrease" data-id="${itemId}">−</button>
+        <button type="button" data-action="decrease" data-id="${escapeHtml(itemId)}">−</button>
         <span>${qty}</span>
-        <button type="button" data-action="increase" data-id="${itemId}">+</button>
+        <button type="button" data-action="increase" data-id="${escapeHtml(itemId)}">+</button>
       </div>
-      <button class="cart-item-remove" data-id="${itemId}" aria-label="삭제">
+      <button class="cart-item-remove" data-id="${escapeHtml(itemId)}" aria-label="삭제">
         <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
@@ -468,7 +471,7 @@ function renderCartItems() {
   cartItems.innerHTML = categoryOrder
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
-      const categoryTitle = MENU_DATA[slug]?.title || slug;
+      const categoryTitle = escapeHtml(MENU_DATA[slug]?.title || slug);
       const catTotal = categoryTotals[slug] || 0;
       const meetMin = catTotal >= TOTAL_MIN;
       const totalClass = meetMin ? 'cart-category-total met' : 'cart-category-total below';
@@ -555,7 +558,7 @@ function renderOrderDetailByCategory(byCategory, categoryOrder) {
   const renderDetailItem = ({ item, qty }) => `
     <div class="order-detail-item">
       <div class="cart-item-info">
-        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-name">${escapeHtml(item.name)}</div>
         <div class="cart-item-price">${formatPrice(item.price)} × ${qty}</div>
       </div>
     </div>
@@ -563,7 +566,7 @@ function renderOrderDetailByCategory(byCategory, categoryOrder) {
   return categoryOrder
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
-      const categoryTitle = MENU_DATA[slug]?.title || slug;
+      const categoryTitle = escapeHtml(MENU_DATA[slug]?.title || slug);
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderDetailItem).join('');
       return `
@@ -584,7 +587,6 @@ function openCheckoutModal() {
   const total = calculateTotal();
   const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
   const orderTime = new Date();
-  const deadlineTime = new Date(orderTime.getTime() + 24 * 60 * 60 * 1000);
 
   checkoutOrderTime.textContent = formatOrderTime(orderTime);
   checkoutAmount.textContent = formatPrice(total);
@@ -771,7 +773,7 @@ function renderProfileOrdersList() {
                 ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
               </div>
             </div>
-            <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${o.statusLabel}</span>
+            <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${escapeHtml(o.statusLabel || '')}</span>
           </div>
           <div class="profile-order-date">주문일시 : ${formatOrderDate(o.createdAt)}<br>배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)}</div>
           <div class="profile-order-status-steps">${stepsHtml}</div>
@@ -814,7 +816,7 @@ async function fetchAndRenderProfileOrders() {
     const data = await res.json();
 
     if (!res.ok) {
-      profileEmpty.innerHTML = `<p>${data.error || '불러오기에 실패했습니다.'}</p>`;
+      profileEmpty.innerHTML = `<p>${escapeHtml(data.error || '불러오기에 실패했습니다.')}</p>`;
       return;
     }
 
@@ -910,18 +912,27 @@ function handleCategoryClick(e) {
   renderMenuCards();
 }
 
+// 모달 표시/숨김 공통
+function setModalVisible(modalEl, visible) {
+  if (!modalEl) return;
+  modalEl.classList.toggle('visible', visible);
+  modalEl.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
 // 로그인 유도 모달
 function openLoginRequiredModal() {
-  if (loginRequiredModal) {
-    loginRequiredModal.classList.add('visible');
-    loginRequiredModal.setAttribute('aria-hidden', 'false');
-  }
+  setModalVisible(loginRequiredModal, true);
 }
 function closeLoginRequiredModal() {
-  if (loginRequiredModal) {
-    loginRequiredModal.classList.remove('visible');
-    loginRequiredModal.setAttribute('aria-hidden', 'true');
-  }
+  setModalVisible(loginRequiredModal, false);
+}
+
+// 채팅 주문 안내 모달
+function openChatIntroModal() {
+  setModalVisible(chatIntroModal, true);
+}
+function closeChatIntroModal() {
+  setModalVisible(chatIntroModal, false);
 }
 
 // 메뉴 그리드 클릭 위임 (이벤트 리스너 최소화)
@@ -1109,6 +1120,13 @@ function init() {
   if (loginRequiredModal) {
     loginRequiredModal.addEventListener('click', (e) => {
       if (e.target === loginRequiredModal) closeLoginRequiredModal();
+    });
+  }
+  if (categoryChatBtn) categoryChatBtn.addEventListener('click', openChatIntroModal);
+  if (chatIntroClose) chatIntroClose.addEventListener('click', closeChatIntroModal);
+  if (chatIntroModal) {
+    chatIntroModal.addEventListener('click', (e) => {
+      if (e.target === chatIntroModal) closeChatIntroModal();
     });
   }
   function updateOrderSubmitButton() {

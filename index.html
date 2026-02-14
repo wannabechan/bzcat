@@ -293,6 +293,23 @@
         </div>
       </div>
     </div>
+
+    <!-- 채팅 주문 안내 모달 -->
+    <div class="modal-overlay chat-intro-modal" id="chatIntroModal" aria-hidden="true">
+      <div class="modal chat-intro-modal-inner">
+        <button type="button" class="chat-intro-close" id="chatIntroClose" aria-label="닫기">&times;</button>
+        <div class="chat-intro-symbol-wrap">
+          <img src="img/bzcat_symbol.png" alt="" class="chat-intro-symbol">
+        </div>
+        <div class="chat-intro-message">
+          <p>채팅 주문은 BzCat의 오픈 마켓입니다. 주문을 등록하시면 BzCat 커뮤니티의 셰프님들 중 해당 주문을 처리할 수 있는 셰프님이 응답하게 됩니다.</p>
+          <p>셰프님의 응답 내용을 확인하신 후, 희망하시는 내용과 맞다면 주문 신청을 진행하시고, 아니라면 거절 후 새로운 응답을 기다리시면 됩니다.</p>
+        </div>
+        <div class="chat-intro-actions">
+          <button type="button" class="btn-chat-intro-register" id="chatIntroRegisterBtn">주문 등록하기</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="auth.js"></script>
