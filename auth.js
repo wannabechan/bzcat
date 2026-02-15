@@ -58,10 +58,10 @@ function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
   const adminLink = document.getElementById('headerAdminLink');
-  if (adminLink) {
-    const isAdmin = user && user.level === 'admin';
-    adminLink.style.display = isAdmin ? '' : 'none';
-  }
+  const chatBtn = document.getElementById('categoryChatBtn');
+  const isAdmin = user && user.level === 'admin';
+  if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
+  if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
   const profileToggle = document.getElementById('profileToggle');
   const cartToggle = document.getElementById('cartToggle');
   const headerLoginBtn = document.getElementById('headerLoginBtn');

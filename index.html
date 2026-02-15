@@ -49,6 +49,16 @@
       <div class="header-left">
         <h1 class="logo-wrap"><a href="/" class="logo-link" aria-label="메인 화면으로"><img src="img/bzcat_logo.png" alt="BzCat" class="logo"></a></h1>
         <a href="/admin" class="header-admin-link" id="headerAdminLink" style="display: none;">admin</a>
+        <button type="button" class="header-icon-btn header-chat-btn" id="categoryChatBtn" aria-label="채팅" style="display: none;">
+          <svg class="category-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="category-chat-dots" aria-hidden="true">
+            <span class="category-chat-dot"></span>
+            <span class="category-chat-dot"></span>
+            <span class="category-chat-dot"></span>
+          </span>
+        </button>
       </div>
       <div class="header-actions">
         <button type="button" class="header-btn-login" id="headerLoginBtn" style="display: none;">로그인</button>
@@ -77,22 +87,8 @@
       <!-- Category Section -->
       <section class="category-section">
         <p class="category-notice" id="categoryNotice">※ 1가지 카테고리에서만 주문이 가능합니다.</p>
-        <div class="category-row">
-          <div class="category-tabs" id="categoryTabs">
-            <!-- 동적으로 로드 -->
-          </div>
-          <div class="category-chat-wrap">
-            <button type="button" class="category-chat-btn" id="categoryChatBtn" aria-label="채팅">
-              <svg class="category-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span class="category-chat-dots" aria-hidden="true">
-                <span class="category-chat-dot"></span>
-                <span class="category-chat-dot"></span>
-                <span class="category-chat-dot"></span>
-              </span>
-            </button>
-          </div>
+        <div class="category-tabs" id="categoryTabs">
+          <!-- 동적으로 로드 -->
         </div>
       </section>
 
@@ -302,8 +298,8 @@
           <img src="img/bzcat_symbol.png" alt="" class="chat-intro-symbol">
         </div>
         <div class="chat-intro-message">
-          <p>채팅 주문은 BzCat의 오픈 마켓입니다. 주문을 등록하시면 BzCat 커뮤니티의 셰프님들 중 해당 주문을 처리할 수 있는 셰프님이 응답하게 됩니다.</p>
-          <p>셰프님의 응답 내용을 확인하신 후, 희망하시는 내용과 맞다면 주문 신청을 진행하시고, 아니라면 거절 후 새로운 응답을 기다리시면 됩니다.</p>
+          <p>채팅 주문은 BzCat의 오픈 마켓입니다. 주문을 등록하시면 BzCat 커뮤니티의 셰프님들이 응답을 보내드립니다.</p>
+          <p>셰프님 응답을 확인하신 후, 요청 내용과 맞다면 주문 신청을 진행하시고, 아니라면 거절하고 새 응답을 기다려주세요.</p>
         </div>
         <div class="chat-intro-actions">
           <button type="button" class="btn-chat-intro-register" id="chatIntroRegisterBtn">주문 등록하기</button>

@@ -377,12 +377,6 @@ body {
   padding: 16px 0;
 }
 
-.category-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .category-tabs {
   display: flex;
   gap: 8px;
@@ -390,23 +384,17 @@ body {
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  max-width: 70vw;
+  width: 100%;
 }
 
-.category-chat-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.category-chat-btn {
+/* 헤더 채팅 버튼 (admin일 때만 표시) */
+.header-chat-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   font: inherit;
   color: var(--color-text-secondary);
@@ -418,21 +406,17 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.category-chat-btn:hover,
-.category-chat-btn:active,
-.category-chat-btn:focus,
-.category-chat-btn:focus-visible {
+.header-chat-btn:hover,
+.header-chat-btn:active,
+.header-chat-btn:focus,
+.header-chat-btn:focus-visible {
   background: transparent;
   color: var(--color-text-secondary);
 }
 
-.category-chat-btn {
-  position: relative;
-}
-
-.category-chat-icon {
-  width: 28px;
-  height: 28px;
+.header-chat-btn .category-chat-icon {
+  width: 22px;
+  height: 22px;
   transform: scale(1.2);
 }
 
