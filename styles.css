@@ -217,14 +217,14 @@ body {
 }
 
 .login-footer-link {
-  color: var(--color-text-secondary);
+  color: inherit;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .login-footer-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
+  color: inherit;
+  text-decoration: none;
 }
 
 .login-footer-sep {

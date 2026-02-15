@@ -158,18 +158,22 @@ function renderStore(store, menus) {
               <input type="text" data-field="storeAddress" value="${(store.storeAddress || '').replace(/"/g, '&quot;')}" placeholder="예: 서울시 강남구 OO로 123">
             </div>
             <div class="admin-form-field">
-              <label>담당자연락처</label>
-              <input type="text" data-field="storeContact" value="${(store.storeContact || '').replace(/"/g, '&quot;')}" placeholder="예: 02-1234-5678">
+              <label>사업자등록번호</label>
+              <input type="text" data-field="bizNo" value="${(store.bizNo || '').replace(/"/g, '&quot;')}" placeholder="예: 000-00-00000">
             </div>
           </div>
-          <div class="admin-form-row">
-            <div class="admin-form-field">
+          <div class="admin-form-row admin-form-row--brand-row2">
+            <div class="admin-form-field admin-form-field--representative">
               <label>대표자</label>
               <input type="text" data-field="representative" value="${(store.representative || '').replace(/"/g, '&quot;')}" placeholder="대표자명">
             </div>
             <div class="admin-form-field">
-              <label>사업자등록번호</label>
-              <input type="text" data-field="bizNo" value="${(store.bizNo || '').replace(/"/g, '&quot;')}" placeholder="예: 000-00-00000">
+              <label>담당자연락처</label>
+              <input type="text" data-field="storeContact" value="${(store.storeContact || '').replace(/"/g, '&quot;')}" placeholder="예: 02-1234-5678">
+            </div>
+            <div class="admin-form-field admin-form-field--store-contact-email">
+              <label>담당자이메일</label>
+              <input type="email" data-field="storeContactEmail" value="${(store.storeContactEmail || '').replace(/"/g, '&quot;')}" placeholder="예: contact@example.com">
             </div>
             <div class="admin-form-field">
               <label>suburl</label>
@@ -243,6 +247,7 @@ function collectData() {
     const brandInput = storeEl.querySelector('input[data-field="brand"]');
     const storeAddressInput = storeEl.querySelector('input[data-field="storeAddress"]');
     const storeContactInput = storeEl.querySelector('input[data-field="storeContact"]');
+    const storeContactEmailInput = storeEl.querySelector('input[data-field="storeContactEmail"]');
     const representativeInput = storeEl.querySelector('input[data-field="representative"]');
     const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
@@ -253,7 +258,7 @@ function collectData() {
     const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
     const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
     const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -1060,6 +1065,7 @@ async function init() {
           brand: '',
           storeAddress: '',
           storeContact: '',
+          storeContactEmail: '',
           representative: '',
           bizNo: '',
           suburl: '',
