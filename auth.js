@@ -61,7 +61,8 @@ function showApp(user) {
   const chatBtn = document.getElementById('categoryChatBtn');
   const isAdmin = user && user.level === 'admin';
   if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
-  if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
+  // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
+  if (chatBtn) chatBtn.style.display = 'none';
   const profileToggle = document.getElementById('profileToggle');
   const cartToggle = document.getElementById('cartToggle');
   const headerLoginBtn = document.getElementById('headerLoginBtn');
