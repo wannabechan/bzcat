@@ -133,13 +133,13 @@ function renderList() {
   const allOrders = storeOrdersData;
   const cancelled = (o) => o.status === 'cancelled';
 
-  const newCount = allOrders.filter(o => !cancelled(o) && o.status === 'submitted').length;
+  const newCount = allOrders.filter(o => !cancelled(o) && (o.status === 'submitted' || o.status === 'order_accepted')).length;
   const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
   const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
 
   let filtered;
   if (storeOrdersSubFilter === 'new') {
-    filtered = allOrders.filter(o => o.status === 'submitted');
+    filtered = allOrders.filter(o => o.status === 'submitted' || o.status === 'order_accepted');
   } else if (storeOrdersSubFilter === 'payment_wait') {
     filtered = allOrders.filter(o => o.status === 'payment_link_issued');
   } else if (storeOrdersSubFilter === 'delivery_wait') {

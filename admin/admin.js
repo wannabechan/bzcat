@@ -350,13 +350,13 @@ function renderPaymentList() {
   const allOrders = adminPaymentOrders;
   const cancelled = (o) => o.status === 'cancelled';
 
-  const newCount = allOrders.filter(o => !cancelled(o) && o.status === 'submitted').length;
+  const newCount = allOrders.filter(o => !cancelled(o) && (o.status === 'submitted' || o.status === 'order_accepted')).length;
   const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
   const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
 
   let filtered;
   if (adminPaymentSubFilter === 'new') {
-    filtered = allOrders.filter(o => o.status === 'submitted');
+    filtered = allOrders.filter(o => o.status === 'submitted' || o.status === 'order_accepted');
   } else if (adminPaymentSubFilter === 'payment_wait') {
     filtered = allOrders.filter(o => o.status === 'payment_link_issued');
   } else if (adminPaymentSubFilter === 'delivery_wait') {
