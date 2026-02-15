@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="format-detection" content="telephone=no">
   <title>BzCat : 비즈니스 케이터링</title>
-  <link rel="icon" href="img/favicon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,8 +17,8 @@
   <div class="login-screen" id="loginScreen">
     <div class="login-container">
       <div class="login-header">
-        <img src="img/bzcat_symbol.png" alt="" class="login-symbol">
-        <img src="img/bzcat_logo.png" alt="BzCat" class="login-logo login-logo-refresh" id="loginLogo" role="button" tabindex="0" aria-label="새로고침">
+        <img src="/img/bzcat_symbol.png" alt="" class="login-symbol">
+        <img src="/img/bzcat_logo.png" alt="BzCat" class="login-logo login-logo-refresh" id="loginLogo" role="button" tabindex="0" aria-label="새로고침">
         <p class="login-title">비즈니스 케이터링</p>
       </div>
       <form class="login-form" id="loginForm" novalidate>
@@ -58,8 +58,9 @@
     <!-- Header -->
     <header class="header">
       <div class="header-left">
-        <h1 class="logo-wrap"><a href="/" class="logo-link" aria-label="메인 화면으로"><img src="img/bzcat_logo.png" alt="BzCat" class="logo"></a></h1>
+        <h1 class="logo-wrap"><a href="/" class="logo-link" aria-label="메인 화면으로"><img src="/img/bzcat_logo.png" alt="BzCat" class="logo"></a></h1>
         <a href="/admin" class="header-admin-link" id="headerAdminLink" style="display: none;">admin</a>
+        <a href="/store-orders/index.html" class="header-admin-link" id="headerStoreOrdersLink" style="display: none;">주문 접수 목록</a>
         <button type="button" class="header-icon-btn header-chat-btn" id="categoryChatBtn" aria-label="채팅" style="display: none;">
           <svg class="category-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -116,7 +117,7 @@
     <div class="cart-overlay" id="cartOverlay" aria-hidden="true"></div>
     <aside class="cart-drawer" id="cartDrawer">
       <div class="cart-header">
-        <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">장바구니</h2>
+        <h2><img src="/img/bzcat_symbol.png" alt="" class="header-symbol">장바구니</h2>
         <button class="cart-close" id="cartClose" aria-label="장바구니 닫기">
         <svg class="cart-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -145,7 +146,7 @@
     <aside class="profile-drawer" id="profileDrawer">
       <div class="profile-header">
         <div class="profile-header-left">
-          <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">내 주문 보기</h2>
+          <h2><img src="/img/bzcat_symbol.png" alt="" class="header-symbol">내 주문 보기</h2>
           <label class="profile-include-cancelled">
             <input type="checkbox" id="profileIncludeCancelled" class="profile-include-cancelled-input">
             <span class="profile-include-cancelled-label">취소 포함</span>
@@ -165,14 +166,17 @@
         <div class="profile-orders" id="profileOrders"></div>
         <div class="profile-logout-wrap">
           <hr class="profile-logout-divider">
-          <button type="button" class="profile-logout-btn" id="btnLogout" aria-label="로그아웃">
-            <svg class="profile-logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            로그아웃
-          </button>
+          <div class="profile-logout-row">
+            <span class="profile-user-email" id="profileUserEmail" aria-hidden="true"></span>
+            <button type="button" class="profile-logout-btn" id="btnLogout" aria-label="로그아웃">
+              <svg class="profile-logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              로그아웃
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -181,7 +185,7 @@
     <div class="modal-overlay" id="checkoutModal" aria-hidden="true">
       <div class="modal checkout-modal">
         <div class="modal-header">
-          <h2><img src="img/bzcat_symbol.png" alt="" class="header-symbol">주문 접수</h2>
+          <h2><img src="/img/bzcat_symbol.png" alt="" class="header-symbol">주문 접수</h2>
           <div class="modal-header-actions">
             <button class="modal-close" id="checkoutClose" aria-label="닫기">&times;</button>
           </div>
@@ -292,7 +296,7 @@
       <div class="modal login-required-modal-inner">
         <button type="button" class="login-required-close" id="loginRequiredClose" aria-label="닫기">&times;</button>
         <div class="login-required-symbol-wrap">
-          <img src="img/bzcat_symbol.png" alt="" class="login-required-symbol">
+          <img src="/img/bzcat_symbol.png" alt="" class="login-required-symbol">
         </div>
         <p class="login-required-message">로그인 후 이용 가능합니다.</p>
         <div class="login-required-actions">
@@ -306,7 +310,7 @@
       <div class="modal chat-intro-modal-inner">
         <button type="button" class="chat-intro-close" id="chatIntroClose" aria-label="닫기">&times;</button>
         <div class="chat-intro-symbol-wrap">
-          <img src="img/bzcat_symbol.png" alt="" class="chat-intro-symbol">
+          <img src="/img/bzcat_symbol.png" alt="" class="chat-intro-symbol">
         </div>
         <div class="chat-intro-message">
           <p>채팅 주문은 BzCat의 오픈 마켓입니다. 주문을 등록하시면 BzCat 커뮤니티의 셰프님들이 응답을 보내드립니다.</p>
@@ -319,7 +323,7 @@
     </div>
   </div>
 
-  <script src="auth.js"></script>
-  <script src="app.js"></script>
+  <script src="/auth.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

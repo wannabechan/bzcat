@@ -58,9 +58,14 @@ function showApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
   const adminLink = document.getElementById('headerAdminLink');
+  const storeOrdersLink = document.getElementById('headerStoreOrdersLink');
   const chatBtn = document.getElementById('categoryChatBtn');
+  const profileUserEmailEl = document.getElementById('profileUserEmail');
   const isAdmin = user && user.level === 'admin';
+  const isStoreManager = user && user.isStoreManager && user.level !== 'admin';
   if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
+  if (storeOrdersLink) storeOrdersLink.style.display = isStoreManager ? '' : 'none';
+  if (profileUserEmailEl) profileUserEmailEl.textContent = user && user.email ? user.email : '';
   // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
   if (chatBtn) chatBtn.style.display = 'none';
   const profileToggle = document.getElementById('profileToggle');
@@ -269,9 +274,10 @@ async function initAuth() {
         alert('만나서 반갑습니다. 맛있게 준비해드릴게요!');
       }
 
-      // 앱 표시
+      // 세션에서 isStoreManager 등 전체 사용자 정보를 받아 앱 표시
       resetToStep1();
-      showApp(data.user);
+      const sessionUser = await checkSession();
+      showApp(sessionUser);
       loginForm.reset();
 
     } catch (error) {

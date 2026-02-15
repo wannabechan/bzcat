@@ -47,12 +47,12 @@ module.exports = async (req, res) => {
 
     const trimmed = (paymentLink || '').trim();
     if (trimmed) {
-      if (order.status === 'submitted') {
+      if (order.status === 'submitted' || order.status === 'order_accepted') {
         await updateOrderStatus(orderId, 'payment_link_issued');
       }
     } else {
       if (order.status === 'payment_link_issued') {
-        await updateOrderStatus(orderId, 'submitted');
+        await updateOrderStatus(orderId, 'order_accepted');
       }
     }
 

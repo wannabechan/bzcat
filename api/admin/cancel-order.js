@@ -7,7 +7,7 @@ const { getOrderById } = require('../_redis');
 const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
 const { verifyToken, apiResponse } = require('../_utils');
 
-const CANCELABLE_STATUSES = ['submitted', 'pending', 'payment_link_issued'];
+const CANCELABLE_STATUSES = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
 
 function isAdmin(user) {
   return user && user.level === 'admin';

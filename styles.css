@@ -1200,14 +1200,28 @@ body {
 .profile-logout-wrap {
   margin-top: 16px;
   padding-top: 16px;
-  padding-right: 5px;
-  text-align: right;
 }
 
 .profile-logout-divider {
   margin: 0 0 12px;
   border: none;
   border-top: 1px solid var(--color-border);
+}
+
+.profile-logout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-user-email {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .profile-logout-btn {
@@ -2184,6 +2198,29 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.order-detail-delivery {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.9375rem;
+}
+
+.order-detail-delivery-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.order-detail-delivery-row:last-child {
+  margin-bottom: 0;
+}
+
+.order-detail-delivery-label {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 
 .bank-info h3 {

@@ -7,11 +7,12 @@ const { verifyToken, apiResponse } = require('../_utils');
 const { getOrdersByUser } = require('../_redis');
 
 const STATUS_LABELS = {
-  submitted: '신청 완료',
-  payment_link_issued: '결제 진행하기',
-  payment_completed: '결제 완료',
+  submitted: '신청완료',
+  order_accepted: '주문접수',
+  payment_link_issued: '결제하기',
+  payment_completed: '결제완료',
   shipping: '배송중',
-  delivery_completed: '배송 완료',
+  delivery_completed: '배송완료',
   cancelled: '주문 취소',
 };
 
@@ -48,6 +49,8 @@ module.exports = async (req, res) => {
         createdAt: o.created_at,
         deliveryDate: o.delivery_date,
         deliveryTime: o.delivery_time,
+        deliveryAddress: o.delivery_address || null,
+        detailAddress: o.detail_address || null,
         totalAmount: o.total_amount,
         orderItems: o.order_items || [],
         pdfUrl: o.pdf_url || null,

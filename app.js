@@ -91,12 +91,13 @@ let profileIdleTimerId = null;
 let profileIdleListenersAttached = false;
 
 const ORDER_STATUS_STEPS = [
-  { key: 'submitted', label: '신청 완료' },
-  { key: 'payment_link_issued', label: '결제 진행하기' },
-  { key: 'payment_completed', label: '결제 완료' },
-  { key: 'delivery_completed', label: '배송 완료' },
+  { key: 'submitted', label: '신청완료' },
+  { key: 'order_accepted', label: '주문접수' },
+  { key: 'payment_link_issued', label: '결제하기' },
+  { key: 'payment_completed', label: '결제완료' },
+  { key: 'delivery_completed', label: '배송완료' },
 ];
-const PENDING_ORDER_STATUSES = ['submitted', 'payment_link_issued', 'payment_completed', 'shipping'];
+const PENDING_ORDER_STATUSES = ['submitted', 'order_accepted', 'payment_link_issued', 'payment_completed', 'shipping'];
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -653,7 +654,16 @@ function closeProfile() {
 
 function openProfileOrderDetail(order) {
   const html = renderOrderSummaryFromOrderItems(order.orderItems || []);
-  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
+  const deliveryDateStr = order.deliveryDate ? formatDeliveryDateOnly(order.deliveryDate) : '—';
+  const deliveryTimeStr = (order.deliveryTime || '').trim() || '';
+  const deliveryHope = deliveryTimeStr ? `${deliveryDateStr} ${deliveryTimeStr}` : deliveryDateStr;
+  const deliveryAddressStr = [order.deliveryAddress, order.detailAddress].filter(Boolean).join(' ').trim() || '—';
+  const deliveryBlock = `
+    <div class="order-detail-delivery">
+      <div class="order-detail-delivery-row"><span class="order-detail-delivery-label">배송희망일</span><span>${escapeHtml(deliveryHope)}</span></div>
+      <div class="order-detail-delivery-row"><span class="order-detail-delivery-label">배송주소</span><span>${escapeHtml(deliveryAddressStr)}</span></div>
+    </div>`;
+  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>${deliveryBlock}`;
   const totalEl = document.getElementById('orderDetailTotal');
   if (totalEl) totalEl.textContent = formatPrice(order.totalAmount || 0);
   const panel = orderDetailOverlay.querySelector('.order-detail-panel');
@@ -716,7 +726,7 @@ async function confirmAndCancelOrder(order) {
 }
 
 function isPaymentLinkActive(order) {
-  if (order.status === 'cancelled' || order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed') return false;
+  if (order.status === 'cancelled' || order.status === 'order_accepted' || order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed') return false;
   return order.status === 'payment_link_issued';
 }
 
@@ -726,11 +736,11 @@ function renderProfileOrdersList() {
   const hasMore = orders.length > profileVisibleCount;
 
   const stepIndex = (status) => {
-    if (status === 'shipping' || status === 'delivery_completed') return 3;
+    if (status === 'shipping' || status === 'delivery_completed') return 4;
     return ORDER_STATUS_STEPS.findIndex((s) => s.key === status);
   };
   const isCancelled = (status) => status === 'cancelled';
-  const canCancel = (status) => !isCancelled(status) && ['submitted', 'payment_link_issued'].includes(status);
+  const canCancel = (status) => !isCancelled(status) && ['submitted', 'order_accepted', 'payment_link_issued'].includes(status);
 
   profileOrdersData = {};
   const CANCELABLE_STEP_COUNT = 1;
@@ -741,7 +751,7 @@ function renderProfileOrdersList() {
       const paymentLinkActive = isPaymentLinkActive(o);
       const cancelled = isCancelled(o.status);
       const currentIdx = cancelled ? -1 : stepIndex(o.status);
-      const step4Label = o.status === 'delivery_completed' ? '배송 완료' : '배송중';
+      const step4Label = o.status === 'delivery_completed' ? '배송완료' : '배송중';
       let stepsHtml;
       if (cancelled) {
         stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)
@@ -757,7 +767,7 @@ function renderProfileOrdersList() {
           if (s.key === 'payment_link_issued' && paymentLinkActive) {
             cls += ' payment-link-ready';
           }
-          const label = (i === 3) ? step4Label : s.label;
+          const label = (i === 4) ? step4Label : s.label;
           return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${label}</span>`;
         }).join('');
       }
@@ -1372,6 +1382,24 @@ function init() {
     };
     openProfile().then(() => {
       clearParam();
+    });
+  }
+
+  const orderAcceptResult = params.get('order_accept');
+  if (orderAcceptResult === 'success' || orderAcceptResult === 'error' || orderAcceptResult === 'already') {
+    const clearOrderAcceptParam = () => {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('order_accept');
+      window.history.replaceState({}, '', u.pathname + (u.search || '') + (u.hash || ''));
+    };
+    const msg = orderAcceptResult === 'success'
+      ? '주문이 접수되었습니다.'
+      : orderAcceptResult === 'already'
+        ? '이미 접수된 주문입니다.'
+        : '주문 접수 처리에 실패했습니다. 링크가 만료되었거나 잘못된 접근일 수 있습니다.';
+    openProfile().then(() => {
+      alert(msg);
+      clearOrderAcceptParam();
     });
   }
 }

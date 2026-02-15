@@ -393,7 +393,7 @@ function renderPaymentList() {
     const isCancelled = order.status === 'cancelled';
     const isUrgent = !isCancelled && daysUntilDelivery <= 7 && !(order.payment_link && String(order.payment_link).trim());
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
-    const paymentLinkRowDisabled = isCancelled || isPaymentDone || !!(order.payment_link && String(order.payment_link).trim());
+    const paymentLinkRowDisabled = isCancelled || isPaymentDone || order.status === 'submitted' || !!(order.payment_link && String(order.payment_link).trim());
     const shippingRowDisabled = order.status !== 'payment_completed';
     const deliveryRowDisabled = order.status !== 'shipping';
     const shippingValue = (order.status === 'shipping' || order.status === 'delivery_completed') ? (order.tracking_number || '') : '';
@@ -462,7 +462,7 @@ function renderPaymentList() {
           >저장</button>
         </div>
         <div class="admin-payment-order-delete-row">
-          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${order.id}">취소</button>` : ''}
+          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'order_accepted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${order.id}">취소</button>` : ''}
           <button type="button" class="admin-payment-delete-btn" data-delete-order="${order.id}">삭제</button>
         </div>
       </div>
@@ -541,8 +541,8 @@ function renderPaymentList() {
         if (order) {
           order.payment_link = paymentLink;
           if (!paymentLink.trim() && order.status === 'payment_link_issued') {
-            order.status = 'submitted';
-          } else if (paymentLink.trim() && order.status === 'submitted') {
+            order.status = 'order_accepted';
+          } else if (paymentLink.trim() && (order.status === 'submitted' || order.status === 'order_accepted')) {
             order.status = 'payment_link_issued';
           }
         }
@@ -656,7 +656,7 @@ function renderPaymentList() {
       if (code === null) return;
       const trimmed = String(code).trim();
       if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {
-        alert('주문 번호가 일치하지 않습니다.');
+        alert('취소 코드 오류입니다.');
         return;
       }
       try {
@@ -689,7 +689,7 @@ function renderPaymentList() {
       if (code === null) return;
       const trimmed = String(code).trim();
       if (trimmed !== orderId && trimmed !== `주문 #${orderId}`) {
-        alert('주문 번호가 일치하지 않습니다.');
+        alert('삭제 코드 오류입니다.');
         return;
       }
       try {
@@ -811,15 +811,17 @@ function clearPaymentIdleTimer() {
 }
 
 function getStatusLabel(status) {
+  const s = (status || '').trim();
   const labels = {
     submitted: '신청 완료',
+    order_accepted: '주문 접수',
     payment_link_issued: '결제 링크 발급',
     payment_completed: '결제 완료',
     shipping: '배송중',
     delivery_completed: '배송 완료',
     cancelled: '주문 취소',
   };
-  return labels[status] || status;
+  return labels[s] || s || '—';
 }
 
 function formatAdminOrderDate(isoStr) {
