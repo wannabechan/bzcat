@@ -2179,6 +2179,21 @@ body {
   color: #909090;
 }
 
+.order-detail-cancel-btn {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #b0b0b0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.order-detail-cancel-btn:active {
+  color: #909090;
+}
+
 .order-detail-close {
   width: 36px;
   height: 36px;

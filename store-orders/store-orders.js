@@ -147,7 +147,7 @@ function renderOrderAcceptBlock(order) {
       </div>
       <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
       <div class="store-orders-reject-links">
-        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타사유</span>
+        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
       </div>
     </div>
   `;

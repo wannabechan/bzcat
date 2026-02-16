@@ -682,6 +682,17 @@ function openProfileOrderDetail(order) {
     };
   }
 
+  const cancelBtn = document.getElementById('orderDetailCancelBtn');
+  if (cancelBtn) {
+    if (canCancelOrder(order.status)) {
+      cancelBtn.style.display = '';
+      cancelBtn.onclick = () => confirmAndCancelOrder(order);
+    } else {
+      cancelBtn.style.display = 'none';
+      cancelBtn.onclick = null;
+    }
+  }
+
   orderDetailOverlay.classList.add('visible');
   orderDetailOverlay.setAttribute('aria-hidden', 'false');
 }
@@ -709,6 +720,7 @@ async function confirmAndCancelOrder(order) {
       return;
     }
     alert('주문이 취소되었습니다.');
+    closeOrderDetailOverlay();
     await fetchAndRenderProfileOrders();
   } catch (err) {
     console.error('Cancel order error:', err);
@@ -721,6 +733,10 @@ function isPaymentLinkActive(order) {
   return order.status === 'payment_link_issued';
 }
 
+function canCancelOrder(status) {
+  return status !== 'cancelled' && ['submitted', 'order_accepted', 'payment_link_issued'].includes(status);
+}
+
 function renderProfileOrdersList() {
   const orders = profileIncludeCancelled ? profileAllOrders : profileAllOrders.filter((o) => o.status !== 'cancelled');
   const visible = orders.slice(0, profileVisibleCount);
@@ -731,7 +747,7 @@ function renderProfileOrdersList() {
     return ORDER_STATUS_STEPS.findIndex((s) => s.key === status);
   };
   const isCancelled = (status) => status === 'cancelled';
-  const canCancel = (status) => !isCancelled(status) && ['submitted', 'order_accepted', 'payment_link_issued'].includes(status);
+  const canCancel = canCancelOrder;
 
   profileOrdersData = {};
   const CANCELABLE_STEP_COUNT = 1;
@@ -762,8 +778,6 @@ function renderProfileOrdersList() {
           return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${label}</span>`;
         }).join('');
       }
-      const showCancelBtn = canCancel(o.status);
-
       return `
         <div class="profile-order-card" data-order-id="${o.id}">
           <div class="profile-order-card-header">
@@ -771,7 +785,6 @@ function renderProfileOrdersList() {
               <span class="profile-order-id">주문 #${o.id}</span>
               <div class="profile-order-actions">
                 <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
-                ${showCancelBtn ? `<button type="button" class="profile-btn profile-btn-cancel" data-action="cancel">취소하기</button>` : ''}
               </div>
             </div>
             <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${escapeHtml(o.statusLabel || '')}</span>
@@ -1085,8 +1098,6 @@ function init() {
     if (!order) return;
     if (btn.dataset.action === 'detail') {
       openProfileOrderDetail(order);
-    } else if (btn.dataset.action === 'cancel') {
-      confirmAndCancelOrder(order);
     }
   });
   btnCheckout.addEventListener('click', (e) => {
