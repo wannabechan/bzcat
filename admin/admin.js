@@ -421,7 +421,7 @@ function renderPaymentList() {
         </div>
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''} <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span></div>
+          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
           <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
           <div>이메일: ${order.user_email || '—'}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>

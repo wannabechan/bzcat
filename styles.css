@@ -1351,6 +1351,8 @@ body {
   background: var(--color-surface);
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
+  transform: scale(0.95);
+  transform-origin: center center;
 }
 
 .profile-order-status-steps .step.active {
@@ -1428,6 +1430,7 @@ body {
   }
   .profile-order-status-steps .step {
     padding: 2px 6px;
+    transform: scale(0.95);
   }
 }
 
