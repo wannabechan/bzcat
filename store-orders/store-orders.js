@@ -147,7 +147,7 @@ function renderOrderAcceptBlock(order) {
       </div>
       <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
       <div class="store-orders-reject-links">
-        <span class="store-orders-reject-link">거부:스케줄문제</span><span class="store-orders-reject-sep"> | </span><span class="store-orders-reject-link">거부:조리문제</span><span class="store-orders-reject-sep"> | </span><span class="store-orders-reject-link">거부:기타사유</span>
+        <span class="store-orders-reject-link">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link">거부:기타사유</span>
       </div>
     </div>
   `;
