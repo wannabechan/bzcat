@@ -26,7 +26,7 @@ function getStatusLabel(status, cancelReason) {
     payment_completed: '결제 완료',
     shipping: '배송중',
     delivery_completed: '배송 완료',
-    cancelled: '주문 취소',
+    cancelled: '주문취소',
   };
   const base = labels[s] || s || '—';
   return s === 'cancelled' && cancelReason ? `${base}(${cancelReason})` : base;
@@ -231,7 +231,7 @@ function openOrderDetail(order) {
         const o = storeOrdersData.find((x) => x.id === orderId);
         if (o) {
           o.status = 'cancelled';
-          o.cancel_reason = { schedule: '매장 일정 이슈', cooking: '매장 준비 이슈', other: '매장 운영 이슈' }[reason];
+          o.cancel_reason = { schedule: '매장일정이슈', cooking: '매장준비이슈', other: '매장운영이슈' }[reason];
         }
         closeOrderDetail();
         renderList();

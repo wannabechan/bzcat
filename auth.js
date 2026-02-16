@@ -92,9 +92,18 @@ function showApp(user) {
   if (typeof window.BzCatAppOnShow === 'function') window.BzCatAppOnShow();
 }
 
+function hideInitialLoadOverlay() {
+  const overlay = document.getElementById('initialLoadOverlay');
+  if (overlay) {
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.display = 'none';
+  }
+}
+
 async function initAuth() {
   const user = await checkSession();
   showApp(user);
+  hideInitialLoadOverlay();
 
   const loginForm = document.getElementById('loginForm');
   const loginEmail = document.getElementById('loginEmail');

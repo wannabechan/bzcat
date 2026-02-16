@@ -10,9 +10,9 @@ const { getStoreEmailForOrder } = require('../orders/_order-email');
 const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
 
 const REASON_TO_LABEL = {
-  schedule: '매장 일정 이슈',
-  cooking: '매장 준비 이슈',
-  other: '매장 운영 이슈',
+  schedule: '매장일정이슈',
+  cooking: '매장준비이슈',
+  other: '매장운영이슈',
 };
 
 module.exports = async (req, res) => {

@@ -843,7 +843,7 @@ function getStatusLabel(status, cancelReason) {
     payment_completed: '결제 완료',
     shipping: '배송중',
     delivery_completed: '배송 완료',
-    cancelled: '주문 취소',
+    cancelled: '주문취소',
   };
   const base = labels[s] || s || '—';
   return s === 'cancelled' && cancelReason ? `${base}(${cancelReason})` : base;

@@ -13,7 +13,7 @@ const STATUS_LABELS = {
   payment_completed: '결제완료',
   shipping: '배송중',
   delivery_completed: '배송완료',
-  cancelled: '주문 취소',
+  cancelled: '주문취소',
 };
 
 module.exports = async (req, res) => {
