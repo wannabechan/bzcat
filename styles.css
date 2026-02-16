@@ -2179,6 +2179,7 @@ body {
 
 .order-detail-pdf-btn {
   text-decoration: none;
+  margin-left: 3px;
 }
 
 .order-detail-pdf-btn:active,
