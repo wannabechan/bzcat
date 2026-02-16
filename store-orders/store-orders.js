@@ -9,6 +9,7 @@ let storeOrdersData = [];
 let storeOrdersSortBy = 'created_at';
 let storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
 let storeOrdersSubFilter = 'all';
+let storeOrdersFlashIntervals = [];
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -41,6 +42,16 @@ function formatAdminOrderDate(isoStr) {
 
 function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
+}
+
+/** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
+function isOverdueForAccept(order) {
+  if (order.status !== 'submitted') return false;
+  const created = new Date(order.created_at);
+  const deadline = new Date(created);
+  deadline.setDate(deadline.getDate() + 1);
+  deadline.setHours(15, 0, 0, 0);
+  return new Date() > deadline;
 }
 
 function sortPaymentOrders(orders, sortBy, dir) {
@@ -174,11 +185,15 @@ function renderList() {
     today.setHours(0, 0, 0, 0);
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
     const isCancelled = order.status === 'cancelled';
+    const overdue = isOverdueForAccept(order);
+    const orderIdEl = overdue
+      ? `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
+      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
         <div class="admin-payment-order-header">
-          <span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>
+          ${orderIdEl}
           <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
         </div>
         <div class="admin-payment-order-info">
@@ -193,6 +208,15 @@ function renderList() {
   }).join('');
 
   content.innerHTML = sortBar + ordersHtml;
+
+  storeOrdersFlashIntervals.forEach(id => clearInterval(id));
+  storeOrdersFlashIntervals = [];
+  content.querySelectorAll('[data-overdue-flash]').forEach(el => {
+    const id = setInterval(() => {
+      el.classList.toggle('store-orders-overdue-show-msg');
+    }, 1500);
+    storeOrdersFlashIntervals.push(id);
+  });
 
   content.querySelectorAll('[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
