@@ -664,7 +664,7 @@ function openProfileOrderDetail(order) {
   if (pdfBtn) {
     pdfBtn.style.display = '';
     pdfBtn.href = '#';
-    pdfBtn.textContent = order.status === 'cancelled' ? '주문서확인 (취소 건)' : '';
+    pdfBtn.textContent = order.status === 'cancelled' ? '주문서확인 (취소 건)' : '주문서확인';
     const orderIdForPdf = order.id;
     pdfBtn.onclick = async (e) => {
       e.preventDefault();
@@ -683,14 +683,19 @@ function openProfileOrderDetail(order) {
   }
 
   const cancelBtn = document.getElementById('orderDetailCancelBtn');
+  const headerSep = document.getElementById('orderDetailHeaderSep');
   if (cancelBtn) {
     if (canCancelOrder(order.status)) {
       cancelBtn.style.display = '';
       cancelBtn.onclick = () => confirmAndCancelOrder(order);
+      if (headerSep) headerSep.style.display = '';
     } else {
       cancelBtn.style.display = 'none';
       cancelBtn.onclick = null;
+      if (headerSep) headerSep.style.display = 'none';
     }
+  } else if (headerSep) {
+    headerSep.style.display = 'none';
   }
 
   orderDetailOverlay.classList.add('visible');

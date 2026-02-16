@@ -2167,6 +2167,12 @@ body {
   gap: 8px;
 }
 
+.order-detail-header-sep {
+  font-size: 0.8125rem;
+  color: #b0b0b0;
+  user-select: none;
+}
+
 .order-detail-pdf-btn,
 .order-detail-cancel-btn {
   font-family: inherit;
@@ -2179,7 +2185,6 @@ body {
 
 .order-detail-pdf-btn {
   text-decoration: none;
-  margin-left: 3px;
 }
 
 .order-detail-pdf-btn:active,
