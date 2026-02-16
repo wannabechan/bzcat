@@ -76,8 +76,9 @@
     .store-orders-accept-btn { display: block; width: 100%; padding: 12px 20px; font-size: 0.9375rem; font-weight: 600; border: none; border-radius: var(--radius); background: var(--color-primary); color: #fff; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .store-orders-accept-btn:hover:not(:disabled) { background: var(--color-primary-hover, #c96a1a); }
     .store-orders-accept-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-    .store-orders-reject-links { margin-top: 12px; font-size: 0.8125rem; color: var(--color-text-secondary); display: flex; flex-direction: column; gap: 4px; }
-    .store-orders-reject-link { cursor: default; display: block; }
+    .store-orders-reject-links { margin-top: 12px; font-size: 0.8125rem; color: var(--color-text-secondary); display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0; }
+    .store-orders-reject-link { cursor: default; }
+    .store-orders-reject-sep { color: var(--color-text-secondary); user-select: none; }
   </style>
 </head>
 <body>
