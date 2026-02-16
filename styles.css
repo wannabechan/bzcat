@@ -2167,31 +2167,30 @@ body {
   gap: 8px;
 }
 
-.order-detail-pdf-btn {
+.order-detail-pdf-btn,
+.order-detail-cancel-btn {
+  font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 500;
   color: #b0b0b0;
-  text-decoration: none;
+  line-height: 1.4;
   -webkit-tap-highlight-color: transparent;
 }
 
-.order-detail-pdf-btn:active {
+.order-detail-pdf-btn {
+  text-decoration: none;
+}
+
+.order-detail-pdf-btn:active,
+.order-detail-cancel-btn:active {
   color: #909090;
 }
 
 .order-detail-cancel-btn {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #b0b0b0;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.order-detail-cancel-btn:active {
-  color: #909090;
 }
 
 .order-detail-close {
