@@ -250,13 +250,21 @@ function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
   start.setDate(start.getDate() - start.getDay());
   const end = new Date(maxDate);
   end.setDate(end.getDate() + (6 - end.getDay()));
+  let lastMonth = -1;
+  let lastYear = -1;
   for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
     const d = new Date(t);
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const monthNum = d.getMonth();
+    const m = String(monthNum + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${day}`;
     const dayNum = d.getDate();
+    if (monthNum !== lastMonth || y !== lastYear) {
+      lastMonth = monthNum;
+      lastYear = y;
+      html += `<div class="delivery-date-picker-month" style="grid-column: 1 / -1;">${y}년 ${monthNum + 1}월</div>`;
+    }
     const inRange = d >= minDate && d <= maxDate;
     const isBusiness = businessDays.includes(d.getDay());
     const enabled = inRange && isBusiness;
@@ -1402,11 +1410,29 @@ function init() {
     const msg = orderAcceptResult === 'success'
       ? '주문이 접수되었습니다.'
       : orderAcceptResult === 'already'
-        ? '이미 접수된 주문입니다.'
+        ? '이미 처리된 주문입니다.'
         : '주문 접수 처리에 실패했습니다. 링크가 만료되었거나 잘못된 접근일 수 있습니다.';
     openProfile().then(() => {
       alert(msg);
       clearOrderAcceptParam();
+    });
+  }
+
+  const orderRejectResult = params.get('order_reject');
+  if (orderRejectResult === 'success' || orderRejectResult === 'error' || orderRejectResult === 'already') {
+    const clearOrderRejectParam = () => {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('order_reject');
+      window.history.replaceState({}, '', u.pathname + (u.search || '') + (u.hash || ''));
+    };
+    const msgReject = orderRejectResult === 'success'
+      ? '주문이 거부(취소)되었습니다.'
+      : orderRejectResult === 'already'
+        ? '이미 처리된 주문입니다.'
+        : '거부 처리에 실패했습니다. 링크가 만료되었거나 잘못된 접근일 수 있습니다.';
+    openProfile().then(() => {
+      alert(msgReject);
+      clearOrderRejectParam();
     });
   }
 }
