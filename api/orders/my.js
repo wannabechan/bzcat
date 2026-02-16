@@ -42,10 +42,14 @@ module.exports = async (req, res) => {
 
     const items = orders.map((o) => {
       const status = o.status === 'pending' ? 'submitted' : (o.status || 'submitted');
+      const baseLabel = STATUS_LABELS[status] || STATUS_LABELS.submitted;
+      const statusLabel = status === 'cancelled' && o.cancel_reason
+        ? `${baseLabel}(${o.cancel_reason})`
+        : baseLabel;
       return {
         id: o.id,
         status,
-        statusLabel: STATUS_LABELS[status] || STATUS_LABELS.submitted,
+        statusLabel,
         createdAt: o.created_at,
         deliveryDate: o.delivery_date,
         deliveryTime: o.delivery_time,

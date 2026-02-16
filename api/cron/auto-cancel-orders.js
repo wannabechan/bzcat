@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
 
     let cancelled = 0;
     for (const order of toCancel) {
-      await cancelOrderAndRegeneratePdf(order.id);
+      await cancelOrderAndRegeneratePdf(order.id, '결제기한만료');
       cancelled += 1;
     }
 

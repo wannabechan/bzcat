@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '이미 취소된 주문입니다.' });
     }
 
-    await cancelOrderAndRegeneratePdf(id);
+    await cancelOrderAndRegeneratePdf(id, '고객취소');
 
     return apiResponse(res, 200, {
       success: true,

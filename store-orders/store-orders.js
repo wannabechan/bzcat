@@ -17,7 +17,7 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(status, cancelReason) {
   const s = (status || '').trim();
   const labels = {
     submitted: '신청 완료',
@@ -28,7 +28,8 @@ function getStatusLabel(status) {
     delivery_completed: '배송 완료',
     cancelled: '주문 취소',
   };
-  return labels[s] || s || '—';
+  const base = labels[s] || s || '—';
+  return s === 'cancelled' && cancelReason ? `${base}(${cancelReason})` : base;
 }
 
 function formatAdminOrderDate(isoStr) {
@@ -147,9 +148,7 @@ function renderOrderAcceptBlock(order) {
       <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
       <div class="store-orders-reject-links">
         <span class="store-orders-reject-link">주문거부:스케줄문제</span>
-        <span class="store-orders-reject-sep">|</span>
         <span class="store-orders-reject-link">주문거부:조리문제</span>
-        <span class="store-orders-reject-sep">|</span>
         <span class="store-orders-reject-link">주문거부:기타</span>
       </div>
     </div>
@@ -272,7 +271,7 @@ function renderList() {
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
         <div class="admin-payment-order-header">
           ${orderIdEl}
-          <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
+          <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status, order.cancel_reason)}</span>
         </div>
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>

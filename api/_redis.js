@@ -162,6 +162,15 @@ async function updateOrderStatus(orderId, status) {
   return order;
 }
 
+async function updateOrderCancelReason(orderId, cancelReason) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.cancel_reason = cancelReason || null;
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
 async function updateOrderPdfUrl(orderId, pdfUrl) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
@@ -347,6 +356,7 @@ module.exports = {
   getOrderById,
   deleteOrder,
   updateOrderStatus,
+  updateOrderCancelReason,
   updateOrderPdfUrl,
   updateOrderPaymentLink,
   updateOrderShippingNumber,

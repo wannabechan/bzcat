@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
       STATUSES_APPLY_DEADLINE.includes(order.status || '') &&
       isPastPaymentDeadline(order)
     ) {
-      await cancelOrderAndRegeneratePdf(orderId);
+      await cancelOrderAndRegeneratePdf(orderId, '결제실패');
     }
   }
 

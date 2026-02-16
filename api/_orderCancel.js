@@ -4,7 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
-const { getOrderById, updateOrderStatus, updateOrderPdfUrl, getStores } = require('./_redis');
+const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
 
 /** 배송 희망일 문자열을 (배송일 - 4일) 23:59 KST Date로 변환 */
@@ -36,12 +36,14 @@ function isPastPaymentDeadline(order) {
   return Date.now() > deadline.getTime();
 }
 
-/** 주문 취소 처리 + 취소 주문서 PDF 재생성 및 URL 갱신 */
-async function cancelOrderAndRegeneratePdf(orderId) {
+/** 주문 취소 처리 + 취소 주문서 PDF 재생성 및 URL 갱신. cancelReason: 고객취소 | 관리자취소 | 결제기한만료 | 결제실패 */
+async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
   const order = await getOrderById(orderId);
   if (!order) return null;
   await updateOrderStatus(orderId, 'cancelled');
+  await updateOrderCancelReason(orderId, cancelReason || null);
   order.status = 'cancelled';
+  order.cancel_reason = cancelReason || null;
   try {
     const stores = await getStores();
     const pdfBuffer = await generateOrderPdf(order, stores, { isCancelled: true });

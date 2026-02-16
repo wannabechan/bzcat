@@ -154,12 +154,10 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
     <div style="margin-top:7px; margin-bottom:16px;">
       <a href="${acceptUrl.replace(/"/g, '&quot;')}" style="display:inline-block; padding:12px 24px; background:#e67b19; color:#fff; font-weight:600; text-decoration:none; border-radius:8px; font-size:0.9375rem;">주문 수령하기</a>
     </div>
-    <div style="margin-bottom:20px;">
-      <a href="#" style="color:#888; font-size:0.75rem; text-decoration:underline;">주문거부:스케줄문제</a>
-      <span style="color:#ccc; font-size:0.75rem; margin:0 6px;">|</span>
-      <a href="#" style="color:#888; font-size:0.75rem; text-decoration:underline;">주문거부:조리문제</a>
-      <span style="color:#ccc; font-size:0.75rem; margin:0 6px;">|</span>
-      <a href="#" style="color:#888; font-size:0.75rem; text-decoration:underline;">주문거부:기타</a>
+    <div style="margin-bottom:20px; font-size:0.75rem;">
+      <a href="#" style="color:#888; text-decoration:underline; display:block;">주문거부:스케줄문제</a>
+      <a href="#" style="color:#888; text-decoration:underline; display:block;">주문거부:조리문제</a>
+      <a href="#" style="color:#888; text-decoration:underline; display:block;">주문거부:기타</a>
     </div>
 
     <p style="margin:0; color:#999; font-size:12px;">BzCat - 비즈니스 케이터링</p>
