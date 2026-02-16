@@ -47,14 +47,9 @@ function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
 }
 
-/** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
+/** 신청 완료인데 아직 매장에서 수령/거부를 하지 않은 주문이면 true (목록 연체 강조용) */
 function isOverdueForAccept(order) {
-  if (order.status !== 'submitted') return false;
-  const created = new Date(order.created_at);
-  const deadline = new Date(created);
-  deadline.setDate(deadline.getDate() + 1);
-  deadline.setHours(15, 0, 0, 0);
-  return new Date() > deadline;
+  return order.status === 'submitted';
 }
 
 function sortPaymentOrders(orders, sortBy, dir) {
@@ -130,11 +125,23 @@ function renderOrderDetailHtml(order) {
     .join('');
 }
 
-function renderOrderAcceptBlock(order) {
+/**
+ * @param {object} order
+ * @param {{ showButtons?: boolean }} [opts] - showButtons: true면 주문 수령하기 + 거부 3개 노출, false면 주문 정보만
+ */
+function renderOrderAcceptBlock(order, opts = {}) {
+  const showButtons = opts.showButtons !== false;
   const orderDate = order.created_at ? formatAdminOrderDate(order.created_at) : '—';
   const deliveryHope = [order.delivery_date, order.delivery_time].filter(Boolean).join(' ') || '—';
   const address = (order.delivery_address || '').trim() || '—';
   const esc = (s) => (s || '').toString().replace(/</g, '&lt;');
+  const buttonsHtml = showButtons
+    ? `
+      <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
+      <div class="store-orders-reject-links">
+        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
+      </div>`
+    : '';
   return `
     <div class="store-orders-accept-block">
       <h4 class="store-orders-accept-title">주문 정보</h4>
@@ -145,10 +152,7 @@ function renderOrderAcceptBlock(order) {
         <div class="store-orders-info-row"><span class="store-orders-info-label">배송 희망일</span><span class="store-orders-info-value">${esc(deliveryHope)}</span></div>
         <div class="store-orders-info-row"><span class="store-orders-info-label">배송 주소</span><span class="store-orders-info-value">${esc(address)}</span></div>
       </div>
-      <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
-      <div class="store-orders-reject-links">
-        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
-      </div>
+      ${buttonsHtml}
     </div>
   `;
 }
@@ -160,7 +164,8 @@ function openOrderDetail(order) {
   const panel = overlay?.querySelector('.admin-order-detail-panel');
   if (!content || !overlay) return;
   const html = renderOrderDetailHtml(order);
-  const acceptBlock = isOverdueForAccept(order) ? renderOrderAcceptBlock(order) : '';
+  const showAcceptButtons = order.status === 'submitted';
+  const acceptBlock = renderOrderAcceptBlock(order, { showButtons: showAcceptButtons });
   content.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>${acceptBlock}`;
   if (totalEl) totalEl.textContent = formatAdminPrice(order.total_amount || 0);
   if (panel) panel.classList.toggle('admin-order-detail-cancelled', order.status === 'cancelled');
