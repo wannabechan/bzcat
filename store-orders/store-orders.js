@@ -6,6 +6,8 @@ const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
 
 let storeOrdersData = [];
+let storeOrdersStores = [];
+let storeOrdersStoreOrder = [];
 let storeOrdersSortBy = 'created_at';
 let storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
 let storeOrdersSubFilter = 'all';
@@ -71,18 +73,28 @@ function sortPaymentOrders(orders, sortBy, dir) {
 }
 
 function renderOrderDetailHtml(order) {
+  const stores = storeOrdersStores || [];
+  const slugToTitle = {};
+  for (const s of stores) {
+    const id = (s.id || s.slug || '').toString().toLowerCase();
+    if (id) slugToTitle[id] = s.title || s.id || s.slug || id;
+  }
   const orderItems = order.order_items || [];
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = oi.id || '';
-    const slug = (itemId.split('-')[0] || 'default');
+    const slug = (itemId.split('-')[0] || 'default').toLowerCase();
     const item = { name: oi.name || '', price: Number(oi.price) || 0 };
     const qty = Number(oi.quantity) || 0;
     if (qty <= 0) continue;
     if (!byCategory[slug]) byCategory[slug] = [];
     byCategory[slug].push({ item, qty });
   }
-  const categoryOrder = Object.keys(byCategory).sort();
+  const orderedSlugs = storeOrdersStoreOrder.length
+    ? storeOrdersStoreOrder.filter(slug => byCategory[slug])
+    : [];
+  const restSlugs = Object.keys(byCategory).filter(slug => !orderedSlugs.includes(slug)).sort();
+  const categoryOrder = [...orderedSlugs, ...restSlugs];
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
@@ -101,7 +113,7 @@ function renderOrderDetailHtml(order) {
   return categoryOrder
     .filter(slug => byCategory[slug]?.length)
     .map(slug => {
-      const title = slug;
+      const title = slugToTitle[slug] || slug;
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderItem).join('');
       return `
@@ -120,7 +132,7 @@ function renderOrderDetailHtml(order) {
 function renderOrderAcceptBlock(order) {
   const orderDate = order.created_at ? formatAdminOrderDate(order.created_at) : '—';
   const deliveryHope = [order.delivery_date, order.delivery_time].filter(Boolean).join(' ') || '—';
-  const address = [order.delivery_address, order.detail_address].filter(Boolean).join(' ').trim() || '—';
+  const address = (order.delivery_address || '').trim() || '—';
   const esc = (s) => (s || '').toString().replace(/</g, '&lt;');
   return `
     <div class="store-orders-accept-block">
@@ -370,6 +382,8 @@ async function loadStoreOrders() {
 
     const data = await res.json();
     storeOrdersData = data.orders || [];
+    storeOrdersStores = data.stores || [];
+    storeOrdersStoreOrder = storeOrdersStores.map(s => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
 
     if (storeOrdersData.length === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다.</div>';

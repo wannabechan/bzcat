@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
       return storeEmail && storeEmail.trim().toLowerCase() === managerEmail;
     });
 
-    return apiResponse(res, 200, { orders });
+    return apiResponse(res, 200, { orders, stores: stores || [] });
   } catch (error) {
     console.error('Manager orders error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });
