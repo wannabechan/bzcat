@@ -102,13 +102,16 @@ module.exports = async (req, res) => {
           await updateOrderAcceptToken(order.id, acceptToken);
           const origin = getAppOrigin(req);
           const acceptUrl = `${origin}/api/orders/accept?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}`;
+          const rejectUrlSchedule = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=schedule`;
+          const rejectUrlCooking = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=cooking`;
+          const rejectUrlOther = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=other`;
 
           const { Resend } = require('resend');
           const resend = new Resend(process.env.RESEND_API_KEY);
           const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
           const fromName = process.env.RESEND_FROM_NAME || 'BzCat';
           const storeBrand = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
-          const html = buildOrderNotificationHtml(order, stores, { acceptUrl });
+          const html = buildOrderNotificationHtml(order, stores, { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther });
           await resend.emails.send({
             from: `${fromName} <${fromEmail}>`,
             to: toEmail,

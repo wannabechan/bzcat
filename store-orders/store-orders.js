@@ -146,8 +146,8 @@ function renderOrderAcceptBlock(order) {
         <div class="store-orders-info-row"><span class="store-orders-info-label">배송 주소</span><span class="store-orders-info-value">${esc(address)}</span></div>
       </div>
       <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
-      <div class="store-orders-reject-links"> <br>
-        <span class="store-orders-reject-link">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link">거부:기타사유</span>
+      <div class="store-orders-reject-links">
+        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타사유</span>
       </div>
     </div>
   `;
@@ -201,6 +201,50 @@ function openOrderDetail(order) {
       }
     });
   }
+
+  content.querySelectorAll('.store-orders-reject-link[data-order-id][data-reject-reason]').forEach((el) => {
+    const orderId = el.dataset.orderId;
+    const reason = (el.dataset.rejectReason || '').trim();
+    if (!orderId || !reason) return;
+    const handleReject = async () => {
+      if (!confirm('이 주문을 거부(취소)하시겠습니까?')) return;
+      el.style.pointerEvents = 'none';
+      const origText = el.textContent;
+      el.textContent = '처리 중...';
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/manager/reject-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId, reason }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.error || '거부 처리에 실패했습니다.');
+          el.style.pointerEvents = '';
+          el.textContent = origText;
+          return;
+        }
+        const o = storeOrdersData.find((x) => x.id === orderId);
+        if (o) {
+          o.status = 'cancelled';
+          o.cancel_reason = { schedule: '매장 일정 이슈', cooking: '매장 준비 이슈', other: '매장 운영 이슈' }[reason];
+        }
+        closeOrderDetail();
+        renderList();
+        alert('주문이 거부(취소)되었습니다.');
+      } catch (e) {
+        alert('네트워크 오류가 발생했습니다.');
+        el.style.pointerEvents = '';
+        el.textContent = origText;
+      }
+    };
+    el.addEventListener('click', handleReject);
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleReject(); } });
+  });
 
   overlay.classList.add('visible');
   overlay.setAttribute('aria-hidden', 'false');

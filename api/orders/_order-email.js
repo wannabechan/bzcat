@@ -54,10 +54,13 @@ function getStoreEmailForOrder(order, stores) {
  * 주문 내역 메일 HTML 생성 (내 주문 보기와 동일한 정보 수준)
  * @param {object} order - 주문 객체
  * @param {object[]} stores - 매장 목록
- * @param {object} [options] - { acceptUrl: string } 주문 수령하기 버튼 링크 (없으면 #)
+ * @param {object} [options] - { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther }
  */
 function buildOrderNotificationHtml(order, stores, options = {}) {
   const acceptUrl = (options.acceptUrl || '').trim() || '#';
+  const rejectUrlSchedule = (options.rejectUrlSchedule || '').trim() || '#';
+  const rejectUrlCooking = (options.rejectUrlCooking || '').trim() || '#';
+  const rejectUrlOther = (options.rejectUrlOther || '').trim() || '#';
   const slugToTitle = {};
   for (const s of stores || []) {
     const id = (s.id || s.slug || '').toString();
@@ -155,7 +158,7 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
       <a href="${acceptUrl.replace(/"/g, '&quot;')}" style="display:inline-block; padding:12px 24px; background:#e67b19; color:#fff; font-weight:600; text-decoration:none; border-radius:8px; font-size:0.9375rem;">주문 수령하기</a>
     </div>
     <div style="margin-bottom:20px; font-size:0.75rem; color:#999;">
-      <a href="#" style="color:#999; text-decoration:underline; display:inline;">거부:스케줄문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#" style="color:#999; text-decoration:underline; display:inline;">거부:조리문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#" style="color:#999; text-decoration:underline; display:inline;">거부:기타사유</a>
+      <a href="${rejectUrlSchedule.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:스케줄문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${rejectUrlCooking.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:조리문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${rejectUrlOther.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:기타사유</a>
     </div>
 
     <p style="margin:0; color:#999; font-size:12px;">BzCat - 비즈니스 케이터링</p>
