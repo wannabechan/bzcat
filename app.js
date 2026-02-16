@@ -654,16 +654,7 @@ function closeProfile() {
 
 function openProfileOrderDetail(order) {
   const html = renderOrderSummaryFromOrderItems(order.orderItems || []);
-  const deliveryDateStr = order.deliveryDate ? formatDeliveryDateOnly(order.deliveryDate) : '—';
-  const deliveryTimeStr = (order.deliveryTime || '').trim() || '';
-  const deliveryHope = deliveryTimeStr ? `${deliveryDateStr} ${deliveryTimeStr}` : deliveryDateStr;
-  const deliveryAddressStr = [order.deliveryAddress, order.detailAddress].filter(Boolean).join(' ').trim() || '—';
-  const deliveryBlock = `
-    <div class="order-detail-delivery">
-      <div class="order-detail-delivery-row"><span class="order-detail-delivery-label">배송희망일</span><span>${escapeHtml(deliveryHope)}</span></div>
-      <div class="order-detail-delivery-row"><span class="order-detail-delivery-label">배송주소</span><span>${escapeHtml(deliveryAddressStr)}</span></div>
-    </div>`;
-  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>${deliveryBlock}`;
+  orderDetailContent.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
   const totalEl = document.getElementById('orderDetailTotal');
   if (totalEl) totalEl.textContent = formatPrice(order.totalAmount || 0);
   const panel = orderDetailOverlay.querySelector('.order-detail-panel');
