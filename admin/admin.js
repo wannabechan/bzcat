@@ -814,7 +814,7 @@ function getStatusLabel(status) {
   const s = (status || '').trim();
   const labels = {
     submitted: '신청 완료',
-    order_accepted: '주문 접수',
+    order_accepted: '결제준비중',
     payment_link_issued: '결제 링크 발급',
     payment_completed: '결제 완료',
     shipping: '배송중',

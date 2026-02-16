@@ -92,7 +92,7 @@ let profileIdleListenersAttached = false;
 
 const ORDER_STATUS_STEPS = [
   { key: 'submitted', label: '신청완료' },
-  { key: 'order_accepted', label: '주문접수' },
+  { key: 'order_accepted', label: '결제준비중' },
   { key: 'payment_link_issued', label: '결제하기' },
   { key: 'payment_completed', label: '결제완료' },
   { key: 'delivery_completed', label: '배송완료' },
