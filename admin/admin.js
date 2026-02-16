@@ -16,6 +16,7 @@ let adminStoreOrder = []; // slug order for order detail
 const PAYMENT_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
 let paymentIdleTimerId = null;
 let paymentIdleListenersAttached = false;
+let adminPaymentFlashIntervals = [];
 
 // 이미지 규칙: 1:1 비율, 권장 400x400px
 const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
@@ -329,6 +330,16 @@ function setupTabs() {
   });
 }
 
+/** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
+function isOverdueForAccept(order) {
+  if (order.status !== 'submitted') return false;
+  const created = new Date(order.created_at);
+  const deadline = new Date(created);
+  deadline.setDate(deadline.getDate() + 1);
+  deadline.setHours(15, 0, 0, 0);
+  return new Date() > deadline;
+}
+
 function sortPaymentOrders(orders, sortBy, dir) {
   const copy = orders.slice();
   const asc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -397,11 +408,15 @@ function renderPaymentList() {
     const shippingRowDisabled = order.status !== 'payment_completed';
     const deliveryRowDisabled = order.status !== 'shipping';
     const shippingValue = (order.status === 'shipping' || order.status === 'delivery_completed') ? (order.tracking_number || '') : '';
+    const overdue = isOverdueForAccept(order);
+    const orderIdEl = overdue
+      ? `<span class="admin-payment-order-id admin-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="admin-overdue-id">주문 #${order.id}</span><span class="admin-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
+      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
         <div class="admin-payment-order-header">
-          <span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>
+          ${orderIdEl}
           <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status)}</span>
         </div>
         <div class="admin-payment-order-info">
@@ -470,6 +485,15 @@ function renderPaymentList() {
   }).join('');
 
   content.innerHTML = sortBar + ordersHtml;
+
+  adminPaymentFlashIntervals.forEach(id => clearInterval(id));
+  adminPaymentFlashIntervals = [];
+  content.querySelectorAll('[data-overdue-flash]').forEach(el => {
+    const id = setInterval(() => {
+      el.classList.toggle('admin-overdue-show-msg');
+    }, 1500);
+    adminPaymentFlashIntervals.push(id);
+  });
 
   content.querySelectorAll('[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {

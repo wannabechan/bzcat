@@ -117,6 +117,33 @@ function renderOrderDetailHtml(order) {
     .join('');
 }
 
+function renderOrderAcceptBlock(order) {
+  const orderDate = order.created_at ? formatAdminOrderDate(order.created_at) : '—';
+  const deliveryHope = [order.delivery_date, order.delivery_time].filter(Boolean).join(' ') || '—';
+  const address = [order.delivery_address, order.detail_address].filter(Boolean).join(' ').trim() || '—';
+  const esc = (s) => (s || '').toString().replace(/</g, '&lt;');
+  return `
+    <div class="store-orders-accept-block">
+      <h4 class="store-orders-accept-title">주문 정보</h4>
+      <div class="store-orders-accept-info">
+        <div class="store-orders-info-row"><span class="store-orders-info-label">주문번호</span><span class="store-orders-info-value">#${esc(order.id)}</span></div>
+        <div class="store-orders-info-row"><span class="store-orders-info-label">주문일시</span><span class="store-orders-info-value">${orderDate}</span></div>
+        <div class="store-orders-info-row"><span class="store-orders-info-label">주문자명</span><span class="store-orders-info-value">${esc(order.depositor) || '—'}</span></div>
+        <div class="store-orders-info-row"><span class="store-orders-info-label">배송 희망일</span><span class="store-orders-info-value">${esc(deliveryHope)}</span></div>
+        <div class="store-orders-info-row"><span class="store-orders-info-label">배송 주소</span><span class="store-orders-info-value">${esc(address)}</span></div>
+      </div>
+      <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
+      <div class="store-orders-reject-links">
+        <span class="store-orders-reject-link">주문거부:스케줄문제</span>
+        <span class="store-orders-reject-sep">|</span>
+        <span class="store-orders-reject-link">주문거부:조리문제</span>
+        <span class="store-orders-reject-sep">|</span>
+        <span class="store-orders-reject-link">주문거부:기타</span>
+      </div>
+    </div>
+  `;
+}
+
 function openOrderDetail(order) {
   const content = document.getElementById('storeOrderDetailContent');
   const totalEl = document.getElementById('storeOrderDetailTotal');
@@ -124,9 +151,48 @@ function openOrderDetail(order) {
   const panel = overlay?.querySelector('.admin-order-detail-panel');
   if (!content || !overlay) return;
   const html = renderOrderDetailHtml(order);
-  content.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
+  const acceptBlock = isOverdueForAccept(order) ? renderOrderAcceptBlock(order) : '';
+  content.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>${acceptBlock}`;
   if (totalEl) totalEl.textContent = formatAdminPrice(order.total_amount || 0);
   if (panel) panel.classList.toggle('admin-order-detail-cancelled', order.status === 'cancelled');
+
+  const acceptBtn = content.querySelector('.store-orders-accept-btn');
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', async () => {
+      const orderId = acceptBtn.dataset.acceptOrder;
+      if (!orderId) return;
+      acceptBtn.disabled = true;
+      acceptBtn.textContent = '처리 중...';
+      try {
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/api/manager/accept-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.error || '처리에 실패했습니다.');
+          acceptBtn.disabled = false;
+          acceptBtn.textContent = '주문 수령하기';
+          return;
+        }
+        const o = storeOrdersData.find(x => x.id === orderId);
+        if (o) o.status = 'order_accepted';
+        closeOrderDetail();
+        renderList();
+        alert('주문을 수령했습니다.');
+      } catch (e) {
+        alert('네트워크 오류가 발생했습니다.');
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = '주문 수령하기';
+      }
+    });
+  }
+
   overlay.classList.add('visible');
   overlay.setAttribute('aria-hidden', 'false');
 }
