@@ -301,12 +301,9 @@ function renderList() {
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
     const isCancelled = order.status === 'cancelled';
     const overdue = isOverdueForAccept(order);
-    const needsApproval = order.status === 'submitted';
-    const orderIdEl = needsApproval
-      ? (overdue
-          ? `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
-          : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`)
-      : `<span class="admin-payment-order-id">주문 #${order.id}</span>`;
+    const orderIdEl = overdue
+      ? `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
+      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
