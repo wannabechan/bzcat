@@ -305,20 +305,23 @@ async function initAuth() {
       const isOpen = profileMenuPanel.classList.toggle('open');
       profileHamburgerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       profileMenuPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-      if (isOpen && profileMenuEmail && !profileMenuEmail.textContent) {
-        fetch('/api/config')
-          .then((r) => r.json())
-          .then((data) => {
-            const email = (data && data.emailAdmin) ? String(data.emailAdmin).trim() : '';
-            profileMenuEmail.textContent = email || '';
-            if (profileMenuInquiry) {
-              profileMenuInquiry.href = email ? `mailto:${email}` : '#';
-              if (!email) profileMenuInquiry.removeAttribute('href');
-            }
-          })
-          .catch(() => {
-            if (profileMenuInquiry) profileMenuInquiry.href = '#';
-          });
+      if (isOpen) {
+        profileMenuPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        if (profileMenuEmail && !profileMenuEmail.textContent) {
+          fetch('/api/config')
+            .then((r) => r.json())
+            .then((data) => {
+              const email = (data && data.emailAdmin) ? String(data.emailAdmin).trim() : '';
+              profileMenuEmail.textContent = email || '';
+              if (profileMenuInquiry) {
+                profileMenuInquiry.href = email ? `mailto:${email}` : '#';
+                if (!email) profileMenuInquiry.removeAttribute('href');
+              }
+            })
+            .catch(() => {
+              if (profileMenuInquiry) profileMenuInquiry.href = '#';
+            });
+        }
       }
     });
   }
