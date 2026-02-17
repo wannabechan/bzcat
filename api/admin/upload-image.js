@@ -66,6 +66,6 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '파일 크기는 4MB 이하여야 합니다.' });
     }
     console.error('Upload image error:', error);
-    return apiResponse(res, 500, { error: error.message || '업로드에 실패했습니다.' });
+    return apiResponse(res, 500, { error: '업로드에 실패했습니다.' });
   }
 };

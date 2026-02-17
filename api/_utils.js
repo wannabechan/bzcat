@@ -16,7 +16,7 @@ function generateToken(email, level) {
   return jwt.sign(
     { email, level },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '3d' }
   );
 }
 
@@ -50,10 +50,12 @@ function generateCode() {
 
 /**
  * CORS 헤더 설정
+ * APP_ORIGIN이 설정되면 해당 오리진만 허용(보안 강화). 미설정 시 '*' 유지(기존 동작).
  */
 function setCorsHeaders(response) {
+  const allowOrigin = (process.env.APP_ORIGIN || '').trim() || '*';
   response.setHeader('Access-Control-Allow-Credentials', 'true');
-  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Origin', allowOrigin);
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 }

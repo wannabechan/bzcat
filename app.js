@@ -111,6 +111,15 @@ function escapeHtml(s) {
   return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/** img src에 쓸 수 있는 URL만 허용 (http/https 또는 / 로 시작) */
+function safeImageUrl(url) {
+  const u = (url || '').trim();
+  if (!u) return '';
+  const lower = u.toLowerCase();
+  if (lower.startsWith('https://') || lower.startsWith('http://') || u.startsWith('/')) return u;
+  return '';
+}
+
 // 유틸: 주문시간 포맷 (yy년 mm월 dd일 hh시 mm분)
 function formatOrderTime(date) {
   const y = String(date.getFullYear()).slice(-2);
@@ -345,9 +354,10 @@ function renderCategoryTabs(initialSlug) {
   const firstSlug = (initialSlug && slugs.includes(initialSlug)) ? initialSlug : slugs[0];
   categoryTabs.innerHTML = slugs
     .map((slug) => {
-      const title = MENU_DATA[slug]?.title || slug;
+      const title = escapeHtml(MENU_DATA[slug]?.title || slug);
+      const slugEsc = escapeHtml(slug);
       const active = slug === firstSlug ? ' active' : '';
-      return `<button class="category-tab${active}" data-category="${slug}">${title}</button>`;
+      return `<button class="category-tab${active}" data-category="${slugEsc}">${title}</button>`;
     })
     .join('');
 }
@@ -385,8 +395,9 @@ function renderMenuCards() {
       const idEsc = escapeHtml(item.id);
       const nameEsc = escapeHtml(item.name);
       const descEsc = escapeHtml(item.description || '상세 설명이 없습니다.');
-      const imgContent = item.imageUrl
-        ? `<div class="menu-card-image"><img src="${item.imageUrl.replace(/"/g, '&quot;')}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
+      const imgSrc = safeImageUrl(item.imageUrl);
+      const imgContent = imgSrc
+        ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
       return `
         <article class="menu-card" data-id="${idEsc}">
@@ -886,11 +897,12 @@ function renderProfileOrdersList() {
           return `<span class="${cls}" ${s.key === 'payment_link_issued' && paymentLinkActive ? `data-action="open-payment-link"` : ''}>${label}</span>`;
         }).join('');
       }
+      const orderIdEsc = escapeHtml(String(o.id));
       return `
-        <div class="profile-order-card" data-order-id="${o.id}">
+        <div class="profile-order-card" data-order-id="${orderIdEsc}">
           <div class="profile-order-card-header">
             <div class="profile-order-header-left">
-              <span class="profile-order-id">주문 #${o.id}</span>
+              <span class="profile-order-id">주문 #${orderIdEsc}</span>
               <div class="profile-order-actions">
                 <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
               </div>
@@ -1230,11 +1242,7 @@ function init() {
     }
   });
   btnCheckout.addEventListener('click', (e) => {
-    const entries = Object.entries(cart).filter(([, qty]) => qty > 0);
-    const total = entries.reduce((sum, [id, qty]) => {
-      const item = findItemById(id);
-      return sum + (item ? item.price * qty : 0);
-    }, 0);
+    const total = calculateTotal();
     const TOTAL_MIN = 100;
     if (total < TOTAL_MIN) {
       cartMinOrderNotice.classList.remove('notice-blink');

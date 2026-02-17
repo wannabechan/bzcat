@@ -23,6 +23,12 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function escapeHtml(s) {
+  if (s == null || s === '') return '';
+  const t = String(s);
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function getStatusLabel(status, cancelReason) {
   const s = (status || '').trim();
   const labels = {
@@ -130,7 +136,7 @@ function renderOrderDetailHtml(order) {
   const renderItem = ({ item, qty }) => `
     <div class="admin-order-detail-item">
       <div class="cart-item-info">
-        <div class="cart-item-name">${(item.name || '').replace(/</g, '&lt;')}</div>
+        <div class="cart-item-name">${escapeHtml(item.name || '')}</div>
         <div class="cart-item-price">${formatAdminPrice(item.price)} × ${qty}</div>
       </div>
     </div>
@@ -144,7 +150,7 @@ function renderOrderDetailHtml(order) {
       return `
         <div class="cart-category-group">
           <div class="cart-category-header">
-            <span class="cart-category-title">${(title || '').replace(/</g, '&lt;')}</span>
+            <span class="cart-category-title">${escapeHtml(title || '')}</span>
             <span class="cart-category-total met">${formatAdminPrice(catTotal)}</span>
           </div>
           ${itemsHtml}
@@ -160,12 +166,12 @@ function renderOrderDetailHtml(order) {
  */
 function renderOrderAcceptBlock(order, opts = {}) {
   const showButtons = opts.showButtons !== false;
-  const esc = (s) => (s || '').toString().replace(/</g, '&lt;');
+  const orderIdEsc = escapeHtml(String(order.id));
   const buttonsHtml = showButtons
     ? `
-      <button type="button" class="store-orders-accept-btn" data-accept-order="${order.id}">주문 수령하기</button>
+      <button type="button" class="store-orders-accept-btn" data-accept-order="${orderIdEsc}">주문 수령하기</button>
       <div class="store-orders-reject-links">
-        <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
+        <span class="store-orders-reject-link" data-order-id="${orderIdEsc}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${orderIdEsc}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${orderIdEsc}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
       </div>`
     : '';
   return showButtons
@@ -328,42 +334,44 @@ function renderList() {
     const overdue = isOverdueForAccept(order);
     const isDeliveryWaitPrepare = storeOrdersSubFilter === 'delivery_wait' && order.status === 'payment_completed' && isDeliveryPrepareTime(order);
 
+    const orderIdEsc = escapeHtml(String(order.id));
     let orderIdEl;
     if (isDeliveryWaitPrepare) {
-      orderIdEl = `<span class="admin-payment-order-id store-orders-prepare-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-prepare-flash role="button" tabindex="0"><span class="store-orders-prepare-id">주문 #${order.id}</span><span class="store-orders-prepare-msg">배송을 준비해 주세요.</span></span>`;
+      orderIdEl = `<span class="admin-payment-order-id store-orders-prepare-flash admin-payment-order-id-link" data-order-detail="${orderIdEsc}" data-prepare-flash role="button" tabindex="0"><span class="store-orders-prepare-id">주문 #${orderIdEsc}</span><span class="store-orders-prepare-msg">배송을 준비해 주세요.</span></span>`;
     } else if (overdue) {
-      orderIdEl = `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`;
+      orderIdEl = `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${orderIdEsc}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${orderIdEsc}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`;
     } else {
-      orderIdEl = `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
+      orderIdEl = `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${orderIdEsc}" role="button" tabindex="0">주문 #${orderIdEsc}</span>`;
     }
 
-    const deliveryAddressFull = [(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—';
+    const deliveryAddressFull = escapeHtml([(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—');
 
     const orderInfoBlock = isDeliveryWaitPrepare
       ? `
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
           <div>배송주소: ${deliveryAddressFull}</div>
-          <div>주문자: ${(order.depositor || '').trim() || '—'}</div>
-          <div>연락처: ${(order.contact || '').trim() || '—'}</div>
+          <div>주문자: ${escapeHtml((order.depositor || '').trim() || '—')}</div>
+          <div>연락처: ${escapeHtml((order.contact || '').trim() || '—')}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
       `
       : `
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
-          <div>배송주소: ${(order.delivery_address || '').trim() || '—'}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송주소: ${escapeHtml((order.delivery_address || '').trim() || '—')}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
       `;
 
+    const statusLabelEsc = escapeHtml(getStatusLabel(order.status, order.cancel_reason));
     return `
-      <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
+      <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${orderIdEsc}">
         <div class="admin-payment-order-header">
           ${orderIdEl}
-          <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status, order.cancel_reason)}</span>
+          <span class="admin-payment-order-status ${order.status}">${statusLabelEsc}</span>
         </div>
         ${orderInfoBlock}
       </div>
@@ -433,7 +441,7 @@ function showStoreOrdersError(msg) {
   if (!content) return;
   content.innerHTML = `
     <div class="admin-loading admin-error">
-      <p>${(msg || '접근할 수 없습니다.').replace(/</g, '&lt;')}</p>
+      <p>${escapeHtml(msg || '접근할 수 없습니다.')}</p>
       <p style="margin-top:12px;font-size:0.875rem;color:var(--color-text-secondary);">
         매장 담당자 이메일로 로그인한 경우에만 주문 접수 목록을 볼 수 있습니다.
       </p>

@@ -28,6 +28,21 @@ async function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function escapeHtml(s) {
+  if (s == null || s === '') return '';
+  const t = String(s);
+  return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/** img src에 쓸 수 있는 URL만 허용 (http/https 또는 / 로 시작) */
+function safeImageUrl(url) {
+  const u = (url || '').trim();
+  if (!u) return '';
+  const lower = u.toLowerCase();
+  if (lower.startsWith('https://') || lower.startsWith('http://') || u.startsWith('/')) return u;
+  return '';
+}
+
 function fetchWithTimeout(url, options, timeoutMs) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), timeoutMs || FETCH_TIMEOUT_MS);
@@ -118,33 +133,34 @@ function generateStoreId() {
 function renderStore(store, menus) {
   const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY' };
   const items = menus || [];
+  const storeIdEsc = escapeHtml(store.id || '');
 
   return `
-    <div class="admin-store" id="admin-store-${store.id.replace(/"/g, '')}" data-store-id="${store.id}">
+    <div class="admin-store" id="admin-store-${storeIdEsc.replace(/"/g, '')}" data-store-id="${storeIdEsc}">
       <div class="admin-store-header">
-        <span class="admin-store-title">${store.title || store.id}</span>
+        <span class="admin-store-title">${escapeHtml(store.title || store.id || '')}</span>
         <div class="admin-store-header-actions">
           <button type="button" class="admin-btn admin-btn-top" data-scroll-top aria-label="맨 위로">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
           </button>
-          <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${store.id}" title="카테고리 삭제">삭제</button>
+          <button type="button" class="admin-btn admin-btn-danger admin-btn-delete-store" data-delete-store="${storeIdEsc}" title="카테고리 삭제">삭제</button>
         </div>
       </div>
       <div class="admin-store-body">
         <div class="admin-section">
           <div class="admin-section-title-row">
             <span class="admin-section-title">매장 정보</span>
-            <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${store.id}" aria-label="API 환경변수 설정" title="API 환경변수 설정">
+            <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${storeIdEsc}" aria-label="API 환경변수 설정" title="API 환경변수 설정">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
           </div>
           <div class="admin-form-row">
             <div class="admin-form-field">
               <label>대분류</label>
-              <input type="text" data-field="title" value="${(store.title || '').replace(/"/g, '&quot;')}" placeholder="예: 도시락">
+              <input type="text" data-field="title" value="${escapeHtml(store.title || '')}" placeholder="예: 도시락">
             </div>
           </div>
-          <input type="hidden" data-field="apiKeyEnvVar" value="${(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY').replace(/"/g, '&quot;')}">
+          <input type="hidden" data-field="apiKeyEnvVar" value="${escapeHtml(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY')}">
           <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
           <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
         </div>
@@ -153,42 +169,42 @@ function renderStore(store, menus) {
           <div class="admin-form-row">
             <div class="admin-form-field">
               <label>브랜드명</label>
-              <input type="text" data-field="brand" value="${(store.brand || '').replace(/"/g, '&quot;')}" placeholder="예: OO브랜드">
+              <input type="text" data-field="brand" value="${escapeHtml(store.brand || '')}" placeholder="예: OO브랜드">
             </div>
             <div class="admin-form-field" style="flex: 2;">
               <label>매장주소</label>
-              <input type="text" data-field="storeAddress" value="${(store.storeAddress || '').replace(/"/g, '&quot;')}" placeholder="예: 서울시 강남구 OO로 123">
+              <input type="text" data-field="storeAddress" value="${escapeHtml(store.storeAddress || '')}" placeholder="예: 서울시 강남구 OO로 123">
             </div>
             <div class="admin-form-field">
               <label>사업자등록번호</label>
-              <input type="text" data-field="bizNo" value="${(store.bizNo || '').replace(/"/g, '&quot;')}" placeholder="예: 000-00-00000">
+              <input type="text" data-field="bizNo" value="${escapeHtml(store.bizNo || '')}" placeholder="예: 000-00-00000">
             </div>
           </div>
           <div class="admin-form-row admin-form-row--brand-row2">
             <div class="admin-form-field admin-form-field--representative">
               <label>대표자</label>
-              <input type="text" data-field="representative" value="${(store.representative || '').replace(/"/g, '&quot;')}" placeholder="대표자명">
+              <input type="text" data-field="representative" value="${escapeHtml(store.representative || '')}" placeholder="대표자명">
             </div>
             <div class="admin-form-field">
               <label>담당자연락처</label>
-              <input type="text" data-field="storeContact" value="${(store.storeContact || '').replace(/"/g, '&quot;')}" placeholder="예: 02-1234-5678">
+              <input type="text" data-field="storeContact" value="${escapeHtml(store.storeContact || '')}" placeholder="예: 02-1234-5678">
             </div>
             <div class="admin-form-field admin-form-field--store-contact-email">
               <label>담당자이메일</label>
-              <input type="email" data-field="storeContactEmail" value="${(store.storeContactEmail || '').replace(/"/g, '&quot;')}" placeholder="예: contact@example.com">
+              <input type="email" data-field="storeContactEmail" value="${escapeHtml(store.storeContactEmail || '')}" placeholder="예: contact@example.com">
             </div>
             <div class="admin-form-field">
               <label>suburl</label>
-              <input type="text" data-field="suburl" value="${(store.suburl || '').replace(/"/g, '&quot;')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
+              <input type="text" data-field="suburl" value="${escapeHtml(store.suburl || '')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
             </div>
           </div>
         </div>
         <div class="admin-section">
           <div class="admin-section-title">메뉴</div>
-          <div class="admin-menu-list" data-store-id="${store.id}">
+          <div class="admin-menu-list" data-store-id="${storeIdEsc}">
             ${items.map((item, i) => renderMenuItem(store.id, item, i)).join('')}
           </div>
-          <button type="button" class="admin-btn admin-btn-secondary admin-btn-add" data-add-menu="${store.id}">+ 메뉴 추가</button>
+          <button type="button" class="admin-btn admin-btn-secondary admin-btn-add" data-add-menu="${storeIdEsc}">+ 메뉴 추가</button>
         </div>
         <div class="admin-save-bar">
           <button type="button" class="admin-btn admin-btn-primary" data-save>저장</button>
@@ -199,16 +215,17 @@ function renderStore(store, menus) {
 }
 
 function renderMenuItem(storeId, item, index) {
-  const imgContent = item.imageUrl
-    ? `<img src="${item.imageUrl.replace(/"/g, '&quot;')}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'placeholder\\'>📷</span>'">`
+  const safeUrl = safeImageUrl(item.imageUrl);
+  const imgContent = safeUrl
+    ? `<img src="${escapeHtml(safeUrl)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'placeholder\\'>📷</span>'">`
     : '<span class="placeholder">📷</span>';
   return `
-    <div class="admin-menu-item" data-menu-index="${index}" data-menu-id="${(item.id || '').replace(/"/g, '&quot;')}">
+    <div class="admin-menu-item" data-menu-index="${index}" data-menu-id="${escapeHtml(item.id || '')}">
       <div class="admin-menu-thumb">${imgContent}</div>
       <div class="admin-menu-fields">
         <div class="admin-form-field">
           <label>메뉴명</label>
-          <input type="text" data-field="name" value="${(item.name || '').replace(/"/g, '&quot;')}" placeholder="메뉴명">
+          <input type="text" data-field="name" value="${escapeHtml(item.name || '')}" placeholder="메뉴명">
         </div>
         <div class="admin-form-row">
           <div class="admin-form-field">
@@ -218,7 +235,7 @@ function renderMenuItem(storeId, item, index) {
           <div class="admin-form-field admin-form-field-image" style="flex: 2;">
             <label>이미지</label>
             <div class="admin-image-input-row">
-              <input type="url" data-field="imageUrl" value="${(item.imageUrl || '').replace(/"/g, '&quot;')}" placeholder="URL 또는 업로드">
+              <input type="url" data-field="imageUrl" value="${escapeHtml(item.imageUrl || '')}" placeholder="URL 또는 업로드">
               <input type="file" data-upload-input accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
               <button type="button" class="admin-btn admin-btn-upload" data-upload-btn title="파일 업로드">📤 업로드</button>
             </div>
@@ -227,11 +244,11 @@ function renderMenuItem(storeId, item, index) {
         </div>
         <div class="admin-form-field">
           <label>설명</label>
-          <textarea data-field="description" placeholder="메뉴 설명">${(item.description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+          <textarea data-field="description" placeholder="메뉴 설명">${escapeHtml(item.description || '')}</textarea>
         </div>
       </div>
       <div class="admin-menu-actions">
-        <button type="button" class="admin-btn admin-btn-danger" data-remove-menu data-store-id="${storeId}" data-index="${index}">삭제</button>
+        <button type="button" class="admin-btn admin-btn-danger" data-remove-menu data-store-id="${escapeHtml(storeId)}" data-index="${index}">삭제</button>
       </div>
     </div>
   `;
@@ -292,7 +309,7 @@ function showLoadingError(msg, showRetry = false) {
   const content = document.getElementById('adminContent');
   content.innerHTML = `
     <div class="admin-loading admin-error">
-      <p>${msg}</p>
+      <p>${escapeHtml(msg || '')}</p>
       <p style="margin-top:12px;font-size:0.875rem;color:var(--color-text-secondary);">
         로그인 후 메인 화면에서 admin 링크를 통해 접속해 주세요.
       </p>
@@ -419,37 +436,44 @@ function renderPaymentList() {
     const deliveryRowDisabled = order.status !== 'shipping';
     const shippingValue = (order.status === 'shipping' || order.status === 'delivery_completed') ? (order.tracking_number || '') : '';
     const overdue = isOverdueForAccept(order);
+    const orderIdEsc = escapeHtml(String(order.id));
     const orderIdEl = overdue
-      ? `<span class="admin-payment-order-id admin-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="admin-overdue-id">주문 #${order.id}</span><span class="admin-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
-      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
+      ? `<span class="admin-payment-order-id admin-overdue-flash admin-payment-order-id-link" data-order-detail="${orderIdEsc}" data-overdue-flash role="button" tabindex="0"><span class="admin-overdue-id">주문 #${orderIdEsc}</span><span class="admin-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
+      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${orderIdEsc}" role="button" tabindex="0">주문 #${orderIdEsc}</span>`;
+
+    const statusLabelEsc = escapeHtml(getStatusLabel(order.status, order.cancel_reason));
+    const deliveryAddressEsc = escapeHtml([(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—');
+    const paymentLinkEsc = escapeHtml(order.payment_link || '');
+    const shippingValueEsc = escapeHtml(shippingValue || '');
+    const deliveryInputValueEsc = order.status === 'delivery_completed' ? escapeHtml(`주문 #${order.id}`) : '';
 
     return `
-      <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
+      <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${orderIdEsc}">
         <div class="admin-payment-order-header">
           ${orderIdEl}
-          <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status, order.cancel_reason)}</span>
+          <span class="admin-payment-order-status ${order.status}">${statusLabelEsc}</span>
         </div>
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
-          <div>배송주소: ${[(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—'}</div>
-          <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
-          <div>이메일: ${order.user_email || '—'}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송주소: ${deliveryAddressEsc}</div>
+          <div>주문자: ${escapeHtml(order.depositor || '—')} / ${escapeHtml(order.contact || '—')}</div>
+          <div>이메일: ${escapeHtml(order.user_email || '—')}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
         <div class="admin-payment-link-row">
           <input 
             type="text" 
             class="admin-payment-link-input ${isUrgent ? 'urgent' : ''}" 
-            value="${order.payment_link || ''}" 
-            data-order-id="${order.id}"
+            value="${paymentLinkEsc}" 
+            data-order-id="${orderIdEsc}"
             placeholder="결제 생성 코드 입력"
             ${paymentLinkRowDisabled ? 'readonly disabled' : ''}
           >
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
-            data-save-link="${order.id}"
+            data-save-link="${orderIdEsc}"
             ${paymentLinkRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
@@ -457,16 +481,16 @@ function renderPaymentList() {
           <input 
             type="text" 
             class="admin-payment-link-input admin-shipping-input" 
-            value="${(shippingValue || '').replace(/"/g, '&quot;')}" 
-            data-order-id="${order.id}"
-            data-shipping-input="${order.id}"
+            value="${shippingValueEsc}" 
+            data-order-id="${orderIdEsc}"
+            data-shipping-input="${orderIdEsc}"
             placeholder="배송 번호 입력"
             ${shippingRowDisabled ? 'readonly disabled' : ''}
           >
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
-            data-save-shipping="${order.id}"
+            data-save-shipping="${orderIdEsc}"
             ${shippingRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
@@ -474,22 +498,22 @@ function renderPaymentList() {
           <input 
             type="text" 
             class="admin-payment-link-input admin-delivery-input" 
-            value="${order.status === 'delivery_completed' ? `주문 #${order.id}` : ''}" 
-            data-order-id="${order.id}"
-            data-delivery-input="${order.id}"
+            value="${deliveryInputValueEsc}" 
+            data-order-id="${orderIdEsc}"
+            data-delivery-input="${orderIdEsc}"
             placeholder="배송 완료 코드 입력"
             ${deliveryRowDisabled ? 'readonly disabled' : ''}
           >
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
-            data-save-delivery="${order.id}"
+            data-save-delivery="${orderIdEsc}"
             ${deliveryRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
         <div class="admin-payment-order-delete-row">
-          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'order_accepted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${order.id}">취소</button>` : ''}
-          <button type="button" class="admin-payment-delete-btn" data-delete-order="${order.id}">삭제</button>
+          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'order_accepted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${orderIdEsc}">취소</button>` : ''}
+          <button type="button" class="admin-payment-delete-btn" data-delete-order="${orderIdEsc}">삭제</button>
         </div>
       </div>
     `;
@@ -799,7 +823,7 @@ async function loadPaymentManagement() {
 
     renderPaymentList();
   } catch (e) {
-    content.innerHTML = `<div class="admin-loading admin-error"><p>${e.message || '오류가 발생했습니다.'}</p></div>`;
+    content.innerHTML = `<div class="admin-loading admin-error"><p>${escapeHtml(e.message || '오류가 발생했습니다.')}</p></div>`;
   }
 }
 
@@ -929,7 +953,7 @@ function renderAdminOrderDetailHtml(order) {
   const renderItem = ({ item, qty }) => `
     <div class="admin-order-detail-item">
       <div class="cart-item-info">
-        <div class="cart-item-name">${(item.name || '').replace(/</g, '&lt;')}</div>
+        <div class="cart-item-name">${escapeHtml(item.name || '')}</div>
         <div class="cart-item-price">${formatAdminPrice(item.price)} × ${qty}</div>
       </div>
     </div>
@@ -943,7 +967,7 @@ function renderAdminOrderDetailHtml(order) {
       return `
         <div class="cart-category-group">
           <div class="cart-category-header">
-            <span class="cart-category-title">${(title || '').replace(/</g, '&lt;')}</span>
+            <span class="cart-category-title">${escapeHtml(title || '')}</span>
             <span class="cart-category-total met">${formatAdminPrice(catTotal)}</span>
           </div>
           ${itemsHtml}
@@ -1069,7 +1093,7 @@ async function init() {
       ? `<div class="admin-index">
           <span class="admin-index-label">바로가기</span>
           <div class="admin-index-btns">
-            ${stores.map((s) => `<button type="button" class="admin-btn admin-btn-index" data-goto-store="${s.id}">${s.title || s.id}</button>`).join('')}
+            ${stores.map((s) => `<button type="button" class="admin-btn admin-btn-index" data-goto-store="${escapeHtml(s.id || '')}">${escapeHtml(s.title || s.id || '')}</button>`).join('')}
           </div>
         </div>`
       : '';
@@ -1250,7 +1274,8 @@ async function init() {
         const url = await uploadImage(file);
         urlInput.value = url;
         if (thumb) {
-          thumb.innerHTML = `<img src="${url.replace(/"/g, '&quot;')}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'placeholder\\'>📷</span>'">`;
+          const safeUrl = safeImageUrl(url);
+          thumb.innerHTML = safeUrl ? `<img src="${escapeHtml(safeUrl)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'placeholder\\'>📷</span>'">` : '<span class="placeholder">📷</span>';
         }
       } catch (err) {
         alert(err.message);
