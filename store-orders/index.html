@@ -12,7 +12,10 @@
   <style>
     .store-orders-page { max-width: 900px; margin: 0 auto; padding: 24px; }
     .store-orders-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .store-orders-header h1 { font-size: 1.25rem; }
+    .store-orders-header h1 { font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .store-orders-refresh-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; color: var(--color-text-secondary); -webkit-tap-highlight-color: transparent; }
+    .store-orders-refresh-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .store-orders-refresh-btn svg { width: 18px; height: 18px; }
     .admin-payment-order { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 16px; padding: 16px; }
     .admin-payment-order-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
     .admin-payment-order-id { font-weight: 600; font-size: 1rem; }
@@ -79,12 +82,21 @@
     .store-orders-reject-links { margin-top: 17px; font-size: 0.8125rem; color: #999; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 0; }
     .store-orders-reject-link { cursor: pointer; color: #999; }
     .store-orders-reject-sep { color: #999; user-select: none; }
+    .store-orders-load-more-wrap { text-align: center; margin-top: 20px; margin-bottom: 16px; }
+    .store-orders-load-more-btn { padding: 10px 24px; font-size: 0.9375rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; font-family: inherit; }
+    .store-orders-load-more-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+    .store-orders-load-more-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
   <div class="store-orders-page">
     <div class="store-orders-header">
-      <h1>주문 접수 목록</h1>
+      <h1>
+        주문 접수 목록
+        <button type="button" class="store-orders-refresh-btn" id="storeOrdersRefreshBtn" title="주문 목록 새로고침" aria-label="주문 목록 새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </h1>
       <a href="/" class="admin-btn admin-btn-secondary">← 메인으로</a>
     </div>
 

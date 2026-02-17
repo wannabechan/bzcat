@@ -6,6 +6,7 @@ const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
 
 let storeOrdersData = [];
+let storeOrdersTotal = 0;
 let storeOrdersStores = [];
 let storeOrdersStoreOrder = [];
 let storeOrdersSortBy = 'created_at';
@@ -14,6 +15,7 @@ let storeOrdersSubFilter = 'new';
 let storeOrdersFlashIntervals = [];
 
 const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
+const STORE_ORDERS_PAGE_SIZE = 25;
 let storeOrdersIdleTimerId = null;
 let storeOrdersIdleListenersAttached = false;
 
@@ -321,7 +323,11 @@ function renderList() {
     `;
   }).join('');
 
-  content.innerHTML = sortBar + ordersHtml;
+  const showLoadMore = storeOrdersSubFilter === 'all' && storeOrdersData.length < storeOrdersTotal;
+  const loadMoreHtml = showLoadMore
+    ? `<div class="store-orders-load-more-wrap"><button type="button" class="store-orders-load-more-btn" data-store-orders-load-more>더 보기</button></div>`
+    : '';
+  content.innerHTML = sortBar + ordersHtml + loadMoreHtml;
 
   storeOrdersFlashIntervals.forEach(id => clearInterval(id));
   storeOrdersFlashIntervals = [];
@@ -357,6 +363,8 @@ function renderList() {
       }
     });
   });
+
+  content.querySelector('[data-store-orders-load-more]')?.addEventListener('click', () => loadMoreStoreOrders());
 
   content.querySelectorAll('[data-order-detail]').forEach(el => {
     el.addEventListener('click', () => {
@@ -404,7 +412,7 @@ async function loadStoreOrders() {
       return;
     }
 
-    const res = await fetch(`${API_BASE}/api/manager/orders`, {
+    const res = await fetch(`${API_BASE}/api/manager/orders?limit=${STORE_ORDERS_PAGE_SIZE}&offset=0`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -418,10 +426,11 @@ async function loadStoreOrders() {
 
     const data = await res.json();
     storeOrdersData = data.orders || [];
+    storeOrdersTotal = typeof data.total === 'number' ? data.total : storeOrdersData.length;
     storeOrdersStores = data.stores || [];
     storeOrdersStoreOrder = storeOrdersStores.map(s => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
 
-    if (storeOrdersData.length === 0) {
+    if (storeOrdersData.length === 0 && storeOrdersTotal === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다.</div>';
       startStoreOrdersIdleRefresh();
       return;
@@ -432,6 +441,27 @@ async function loadStoreOrders() {
   } catch (e) {
     content.innerHTML = '<div class="admin-loading admin-error">오류가 발생했습니다. 네트워크를 확인해 주세요.</div>';
   }
+}
+
+async function loadMoreStoreOrders() {
+  const btn = document.querySelector('[data-store-orders-load-more]');
+  if (btn) btn.disabled = true;
+  try {
+    const token = getToken();
+    if (!token) return;
+    const offset = storeOrdersData.length;
+    const res = await fetch(`${API_BASE}/api/manager/orders?limit=${STORE_ORDERS_PAGE_SIZE}&offset=${offset}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const orders = data.orders || [];
+    if (orders.length) {
+      storeOrdersData = storeOrdersData.concat(orders);
+      renderList();
+    }
+  } catch (_) {}
+  if (btn) btn.disabled = false;
 }
 
 function resetStoreOrdersIdleTimer() {
@@ -457,6 +487,10 @@ function startStoreOrdersIdleRefresh() {
 document.getElementById('storeOrderDetailClose')?.addEventListener('click', closeOrderDetail);
 document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'storeOrderDetailOverlay') closeOrderDetail();
+});
+
+document.getElementById('storeOrdersRefreshBtn')?.addEventListener('click', () => {
+  loadStoreOrders();
 });
 
 loadStoreOrders();

@@ -34,13 +34,19 @@ module.exports = async (req, res) => {
       return apiResponse(res, 403, { error: '담당자로 등록된 매장이 없습니다.' });
     }
 
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 25), 100);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+
     const allOrders = await getAllOrders();
-    const orders = (allOrders || []).filter((order) => {
+    const filtered = (allOrders || []).filter((order) => {
       const storeEmail = getStoreEmailForOrder(order, stores);
       return storeEmail && storeEmail.trim().toLowerCase() === managerEmail;
     });
+    const sorted = filtered.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const total = sorted.length;
+    const orders = sorted.slice(offset, offset + limit);
 
-    return apiResponse(res, 200, { orders, stores: stores || [] });
+    return apiResponse(res, 200, { orders, total, stores: stores || [] });
   } catch (error) {
     console.error('Manager orders error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });

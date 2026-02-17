@@ -7,6 +7,7 @@ const API_BASE = '';
 const FETCH_TIMEOUT_MS = 15000;
 
 let adminPaymentOrders = [];
+let adminPaymentTotal = 0;
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
 let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait'
@@ -328,6 +329,10 @@ function setupTabs() {
       }
     });
   });
+
+  document.getElementById('adminPaymentRefreshBtn')?.addEventListener('click', () => {
+    refetchPaymentOrdersAndRender();
+  });
 }
 
 /** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
@@ -484,7 +489,11 @@ function renderPaymentList() {
     `;
   }).join('');
 
-  content.innerHTML = sortBar + ordersHtml;
+  const showLoadMore = adminPaymentSubFilter === 'all' && adminPaymentOrders.length < adminPaymentTotal;
+  const loadMoreHtml = showLoadMore
+    ? `<div class="admin-payment-load-more-wrap"><button type="button" class="admin-btn admin-payment-load-more-btn" data-payment-load-more>더 보기</button></div>`
+    : '';
+  content.innerHTML = sortBar + ordersHtml + loadMoreHtml;
 
   adminPaymentFlashIntervals.forEach(id => clearInterval(id));
   adminPaymentFlashIntervals = [];
@@ -528,6 +537,8 @@ function renderPaymentList() {
       if (order) openAdminOrderDetail(order);
     });
   });
+
+  content.querySelector('[data-payment-load-more]')?.addEventListener('click', () => loadMorePaymentOrders());
 
   content.querySelectorAll('[data-save-link]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -738,13 +749,15 @@ function renderPaymentList() {
   });
 }
 
+const PAYMENT_PAGE_SIZE = 25;
+
 async function loadPaymentManagement() {
   const content = document.getElementById('adminPaymentContent');
   content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
 
   try {
     const token = await getToken();
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=0`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
 
@@ -753,8 +766,9 @@ async function loadPaymentManagement() {
       throw new Error(err.error || '주문 목록을 불러올 수 없습니다.');
     }
 
-    const { orders } = await res.json();
+    const { orders, total } = await res.json();
     adminPaymentOrders = orders || [];
+    adminPaymentTotal = typeof total === 'number' ? total : adminPaymentOrders.length;
 
     try {
       const storesRes = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
@@ -772,7 +786,7 @@ async function loadPaymentManagement() {
       }
     } catch (_) {}
 
-    if (adminPaymentOrders.length === 0) {
+    if (adminPaymentOrders.length === 0 && adminPaymentTotal === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
       return;
     }
@@ -783,17 +797,39 @@ async function loadPaymentManagement() {
   }
 }
 
-async function refetchPaymentOrdersAndRender() {
-  const content = document.getElementById('adminPaymentContent');
+async function loadMorePaymentOrders() {
+  const btn = document.querySelector('[data-payment-load-more]');
+  if (btn) btn.disabled = true;
   try {
     const token = await getToken();
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders`, {
+    const offset = adminPaymentOrders.length;
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=${offset}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) return;
     const { orders } = await res.json();
+    if (Array.isArray(orders) && orders.length) {
+      adminPaymentOrders = adminPaymentOrders.concat(orders);
+      renderPaymentList();
+    }
+  } catch (_) {}
+  if (btn) btn.disabled = false;
+}
+
+async function refetchPaymentOrdersAndRender() {
+  const content = document.getElementById('adminPaymentContent');
+  try {
+    const token = await getToken();
+    const currentLen = adminPaymentOrders.length;
+    const limit = Math.max(PAYMENT_PAGE_SIZE, currentLen);
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${limit}&offset=0`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const { orders, total } = await res.json();
     adminPaymentOrders = orders || [];
-    if (adminPaymentOrders.length === 0) {
+    adminPaymentTotal = typeof total === 'number' ? total : adminPaymentOrders.length;
+    if (adminPaymentOrders.length === 0 && adminPaymentTotal === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다</div>';
       return;
     }

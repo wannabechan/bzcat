@@ -12,7 +12,10 @@
   <style>
     .admin-page { max-width: 900px; margin: 0 auto; padding: 24px; }
     .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .admin-header h1 { font-size: 1.25rem; }
+    .admin-header h1 { font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .admin-refresh-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; color: var(--color-text-secondary); -webkit-tap-highlight-color: transparent; }
+    .admin-refresh-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .admin-refresh-btn svg { width: 18px; height: 18px; }
     .admin-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--color-border); }
     .admin-tab { padding: 12px 20px; font-size: 0.9375rem; font-weight: 500; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
     .admin-tab:hover { color: var(--color-primary); }
@@ -139,6 +142,10 @@
     .admin-error { color: #d32f2f; padding: 16px; background: #ffebee; border-radius: var(--radius); margin-bottom: 16px; }
     .admin-payment-order-id-link { cursor: pointer; text-decoration: underline; -webkit-tap-highlight-color: transparent; }
     .admin-payment-order-id-link:hover { opacity: 0.8; }
+    .admin-payment-load-more-wrap { text-align: center; margin-top: 20px; margin-bottom: 16px; }
+    .admin-payment-load-more-btn { padding: 10px 24px; font-size: 0.9375rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; }
+    .admin-payment-load-more-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+    .admin-payment-load-more-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .admin-overdue-flash { display: inline-block; min-height: 1.5em; }
     .admin-overdue-flash .admin-overdue-id,
     .admin-overdue-flash .admin-overdue-msg { display: inline-block; transition: opacity 0.25s ease; }
@@ -166,7 +173,12 @@
 <body>
   <div class="admin-page">
     <div class="admin-header">
-      <h1>Admin</h1>
+      <h1>
+        Admin
+        <button type="button" class="admin-refresh-btn" id="adminPaymentRefreshBtn" title="주문 목록 새로고침" aria-label="주문 목록 새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </h1>
       <a href="/" class="admin-btn admin-btn-secondary">← 메인으로</a>
     </div>
 
