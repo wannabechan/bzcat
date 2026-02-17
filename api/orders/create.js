@@ -115,7 +115,7 @@ module.exports = async (req, res) => {
           await resend.emails.send({
             from: `${fromName} <${fromEmail}>`,
             to: toEmail,
-            subject: `[BzCat] ${storeBrand} : 비즈니스 케이터링 신규 주문 #${order.id}`,
+            subject: `[BzCat 신규 주문] ${storeBrand} #${order.id}`,
             html,
           });
         } catch (emailErr) {
