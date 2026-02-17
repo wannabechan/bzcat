@@ -2277,17 +2277,54 @@ body {
   padding: 24px;
 }
 
+.order-detail-payment-cancel-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.order-detail-payment-cancel-modal-close:hover {
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.order-detail-payment-cancel-modal-symbol-wrap {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.order-detail-payment-cancel-modal-symbol {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
 .order-detail-payment-cancel-modal-msg {
   margin: 0 0 20px;
   font-size: 0.9375rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text);
+  text-align: center;
 }
 
 .order-detail-payment-cancel-modal-btns {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .order-detail-payment-cancel-modal-btn {

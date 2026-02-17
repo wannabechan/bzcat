@@ -300,7 +300,14 @@
     <div class="order-detail-payment-cancel-modal" id="orderDetailPaymentCancelModal" aria-hidden="true">
       <div class="order-detail-payment-cancel-modal-backdrop"></div>
       <div class="order-detail-payment-cancel-modal-panel">
-        <p class="order-detail-payment-cancel-modal-msg">결제를 취소하시겠습니까? 결제 취소와 동시에 주문이 취소됩니다.</p>
+        <button type="button" class="order-detail-payment-cancel-modal-close" id="orderDetailPaymentCancelModalClose" aria-label="닫기">&times;</button>
+        <div class="order-detail-payment-cancel-modal-symbol-wrap">
+          <img src="/img/bzcat_symbol.png" alt="" class="order-detail-payment-cancel-modal-symbol">
+        </div>
+        <p class="order-detail-payment-cancel-modal-msg">
+          결제를 취소하시겠습니까?<br>
+          결제 취소와 동시에 주문이 취소됩니다.
+        </p>
         <div class="order-detail-payment-cancel-modal-btns">
           <button type="button" class="order-detail-payment-cancel-modal-btn back">돌아가기</button>
           <button type="button" class="order-detail-payment-cancel-modal-btn confirm">결제 취소하기</button>

@@ -731,19 +731,28 @@ function handlePaymentCancelClick(order) {
   const backBtn = modal.querySelector('.order-detail-payment-cancel-modal-btn.back');
   const confirmBtn = modal.querySelector('.order-detail-payment-cancel-modal-btn.confirm');
   const backdrop = modal.querySelector('.order-detail-payment-cancel-modal-backdrop');
-  const closeModal = () => {
+  const closeBtn = modal.querySelector('.order-detail-payment-cancel-modal-close');
+  const closeModalAndOrderDetail = () => {
     modal.classList.remove('visible');
     modal.setAttribute('aria-hidden', 'true');
     if (backBtn) backBtn.onclick = null;
     if (confirmBtn) confirmBtn.onclick = null;
     if (backdrop) backdrop.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
+    closeOrderDetailOverlay();
   };
-  backBtn.onclick = closeModal;
+  backBtn.onclick = closeModalAndOrderDetail;
   confirmBtn.onclick = async () => {
-    closeModal();
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (backBtn) backBtn.onclick = null;
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
     await doCancelOrder(order);
   };
-  if (backdrop) backdrop.onclick = closeModal;
+  if (backdrop) backdrop.onclick = closeModalAndOrderDetail;
+  if (closeBtn) closeBtn.onclick = closeModalAndOrderDetail;
   modal.classList.add('visible');
   modal.setAttribute('aria-hidden', 'false');
 }
