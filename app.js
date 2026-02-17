@@ -991,6 +991,27 @@ function closeCheckoutModal() {
   document.body.style.overflow = '';
 }
 
+function showOrderAcceptedModal(onConfirm) {
+  const modal = document.getElementById('orderAcceptedModal');
+  if (!modal) return;
+  const confirmBtn = document.getElementById('orderAcceptedModalConfirm');
+  const closeBtn = document.getElementById('orderAcceptedModalClose');
+  const backdrop = modal.querySelector('.order-accepted-modal-backdrop');
+  const doClose = () => {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (typeof onConfirm === 'function') onConfirm();
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+  };
+  if (confirmBtn) confirmBtn.onclick = doClose;
+  if (closeBtn) closeBtn.onclick = doClose;
+  if (backdrop) backdrop.onclick = doClose;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
 // 카테고리 탭 클릭
 function handleCategoryClick(e) {
   const tab = e.target.closest('.category-tab');
@@ -1420,14 +1441,15 @@ function init() {
           return;
         }
 
-        alert('주문이 접수되었습니다. 확인 후 곧 안내 회신드리겠습니다. 고맙습니다');
-        cart = {};
-        pendingQty = {};
-        updateCartCount();
-        renderCartItems();
-        renderMenuCards();
-        closeCheckoutModal();
-        openProfile();
+        showOrderAcceptedModal(() => {
+          cart = {};
+          pendingQty = {};
+          updateCartCount();
+          renderCartItems();
+          renderMenuCards();
+          closeCheckoutModal();
+          openProfile();
+        });
 
       } catch (error) {
         console.error('Order submission error:', error);

@@ -317,6 +317,21 @@
         </div>
       </div>
     </div>
+    <!-- 주문 접수 완료 모달 -->
+    <div class="order-accepted-modal" id="orderAcceptedModal" aria-hidden="true">
+      <div class="order-accepted-modal-backdrop"></div>
+      <div class="order-accepted-modal-panel">
+        <button type="button" class="order-accepted-modal-close" id="orderAcceptedModalClose" aria-label="닫기">&times;</button>
+        <div class="order-accepted-modal-symbol-wrap">
+          <img src="/img/bzcat_symbol.png" alt="" class="order-accepted-modal-symbol">
+        </div>
+        <p class="order-accepted-modal-msg">
+          주문이 접수되었습니다.<br>
+          확인 후 곧 안내 회신드릴게요.
+        </p>
+        <button type="button" class="order-accepted-modal-btn" id="orderAcceptedModalConfirm">고맙습니다</button>
+      </div>
+    </div>
     <!-- 주문 취소 확인 모달 (결제 전) -->
     <div class="order-detail-cancel-modal" id="orderDetailCancelModal" aria-hidden="true">
       <div class="order-detail-cancel-modal-backdrop"></div>
