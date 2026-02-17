@@ -361,14 +361,15 @@ async function initAuth() {
     });
   }
 
-  const profileMenuTerms = document.getElementById('profileMenuTerms');
-  if (profileMenuTerms && profileMenuPanel) {
-    profileMenuTerms.addEventListener('click', () => {
-      profileMenuPanel.classList.remove('open');
-      profileMenuPanel.setAttribute('aria-hidden', 'true');
-      if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
+  document.querySelectorAll('.profile-menu-terms-link').forEach((el) => {
+    el.addEventListener('click', () => {
+      if (profileMenuPanel) {
+        profileMenuPanel.classList.remove('open');
+        profileMenuPanel.setAttribute('aria-hidden', 'true');
+        if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
     });
-  }
+  });
 
   const headerLoginBtn = document.getElementById('headerLoginBtn');
   if (headerLoginBtn) {

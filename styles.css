@@ -1299,7 +1299,7 @@ body {
   display: none;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
@@ -1307,6 +1307,32 @@ body {
 
 .profile-menu-panel.open {
   display: flex;
+}
+
+.profile-menu-line {
+  width: 100%;
+}
+
+.profile-menu-line-1 {
+  text-align: right;
+}
+
+.profile-menu-line-2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-menu-copy,
+.profile-menu-copy-sep {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #b0b0b0;
+}
+
+.profile-menu-copy-sep {
+  cursor: default;
 }
 
 .profile-menu-item {
@@ -1332,11 +1358,29 @@ body {
   color: #707070;
 }
 
-.profile-menu-copy {
+.profile-menu-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-menu-logout-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.profile-menu-policy-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.profile-menu-policy-sep {
   font-size: 0.75rem;
-  font-weight: 500;
   color: #b0b0b0;
-  cursor: default;
+  user-select: none;
 }
 
 .profile-empty {
