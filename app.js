@@ -695,7 +695,13 @@ function openProfileOrderDetail(order) {
   if (cancelBtn) {
     if (canCancelOrder(order.status)) {
       cancelBtn.style.display = '';
+      cancelBtn.textContent = '취소하기';
       cancelBtn.onclick = () => confirmAndCancelOrder(order);
+      if (headerSep) headerSep.style.display = '';
+    } else if (order.status === 'payment_completed') {
+      cancelBtn.style.display = '';
+      cancelBtn.textContent = '결제취소';
+      cancelBtn.onclick = () => handlePaymentCancelClick(order);
       if (headerSep) headerSep.style.display = '';
     } else {
       cancelBtn.style.display = 'none';
@@ -712,6 +718,37 @@ function openProfileOrderDetail(order) {
 
 async function confirmAndCancelOrder(order) {
   if (!confirm('주문을 취소하시겠습니까?')) return;
+  await doCancelOrder(order);
+}
+
+function handlePaymentCancelClick(order) {
+  if (isPastPaymentDeadline(order)) {
+    alert('배송 준비중입니다. 결제 취소가 불가합니다.');
+    return;
+  }
+  const modal = document.getElementById('orderDetailPaymentCancelModal');
+  if (!modal) return;
+  const backBtn = modal.querySelector('.order-detail-payment-cancel-modal-btn.back');
+  const confirmBtn = modal.querySelector('.order-detail-payment-cancel-modal-btn.confirm');
+  const backdrop = modal.querySelector('.order-detail-payment-cancel-modal-backdrop');
+  const closeModal = () => {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (backBtn) backBtn.onclick = null;
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+  };
+  backBtn.onclick = closeModal;
+  confirmBtn.onclick = async () => {
+    closeModal();
+    await doCancelOrder(order);
+  };
+  if (backdrop) backdrop.onclick = closeModal;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+async function doCancelOrder(order) {
   const token = window.BzCatAuth?.getToken();
   if (!token) {
     alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -748,6 +785,28 @@ function isPaymentLinkActive(order) {
 
 function canCancelOrder(status) {
   return status !== 'cancelled' && ['submitted', 'order_accepted', 'payment_link_issued'].includes(status);
+}
+
+/** 배송 희망일 4일 전 23:59 KST를 지났는지 (결제 취소 불가 시점) */
+function isPastPaymentDeadline(order) {
+  const raw = order.delivery_date || order.deliveryDate || '';
+  const s = String(raw).trim();
+  let y, m, d;
+  if (/^\d{8}$/.test(s)) {
+    y = parseInt(s.slice(0, 4), 10);
+    m = parseInt(s.slice(4, 6), 10) - 1;
+    d = parseInt(s.slice(6, 8), 10);
+  } else {
+    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return false;
+    y = parseInt(match[1], 10);
+    m = parseInt(match[2], 10) - 1;
+    d = parseInt(match[3], 10);
+  }
+  const date = new Date(Date.UTC(y, m, d, 0, 0, 0, 0));
+  date.setUTCDate(date.getUTCDate() - 4);
+  date.setUTCHours(14, 59, 0, 0); // 23:59 KST
+  return Date.now() > date.getTime();
 }
 
 function renderProfileOrdersList() {

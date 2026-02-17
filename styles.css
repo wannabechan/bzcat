@@ -2242,6 +2242,76 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* 결제 취소 확인 모달 */
+.order-detail-payment-cancel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+
+.order-detail-payment-cancel-modal.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.order-detail-payment-cancel-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.order-detail-payment-cancel-modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+}
+
+.order-detail-payment-cancel-modal-msg {
+  margin: 0 0 20px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.order-detail-payment-cancel-modal-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.order-detail-payment-cancel-modal-btn {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.order-detail-payment-cancel-modal-btn.confirm {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.order-detail-payment-cancel-modal-btn:hover {
+  opacity: 0.9;
+}
+
 .order-detail-list {
   list-style: none;
   margin: 0;
