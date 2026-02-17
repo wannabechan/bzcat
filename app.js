@@ -696,7 +696,7 @@ function openProfileOrderDetail(order) {
     if (canCancelOrder(order.status)) {
       cancelBtn.style.display = '';
       cancelBtn.textContent = '취소하기';
-      cancelBtn.onclick = () => confirmAndCancelOrder(order);
+      cancelBtn.onclick = () => handleOrderCancelClick(order);
       if (headerSep) headerSep.style.display = '';
     } else if (order.status === 'payment_completed') {
       cancelBtn.style.display = '';
@@ -716,9 +716,36 @@ function openProfileOrderDetail(order) {
   orderDetailOverlay.setAttribute('aria-hidden', 'false');
 }
 
-async function confirmAndCancelOrder(order) {
-  if (!confirm('주문을 취소하시겠습니까?')) return;
-  await doCancelOrder(order);
+function handleOrderCancelClick(order) {
+  const modal = document.getElementById('orderDetailCancelModal');
+  if (!modal) return;
+  const backBtn = modal.querySelector('.order-detail-cancel-modal-btn.back');
+  const confirmBtn = modal.querySelector('.order-detail-cancel-modal-btn.confirm');
+  const backdrop = modal.querySelector('.order-detail-cancel-modal-backdrop');
+  const closeBtn = modal.querySelector('.order-detail-cancel-modal-close');
+  const closeModalAndOrderDetail = () => {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (backBtn) backBtn.onclick = null;
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
+    closeOrderDetailOverlay();
+  };
+  backBtn.onclick = closeModalAndOrderDetail;
+  confirmBtn.onclick = async () => {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (backBtn) backBtn.onclick = null;
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
+    await doCancelOrder(order);
+  };
+  if (backdrop) backdrop.onclick = closeModalAndOrderDetail;
+  if (closeBtn) closeBtn.onclick = closeModalAndOrderDetail;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
 }
 
 function handlePaymentCancelClick(order) {
