@@ -74,8 +74,9 @@ module.exports = async (req, res) => {
       }
       const paymentKey = order.toss_payment_key || order.payment_key || '';
       if (!paymentKey.trim()) {
+        const adminEmail = process.env.EMAIL_ADMIN || '고객센터';
         return apiResponse(res, 400, {
-          error: '결제 정보를 찾을 수 없어 취소할 수 없습니다. 고객센터에 문의해 주세요.',
+          error: `결제 정보를 찾을 수 없어 취소할 수 없습니다.\n${adminEmail} 로 문의해 주세요.`,
         });
       }
       const TOSS_SECRET_KEY = await getTossSecretKeyForOrder(order);

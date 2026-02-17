@@ -295,12 +295,75 @@ async function initAuth() {
     }
   });
 
+  const profileHamburgerBtn = document.getElementById('profileHamburgerBtn');
+  const profileMenuPanel = document.getElementById('profileMenuPanel');
+  const profileMenuEmail = document.getElementById('profileMenuEmail');
+  const profileMenuInquiry = document.getElementById('profileMenuInquiry');
+
+  if (profileHamburgerBtn && profileMenuPanel) {
+    profileHamburgerBtn.addEventListener('click', () => {
+      const isOpen = profileMenuPanel.classList.toggle('open');
+      profileHamburgerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      profileMenuPanel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+      if (isOpen && profileMenuEmail && !profileMenuEmail.textContent) {
+        fetch('/api/config')
+          .then((r) => r.json())
+          .then((data) => {
+            const email = (data && data.emailAdmin) ? String(data.emailAdmin).trim() : '';
+            profileMenuEmail.textContent = email || '';
+            if (profileMenuInquiry) {
+              profileMenuInquiry.href = email ? `mailto:${email}` : '#';
+              if (!email) profileMenuInquiry.removeAttribute('href');
+            }
+          })
+          .catch(() => {
+            if (profileMenuInquiry) profileMenuInquiry.href = '#';
+          });
+      }
+    });
+  }
+
+  if (profileMenuPanel) {
+    document.addEventListener('click', (e) => {
+      if (!profileMenuPanel.classList.contains('open')) return;
+      if (profileHamburgerBtn && profileHamburgerBtn.contains(e.target)) return;
+      if (profileMenuPanel.contains(e.target)) return;
+      profileMenuPanel.classList.remove('open');
+      profileMenuPanel.setAttribute('aria-hidden', 'true');
+      if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
+      if (profileMenuPanel) {
+        profileMenuPanel.classList.remove('open');
+        profileMenuPanel.setAttribute('aria-hidden', 'true');
+        if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
       clearToken();
       resetToStep1();
       showApp(null);
       if (loginForm) loginForm.reset();
+    });
+  }
+
+  if (profileMenuInquiry) {
+    profileMenuInquiry.addEventListener('click', () => {
+      if (profileMenuPanel) {
+        profileMenuPanel.classList.remove('open');
+        profileMenuPanel.setAttribute('aria-hidden', 'true');
+        if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  const profileMenuTerms = document.getElementById('profileMenuTerms');
+  if (profileMenuTerms && profileMenuPanel) {
+    profileMenuTerms.addEventListener('click', () => {
+      profileMenuPanel.classList.remove('open');
+      profileMenuPanel.setAttribute('aria-hidden', 'true');
+      if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
     });
   }
 

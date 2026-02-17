@@ -1273,6 +1273,72 @@ body {
   height: 14px;
 }
 
+.profile-hamburger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b0b0b0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-hamburger-btn:hover,
+.profile-hamburger-btn[aria-expanded="true"] {
+  color: #909090;
+}
+
+.profile-hamburger-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.profile-menu-panel {
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.profile-menu-panel.open {
+  display: flex;
+}
+
+.profile-menu-item {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: #b0b0b0;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-menu-link:hover,
+.profile-menu-btn:hover {
+  color: #909090;
+}
+
+.profile-menu-btn:active,
+.profile-menu-link:active {
+  color: #707070;
+}
+
+.profile-menu-copy {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #b0b0b0;
+  cursor: default;
+}
+
 .profile-empty {
   text-align: center;
   padding: 40px 20px;
