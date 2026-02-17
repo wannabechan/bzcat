@@ -1298,8 +1298,8 @@ body {
 .profile-menu-panel {
   display: none;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 4px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
@@ -1314,7 +1314,7 @@ body {
 }
 
 .profile-menu-line-1 {
-  text-align: right;
+  text-align: left;
 }
 
 .profile-menu-line-2 {
@@ -1374,7 +1374,7 @@ body {
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .profile-menu-policy-sep {
