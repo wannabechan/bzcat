@@ -10,8 +10,12 @@ let storeOrdersStores = [];
 let storeOrdersStoreOrder = [];
 let storeOrdersSortBy = 'created_at';
 let storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
-let storeOrdersSubFilter = 'all';
+let storeOrdersSubFilter = 'new';
 let storeOrdersFlashIntervals = [];
+
+const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
+let storeOrdersIdleTimerId = null;
+let storeOrdersIdleListenersAttached = false;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -127,13 +131,10 @@ function renderOrderDetailHtml(order) {
 
 /**
  * @param {object} order
- * @param {{ showButtons?: boolean }} [opts] - showButtons: true면 주문 수령하기 + 거부 3개 노출, false면 주문 정보만
+ * @param {{ showButtons?: boolean }} [opts] - showButtons: true면 주문 수령하기 + 거부 3개만 노출 (주문 정보 영역 없음)
  */
 function renderOrderAcceptBlock(order, opts = {}) {
   const showButtons = opts.showButtons !== false;
-  const orderDate = order.created_at ? formatAdminOrderDate(order.created_at) : '—';
-  const deliveryHope = [order.delivery_date, order.delivery_time].filter(Boolean).join(' ') || '—';
-  const address = (order.delivery_address || '').trim() || '—';
   const esc = (s) => (s || '').toString().replace(/</g, '&lt;');
   const buttonsHtml = showButtons
     ? `
@@ -142,19 +143,9 @@ function renderOrderAcceptBlock(order, opts = {}) {
         <span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="schedule" role="button" tabindex="0">거부:스케줄문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="cooking" role="button" tabindex="0">거부:조리문제</span><span class="store-orders-reject-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="store-orders-reject-link" data-order-id="${esc(order.id)}" data-reject-reason="other" role="button" tabindex="0">거부:기타</span>
       </div>`
     : '';
-  return `
-    <div class="store-orders-accept-block">
-      <h4 class="store-orders-accept-title">주문 정보</h4>
-      <div class="store-orders-accept-info">
-        <div class="store-orders-info-row"><span class="store-orders-info-label">주문번호</span><span class="store-orders-info-value">#${esc(order.id)}</span></div>
-        <div class="store-orders-info-row"><span class="store-orders-info-label">주문일시</span><span class="store-orders-info-value">${orderDate}</span></div>
-        <div class="store-orders-info-row"><span class="store-orders-info-label">주문자명</span><span class="store-orders-info-value">${esc(order.depositor) || '—'}</span></div>
-        <div class="store-orders-info-row"><span class="store-orders-info-label">배송 희망일</span><span class="store-orders-info-value">${esc(deliveryHope)}</span></div>
-        <div class="store-orders-info-row"><span class="store-orders-info-label">배송 주소</span><span class="store-orders-info-value">${esc(address)}</span></div>
-      </div>
-      ${buttonsHtml}
-    </div>
-  `;
+  return showButtons
+    ? `<div class="store-orders-accept-block">${buttonsHtml}</div>`
+    : '';
 }
 
 function openOrderDetail(order) {
@@ -323,8 +314,7 @@ function renderList() {
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
           <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
-          <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
-          <div>이메일: ${order.user_email || '—'}</div>
+          <div>배송주소: ${(order.delivery_address || '').trim() || '—'}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
       </div>
@@ -433,12 +423,34 @@ async function loadStoreOrders() {
 
     if (storeOrdersData.length === 0) {
       content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다.</div>';
+      startStoreOrdersIdleRefresh();
       return;
     }
 
     renderList();
+    startStoreOrdersIdleRefresh();
   } catch (e) {
     content.innerHTML = '<div class="admin-loading admin-error">오류가 발생했습니다. 네트워크를 확인해 주세요.</div>';
+  }
+}
+
+function resetStoreOrdersIdleTimer() {
+  if (storeOrdersIdleTimerId != null) clearTimeout(storeOrdersIdleTimerId);
+  storeOrdersIdleTimerId = setTimeout(() => {
+    loadStoreOrders().then(() => resetStoreOrdersIdleTimer());
+  }, STORE_ORDERS_IDLE_MS);
+}
+
+function startStoreOrdersIdleRefresh() {
+  if (storeOrdersIdleTimerId != null) clearTimeout(storeOrdersIdleTimerId);
+  storeOrdersIdleTimerId = setTimeout(() => {
+    loadStoreOrders().then(() => resetStoreOrdersIdleTimer());
+  }, STORE_ORDERS_IDLE_MS);
+  if (!storeOrdersIdleListenersAttached) {
+    storeOrdersIdleListenersAttached = true;
+    document.addEventListener('click', resetStoreOrdersIdleTimer);
+    document.addEventListener('keydown', resetStoreOrdersIdleTimer);
+    document.addEventListener('input', resetStoreOrdersIdleTimer);
   }
 }
 
