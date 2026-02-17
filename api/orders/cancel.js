@@ -1,14 +1,16 @@
 /**
  * POST /api/orders/cancel
- * 주문 취소 (결제 완료 이전 단계만 가능)
+ * 주문 취소
+ * - 결제 완료 전: 항상 취소 가능 → 취소 사유 '고객취소'
+ * - 결제 완료 후: 배송 희망일 4일 전 23:59(KST)까지만 취소 가능 → 취소 사유 '결제취소'
  * 취소 시 주문서 PDF 재생성 (주문 취소건 표시)
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getOrderById } = require('../_redis');
-const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
+const { cancelOrderAndRegeneratePdf, isPastPaymentDeadline } = require('../_orderCancel');
 
-const CANCELABLE_STATUSES = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
+const CANCELABLE_BEFORE_PAYMENT = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -48,19 +50,34 @@ module.exports = async (req, res) => {
     }
 
     const status = order.status === 'pending' ? 'submitted' : (order.status || 'submitted');
-    if (!CANCELABLE_STATUSES.includes(status)) {
-      return apiResponse(res, 400, { error: '결제 완료 이후에는 주문을 취소할 수 없습니다.' });
-    }
 
     if (status === 'cancelled') {
       return apiResponse(res, 400, { error: '이미 취소된 주문입니다.' });
     }
 
-    await cancelOrderAndRegeneratePdf(id, '고객취소');
+    if (CANCELABLE_BEFORE_PAYMENT.includes(status)) {
+      await cancelOrderAndRegeneratePdf(id, '고객취소');
+      return apiResponse(res, 200, {
+        success: true,
+        message: '주문이 취소되었습니다.',
+      });
+    }
 
-    return apiResponse(res, 200, {
-      success: true,
-      message: '주문이 취소되었습니다.',
+    if (status === 'payment_completed') {
+      if (isPastPaymentDeadline(order)) {
+        return apiResponse(res, 400, {
+          error: '배송 희망일 4일 전 23:59 이후에는 결제 취소가 불가합니다.',
+        });
+      }
+      await cancelOrderAndRegeneratePdf(id, '결제취소');
+      return apiResponse(res, 200, {
+        success: true,
+        message: '주문이 취소되었습니다.',
+      });
+    }
+
+    return apiResponse(res, 400, {
+      error: '배송 준비 중이거나 완료된 주문은 취소할 수 없습니다.',
     });
   } catch (error) {
     console.error('Cancel order error:', error);

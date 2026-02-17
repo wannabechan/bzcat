@@ -331,6 +331,11 @@ function setupTabs() {
   });
 
   document.getElementById('adminPaymentRefreshBtn')?.addEventListener('click', () => {
+    const btn = document.getElementById('adminPaymentRefreshBtn');
+    if (btn) {
+      btn.classList.add('admin-refresh-pressed');
+      setTimeout(() => btn.classList.remove('admin-refresh-pressed'), 1000);
+    }
     refetchPaymentOrdersAndRender();
   });
 }
@@ -427,6 +432,7 @@ function renderPaymentList() {
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
           <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송주소: ${[(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—'}</div>
           <div>주문자: ${order.depositor || '—'} / ${order.contact || '—'}</div>
           <div>이메일: ${order.user_email || '—'}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>

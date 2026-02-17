@@ -58,6 +58,29 @@ function isOverdueForAccept(order) {
   return order.status === 'submitted';
 }
 
+/** 배송 희망일 3일 전 00:05 KST를 지났는지 (배송대기 목록에서 '배송 준비' 강조용) */
+function isDeliveryPrepareTime(order) {
+  const s = (order.delivery_date || '').toString().trim();
+  let y, m, d;
+  if (/^\d{8}$/.test(s)) {
+    y = parseInt(s.slice(0, 4), 10);
+    m = parseInt(s.slice(4, 6), 10) - 1;
+    d = parseInt(s.slice(6, 8), 10);
+  } else {
+    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return false;
+    y = parseInt(match[1], 10);
+    m = parseInt(match[2], 10) - 1;
+    d = parseInt(match[3], 10);
+  }
+  // (배송일 - 3일) 00:05 KST = (배송일 - 4일) 15:05 UTC
+  const threeDaysBeforeMidnight = new Date(Date.UTC(y, m, d - 3, 0, 0, 0, 0));
+  const deadline = new Date(threeDaysBeforeMidnight);
+  deadline.setUTCDate(deadline.getUTCDate() - 1);
+  deadline.setUTCHours(15, 5, 0, 0);
+  return Date.now() >= deadline.getTime();
+}
+
 function sortPaymentOrders(orders, sortBy, dir) {
   const copy = orders.slice();
   const asc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -303,9 +326,38 @@ function renderList() {
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
     const isCancelled = order.status === 'cancelled';
     const overdue = isOverdueForAccept(order);
-    const orderIdEl = overdue
-      ? `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`
-      : `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
+    const isDeliveryWaitPrepare = storeOrdersSubFilter === 'delivery_wait' && order.status === 'payment_completed' && isDeliveryPrepareTime(order);
+
+    let orderIdEl;
+    if (isDeliveryWaitPrepare) {
+      orderIdEl = `<span class="admin-payment-order-id store-orders-prepare-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-prepare-flash role="button" tabindex="0"><span class="store-orders-prepare-id">주문 #${order.id}</span><span class="store-orders-prepare-msg">배송을 준비해 주세요.</span></span>`;
+    } else if (overdue) {
+      orderIdEl = `<span class="admin-payment-order-id store-orders-overdue-flash admin-payment-order-id-link" data-order-detail="${order.id}" data-overdue-flash role="button" tabindex="0"><span class="store-orders-overdue-id">주문 #${order.id}</span><span class="store-orders-overdue-msg">주문 신청을 승인해 주세요.</span></span>`;
+    } else {
+      orderIdEl = `<span class="admin-payment-order-id admin-payment-order-id-link" data-order-detail="${order.id}" role="button" tabindex="0">주문 #${order.id}</span>`;
+    }
+
+    const deliveryAddressFull = [(order.delivery_address || '').trim(), (order.detail_address || '').trim()].filter(Boolean).join(' ') || '—';
+
+    const orderInfoBlock = isDeliveryWaitPrepare
+      ? `
+        <div class="admin-payment-order-info">
+          <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
+          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송주소: ${deliveryAddressFull}</div>
+          <div>주문자: ${(order.depositor || '').trim() || '—'}</div>
+          <div>연락처: ${(order.contact || '').trim() || '—'}</div>
+          <div>총액: ${formatAdminPrice(order.total_amount)}</div>
+        </div>
+      `
+      : `
+        <div class="admin-payment-order-info">
+          <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
+          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송주소: ${(order.delivery_address || '').trim() || '—'}</div>
+          <div>총액: ${formatAdminPrice(order.total_amount)}</div>
+        </div>
+      `;
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${order.id}">
@@ -313,12 +365,7 @@ function renderList() {
           ${orderIdEl}
           <span class="admin-payment-order-status ${order.status}">${getStatusLabel(order.status, order.cancel_reason)}</span>
         </div>
-        <div class="admin-payment-order-info">
-          <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${order.delivery_date} ${order.delivery_time || ''}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
-          <div>배송주소: ${(order.delivery_address || '').trim() || '—'}</div>
-          <div>총액: ${formatAdminPrice(order.total_amount)}</div>
-        </div>
+        ${orderInfoBlock}
       </div>
     `;
   }).join('');
@@ -334,6 +381,12 @@ function renderList() {
   content.querySelectorAll('[data-overdue-flash]').forEach(el => {
     const id = setInterval(() => {
       el.classList.toggle('store-orders-overdue-show-msg');
+    }, 1500);
+    storeOrdersFlashIntervals.push(id);
+  });
+  content.querySelectorAll('[data-prepare-flash]').forEach(el => {
+    const id = setInterval(() => {
+      el.classList.toggle('store-orders-prepare-show-msg');
     }, 1500);
     storeOrdersFlashIntervals.push(id);
   });
@@ -490,6 +543,11 @@ document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e
 });
 
 document.getElementById('storeOrdersRefreshBtn')?.addEventListener('click', () => {
+  const btn = document.getElementById('storeOrdersRefreshBtn');
+  if (btn) {
+    btn.classList.add('store-orders-refresh-pressed');
+    setTimeout(() => btn.classList.remove('store-orders-refresh-pressed'), 1000);
+  }
   loadStoreOrders();
 });
 

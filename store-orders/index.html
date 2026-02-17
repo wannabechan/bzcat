@@ -13,8 +13,9 @@
     .store-orders-page { max-width: 900px; margin: 0 auto; padding: 24px; }
     .store-orders-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
     .store-orders-header h1 { font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 10px; }
-    .store-orders-refresh-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; background: none; cursor: pointer; color: var(--color-text-secondary); -webkit-tap-highlight-color: transparent; }
+    .store-orders-refresh-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; background: none; cursor: pointer; color: var(--color-text-secondary); -webkit-tap-highlight-color: transparent; transition: color 0.2s ease; }
     .store-orders-refresh-btn:hover { color: var(--color-primary); }
+    .store-orders-refresh-btn.store-orders-refresh-pressed { color: var(--color-primary); }
     .store-orders-refresh-btn svg { width: 18px; height: 18px; }
     .admin-payment-order { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 16px; padding: 16px; }
     .admin-payment-order-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
@@ -38,6 +39,13 @@
     .store-orders-overdue-flash.store-orders-overdue-show-msg .store-orders-overdue-id { display: none; }
     .store-orders-overdue-flash.store-orders-overdue-show-msg .store-orders-overdue-msg { display: inline-block; animation: store-orders-blink 0.5s ease; }
     .store-orders-overdue-flash.store-orders-overdue-show-msg .store-orders-overdue-id { animation: none; }
+    .store-orders-prepare-flash { display: inline-block; min-height: 1.5em; }
+    .store-orders-prepare-flash .store-orders-prepare-id,
+    .store-orders-prepare-flash .store-orders-prepare-msg { display: inline-block; transition: opacity 0.25s ease; }
+    .store-orders-prepare-flash .store-orders-prepare-msg { display: none; color: var(--color-primary); font-weight: 600; }
+    .store-orders-prepare-flash.store-orders-prepare-show-msg .store-orders-prepare-id { display: none; }
+    .store-orders-prepare-flash.store-orders-prepare-show-msg .store-orders-prepare-msg { display: inline-block; animation: store-orders-blink 0.5s ease; }
+    .store-orders-prepare-flash.store-orders-prepare-show-msg .store-orders-prepare-id { animation: none; }
     @keyframes store-orders-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .admin-payment-order-cancelled { opacity: 0.7; }
     .admin-payment-order-cancelled .admin-payment-order-id { text-decoration: line-through; }
