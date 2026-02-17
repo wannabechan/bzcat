@@ -213,6 +213,15 @@ async function updateOrderAcceptToken(orderId, token) {
   return order;
 }
 
+async function updateOrderTossPaymentKey(orderId, paymentKey) {
+  const redis = getRedis();
+  const order = await getOrderById(orderId);
+  if (!order) return null;
+  order.toss_payment_key = paymentKey == null || paymentKey === '' ? null : String(paymentKey).trim();
+  await redis.set(`order:${orderId}`, JSON.stringify(order));
+  return order;
+}
+
 async function getAllOrders() {
   const redis = getRedis();
   const keys = await redis.keys('order:*');
@@ -361,6 +370,7 @@ module.exports = {
   updateOrderPaymentLink,
   updateOrderShippingNumber,
   updateOrderAcceptToken,
+  updateOrderTossPaymentKey,
   getAllOrders,
   getStores,
   getMenus,

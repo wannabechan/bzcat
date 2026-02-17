@@ -3,7 +3,7 @@
  * Toss 결제 성공 리다이렉트: 확인 후 주문 상태를 결제 완료로 변경
  */
 
-const { getOrderById, updateOrderStatus } = require('../_redis');
+const { getOrderById, updateOrderStatus, updateOrderTossPaymentKey } = require('../_redis');
 const { getAppOrigin, getTossSecretKeyForOrder } = require('./_helpers');
 
 const TOSS_CONFIRM = 'https://api.tosspayments.com/v1/payments/confirm';
@@ -65,6 +65,7 @@ module.exports = async (req, res) => {
       return res.redirect(302, `${redirectBase}?payment=error`);
     }
 
+    await updateOrderTossPaymentKey(orderIdStr, String(paymentKey).trim());
     await updateOrderStatus(orderIdStr, 'payment_completed');
     return res.redirect(302, `${redirectBase}?payment=success`);
   } catch (err) {

@@ -3,14 +3,17 @@
  * 주문 취소
  * - 결제 완료 전: 항상 취소 가능 → 취소 사유 '고객취소'
  * - 결제 완료 후: 배송 희망일 4일 전 23:59(KST)까지만 취소 가능 → 취소 사유 '결제취소'
+ *   이 경우 토스페이먼츠 결제 취소 API 호출 후 주문 취소 처리
  * 취소 시 주문서 PDF 재생성 (주문 취소건 표시)
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getOrderById } = require('../_redis');
 const { cancelOrderAndRegeneratePdf, isPastPaymentDeadline } = require('../_orderCancel');
+const { getTossSecretKeyForOrder } = require('../payment/_helpers');
 
 const CANCELABLE_BEFORE_PAYMENT = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
+const TOSS_CANCEL_API = 'https://api.tosspayments.com/v1/payments';
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -67,6 +70,35 @@ module.exports = async (req, res) => {
       if (isPastPaymentDeadline(order)) {
         return apiResponse(res, 400, {
           error: '배송 희망일 4일 전 23:59 이후에는 결제 취소가 불가합니다.',
+        });
+      }
+      const paymentKey = order.toss_payment_key || order.payment_key || '';
+      if (!paymentKey.trim()) {
+        return apiResponse(res, 400, {
+          error: '결제 정보를 찾을 수 없어 취소할 수 없습니다. 고객센터에 문의해 주세요.',
+        });
+      }
+      const TOSS_SECRET_KEY = await getTossSecretKeyForOrder(order);
+      if (!TOSS_SECRET_KEY) {
+        return apiResponse(res, 503, { error: '결제 설정을 찾을 수 없습니다.' });
+      }
+      const auth = Buffer.from(`${TOSS_SECRET_KEY}:`, 'utf8').toString('base64');
+      const cancelRes = await fetch(`${TOSS_CANCEL_API}/${encodeURIComponent(paymentKey.trim())}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify({
+          cancelReason: '고객 요청에 의한 결제 취소',
+        }),
+      });
+      const cancelData = await cancelRes.json().catch(() => ({}));
+      if (!cancelRes.ok) {
+        const errMsg = cancelData.message || cancelData.error?.message || cancelData.msg || '결제 취소에 실패했습니다.';
+        console.error('Toss payment cancel failed:', cancelRes.status, cancelData);
+        return apiResponse(res, cancelRes.status >= 500 ? 502 : 400, {
+          error: typeof errMsg === 'string' ? errMsg : '결제 취소에 실패했습니다.',
         });
       }
       await cancelOrderAndRegeneratePdf(id, '결제취소');
