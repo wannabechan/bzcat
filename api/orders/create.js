@@ -10,6 +10,7 @@ const { createOrder, updateOrderPdfUrl, getStores, updateOrderAcceptToken } = re
 const { generateOrderPdf } = require('../_pdf');
 const { getAppOrigin } = require('../payment/_helpers');
 const { getStoreForOrder, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
+const { sendAlimtalk } = require('../_alimtalk');
 
 module.exports = async (req, res) => {
   // CORS preflight
@@ -92,11 +93,11 @@ module.exports = async (req, res) => {
       // 주문은 완료됐으므로 PDF 실패만 로깅
     }
 
-    // 신규 주문 접수 시 해당 매장 담당자 이메일로 주문 내역 발송
-    if (process.env.RESEND_API_KEY && stores.length > 0) {
+    // 신규 주문 접수 시 해당 매장 담당자에게 이메일/알림톡 발송
+    if (stores.length > 0) {
       const store = getStoreForOrder(order, stores);
       const toEmail = store ? (store.storeContactEmail || '').trim() : null;
-      if (toEmail) {
+      if (process.env.RESEND_API_KEY && toEmail) {
         try {
           const acceptToken = crypto.randomBytes(24).toString('hex');
           await updateOrderAcceptToken(order.id, acceptToken);
@@ -121,6 +122,32 @@ module.exports = async (req, res) => {
         } catch (emailErr) {
           console.error('Order notification email error:', emailErr);
           // 이메일 실패해도 주문 접수 응답은 성공으로 반환
+        }
+      }
+
+      // 신규 주문 알림톡: 해당 매장 담당자 연락처(010 휴대폰)로 발송
+      if (store) {
+        const storeContact = (store.storeContact || '').trim();
+        const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_NEW_ORDER || '').trim();
+        if (storeContact && templateCode) {
+          try {
+            const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+            const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
+            const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
+            await sendAlimtalk({
+              templateCode,
+              recipientNo: storeContact,
+              templateParameter: {
+                orderId: order.id,
+                storeName,
+                depositor: (order.depositor || '').trim() || '-',
+                totalAmount: totalAmountStr,
+                deliveryDate: deliveryDateStr,
+              },
+            });
+          } catch (alimErr) {
+            console.error('Order notification alimtalk error:', alimErr);
+          }
         }
       }
     }

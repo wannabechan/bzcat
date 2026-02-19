@@ -254,6 +254,14 @@ function renderMenuItem(storeId, item, index) {
   `;
 }
 
+/** 담당자연락처: 010으로 시작하는 11자리 휴대폰 번호만 허용 (공백/하이픈 제거 후 판단) */
+function isValidKoreanMobile(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return true;
+  const digits = trimmed.replace(/\D/g, '');
+  return digits.length === 11 && digits.startsWith('010');
+}
+
 function collectData() {
   const stores = [];
   const menus = {};
@@ -1294,6 +1302,12 @@ async function handleSave() {
   hideError();
   try {
     const { stores, menus } = collectData();
+    for (const store of stores) {
+      if (!isValidKoreanMobile(store.storeContact)) {
+        alert('정상적인 핸드폰 번호를 입력해주세요.');
+        return;
+      }
+    }
     await saveStores(stores, menus);
     alert('저장되었습니다.');
   } catch (err) {

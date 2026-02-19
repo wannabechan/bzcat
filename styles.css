@@ -266,6 +266,14 @@ body {
   line-height: 1.5;
 }
 
+.login-footer-beta {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #b0b0b0;
+  font-weight: 300;
+}
+
 .login-footer p:last-child {
   margin-bottom: 0;
 }

@@ -1346,6 +1346,16 @@ function init() {
     postcodeOverlay.setAttribute('aria-hidden', 'false');
     new daum.Postcode({
       oncomplete: function (data) {
+        const sido = (data.sido || '').trim();
+        const sigungu = (data.sigungu || '').trim();
+        const isSeoul = sido.indexOf('서울') !== -1;
+        const isSeongnamBundang = sido.indexOf('경기') !== -1 && sigungu.indexOf('성남') !== -1 && sigungu.indexOf('분당') !== -1;
+        if (!isSeoul && !isSeongnamBundang) {
+          postcodeOverlay.classList.remove('visible');
+          postcodeOverlay.setAttribute('aria-hidden', 'true');
+          alert('해당 지역은 아직 BzCat 서비스가 지원되지 않습니다. 서울 또는 성남시 분당구 지역 중 선택 부탁드리겠습니다.');
+          return;
+        }
         let addr = '';
         if (data.userSelectedType === 'R') {
           addr = data.roadAddress || data.autoRoadAddress || data.address || '';
