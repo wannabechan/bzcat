@@ -1024,6 +1024,26 @@ function showOrderAcceptedModal(onConfirm) {
   modal.setAttribute('aria-hidden', 'false');
 }
 
+function showUnsupportedRegionModal() {
+  const modal = document.getElementById('unsupportedRegionModal');
+  if (!modal) return;
+  const confirmBtn = document.getElementById('unsupportedRegionModalConfirm');
+  const closeBtn = document.getElementById('unsupportedRegionModalClose');
+  const backdrop = modal.querySelector('.unsupported-region-modal-backdrop');
+  const doClose = () => {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    if (confirmBtn) confirmBtn.onclick = null;
+    if (closeBtn) closeBtn.onclick = null;
+    if (backdrop) backdrop.onclick = null;
+  };
+  if (confirmBtn) confirmBtn.onclick = doClose;
+  if (closeBtn) closeBtn.onclick = doClose;
+  if (backdrop) backdrop.onclick = doClose;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
 // 카테고리 탭 클릭
 function handleCategoryClick(e) {
   const tab = e.target.closest('.category-tab');
@@ -1353,7 +1373,7 @@ function init() {
         if (!isSeoul && !isSeongnamBundang) {
           postcodeOverlay.classList.remove('visible');
           postcodeOverlay.setAttribute('aria-hidden', 'true');
-          alert('해당 지역은 아직 BzCat 서비스가 지원되지 않습니다. 서울 또는 성남시 분당구 지역 중 선택 부탁드리겠습니다.');
+          showUnsupportedRegionModal();
           return;
         }
         let addr = '';
