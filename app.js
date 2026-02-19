@@ -82,7 +82,7 @@ const categoryChatBtn = document.getElementById('categoryChatBtn');
 let profileOrdersData = {};
 let profileAllOrders = [];
 let profileVisibleCount = 10;
-let profileIncludeCancelled = false;
+let profileIncludeCancelled = true;
 const PROFILE_PAGE_SIZE = 10;
 
 // 180초 무활동 시 API 재호출 + 주문 목록 영역만 다시 그리기
@@ -655,8 +655,8 @@ function closeOrderDetailOverlay() {
 
 // 마이프로필: 주문 내역
 async function openProfile() {
-  profileIncludeCancelled = false;
-  if (profileIncludeCancelledEl) profileIncludeCancelledEl.checked = false;
+  profileIncludeCancelled = true;
+  if (profileIncludeCancelledEl) profileIncludeCancelledEl.checked = true;
   profileDrawer.classList.add('open');
   profileOverlay.classList.add('visible');
   profileOverlay.setAttribute('aria-hidden', 'false');
