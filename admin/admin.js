@@ -911,14 +911,59 @@ function clearPaymentIdleTimer() {
   }
 }
 
+function getStatsDateStr(d) {
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+function getThisWeekMonday(d) {
+  const x = new Date(d.getTime());
+  const day = x.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+function getDefaultStatsRange() {
+  const end = new Date();
+  const start = getThisWeekMonday(end);
+  return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+}
+function getPresetStatsRange(preset) {
+  const today = new Date();
+  if (preset === 'this_week') {
+    const start = getThisWeekMonday(today);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+  }
+  if (preset === 'last_week') {
+    const thisMon = getThisWeekMonday(today);
+    const lastSun = new Date(thisMon.getTime());
+    lastSun.setDate(lastSun.getDate() - 1);
+    const lastMon = new Date(lastSun.getTime());
+    lastMon.setDate(lastMon.getDate() - 6);
+    return { start: getStatsDateStr(lastMon), end: getStatsDateStr(lastSun) };
+  }
+  if (preset === 'this_month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+  }
+  if (preset === 'last_month') {
+    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+  }
+  return null;
+}
+
 async function loadStats() {
   const content = document.getElementById('adminStatsContent');
   if (!content) return;
   content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
   const startInput = document.getElementById('adminStatsStartDate');
   const endInput = document.getElementById('adminStatsEndDate');
-  const startDate = startInput?.value?.trim() || '';
-  const endDate = endInput?.value?.trim() || '';
+  let startDate = startInput?.value?.trim() || '';
+  let endDate = endInput?.value?.trim() || '';
+  const defaultRange = getDefaultStatsRange();
+  if (!startDate) startDate = defaultRange.start;
+  if (!endDate) endDate = defaultRange.end;
   try {
     const token = await getToken();
     const params = new URLSearchParams();
@@ -949,27 +994,25 @@ function renderStats(container, data) {
   const crm = data.crm || {};
   const alerts = data.alerts || {};
   const dateRange = data.dateRange || {};
+  const defaultRange = getDefaultStatsRange();
+  const startVal = dateRange.startDate || defaultRange.start;
+  const endVal = dateRange.endDate || defaultRange.end;
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
-  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><label>기간</label><input type="date" id="adminStatsStartDate" value="' + escapeHtml(dateRange.startDate || '') + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(dateRange.endDate || '') + '"><button type="button" class="admin-btn admin-btn-primary" id="adminStatsApplyBtn">적용</button></div></div>';
-  html += '<div class="admin-stats-alerts">';
-  if ((alerts.unacceptedCount || 0) > 0 || (alerts.unpaidCount || 0) > 0) {
-    if (alerts.unacceptedCount > 0) html += '<p class="admin-stats-alert-item">미수령 주문 <strong>' + alerts.unacceptedCount + '</strong>건</p>';
-    if (alerts.unpaidCount > 0) html += '<p class="admin-stats-alert-item">결제 대기 <strong>' + alerts.unpaidCount + '</strong>건</p>';
-  } else {
-    html += '<p class="admin-stats-alert-item admin-stats-alert-ok">특별 대기 건 없음</p>';
-  }
-  html += '</div>';
+  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><label>기간</label><input type="date" id="adminStatsStartDate" value="' + escapeHtml(startVal) + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(endVal) + '"><button type="button" class="admin-btn admin-btn-primary" id="adminStatsApplyBtn">적용</button></div>';
+  html += '<div class="admin-stats-presets"><button type="button" class="admin-stats-preset-btn" data-preset="this_week">이번 주</button><button type="button" class="admin-stats-preset-btn" data-preset="last_week">지난 1주일</button><button type="button" class="admin-stats-preset-btn" data-preset="this_month">이번 달</button><button type="button" class="admin-stats-preset-btn" data-preset="last_month">지난 1개월</button></div></div>';
   html += '<div class="admin-stats-section"><h3>주문 현황</h3><p class="admin-stats-big">총 주문 <strong>' + (orderSummary.total ?? 0) + '</strong>건</p><div class="admin-stats-grid">';
   const byStatus = orderSummary.byStatus || {};
   Object.entries(byStatus).forEach(function (e) {
     const v = e[1];
     html += '<div class="admin-stats-card"><span class="admin-stats-card-label">' + escapeHtml((v && v.label) || e[0]) + '</span><span class="admin-stats-card-value">' + ((v && v.count) ?? 0) + '</span></div>';
   });
-  html += '</div><h4>매장별 주문</h4><ul class="admin-stats-list">';
+  html += '</div><h4 class="admin-stats-brand-heading">브랜드별 주문</h4><ul class="admin-stats-list">';
   const byStore = orderSummary.byStore || {};
   Object.entries(byStore).forEach(function (e) {
     const v = e[1];
-    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' <strong>' + ((v && v.count) ?? 0) + '</strong>건</li>';
+    const progress = (v && v.count) ?? 0;
+    const cancelled = (v && v.cancelledCount) ?? 0;
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' 진행 <strong>' + progress + '</strong>건 (취소 <strong>' + cancelled + '</strong>건)</li>';
   });
   html += '</ul></div>';
   html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + formatMoney(revenue.total) + '</strong></p><ul class="admin-stats-list">';
@@ -1007,6 +1050,18 @@ function renderStats(container, data) {
   html += '</tbody></table></div>';
   container.innerHTML = html;
   document.getElementById('adminStatsApplyBtn')?.addEventListener('click', loadStats);
+  container.querySelectorAll('.admin-stats-preset-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const preset = btn.getAttribute('data-preset');
+      const range = getPresetStatsRange(preset);
+      if (!range) return;
+      const startEl = document.getElementById('adminStatsStartDate');
+      const endEl = document.getElementById('adminStatsEndDate');
+      if (startEl) startEl.value = range.start;
+      if (endEl) endEl.value = range.end;
+      loadStats();
+    });
+  });
 }
 
 function getStatusLabel(status, cancelReason) {

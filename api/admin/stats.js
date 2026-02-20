@@ -57,7 +57,13 @@ module.exports = async (req, res) => {
     let orders = await getAllOrders() || [];
     const stores = await getStores() || [];
     const storeTitles = {};
-    stores.forEach((s) => { storeTitles[s.id] = s.title || s.id; storeTitles[s.slug] = s.title || s.id; });
+    const storeBrands = {};
+    stores.forEach((s) => {
+      storeTitles[s.id] = s.title || s.id;
+      storeTitles[s.slug] = s.title || s.id;
+      storeBrands[s.id] = (s.brand || s.title || s.id).trim() || s.title || s.id;
+      storeBrands[s.slug] = storeBrands[s.id];
+    });
 
     if (startDate || endDate) {
       orders = orders.filter((o) => {
@@ -70,6 +76,7 @@ module.exports = async (req, res) => {
 
     const byStatus = {};
     const byStore = {};
+    const byStoreCancelled = {};
     let revenueTotal = 0;
     const revenueByStore = {};
     const byDeliveryDate = {};
@@ -93,6 +100,7 @@ module.exports = async (req, res) => {
       byStatus[status] = (byStatus[status] || 0) + 1;
       const slug = getStoreSlugFromOrder(o);
       byStore[slug] = (byStore[slug] || 0) + 1;
+      if (status === 'cancelled') byStoreCancelled[slug] = (byStoreCancelled[slug] || 0) + 1;
 
       if (status === 'payment_completed' || status === 'shipping' || status === 'delivery_completed') {
         const amt = Number(o.total_amount) || 0;
@@ -206,17 +214,27 @@ module.exports = async (req, res) => {
       if (customerLastOrder[email] < inactiveThreshold) inactiveCount++;
     });
 
+    const ORDER_STAGE_LABELS = {
+      submitted: '신청완료',
+      order_accepted: '결제준비중',
+      payment_link_issued: '결제하기',
+      payment_completed: '결제완료',
+      shipping: '배송중',
+    };
     const orderSummaryByStatus = {};
-    Object.entries(byStatus).forEach(([k, v]) => {
-      orderSummaryByStatus[k] = { count: v, label: STATUS_LABELS[k] || k };
+    ['submitted', 'order_accepted', 'payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
+      let count = byStatus[k] || 0;
+      if (k === 'shipping') count = (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
+      orderSummaryByStatus[k] = { count, label: k === 'cancelled' ? '취소' : (ORDER_STAGE_LABELS[k] || k) };
     });
     const byStoreWithTitle = {};
     Object.entries(byStore).forEach(([slug, count]) => {
-      byStoreWithTitle[slug] = { count, title: storeTitles[slug] || slug };
+      const cancelled = byStoreCancelled[slug] || 0;
+      byStoreWithTitle[slug] = { count: count - cancelled, cancelledCount: cancelled, title: storeBrands[slug] || storeTitles[slug] || slug };
     });
     const revenueByStoreWithTitle = {};
     Object.entries(revenueByStore).forEach(([slug, amount]) => {
-      revenueByStoreWithTitle[slug] = { amount, title: storeTitles[slug] || slug };
+      revenueByStoreWithTitle[slug] = { amount, title: storeBrands[slug] || storeTitles[slug] || slug };
     });
 
     return apiResponse(res, 200, {
