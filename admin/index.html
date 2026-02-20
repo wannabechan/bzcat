@@ -171,8 +171,16 @@
     .admin-order-detail-item:last-child { border-bottom: none; }
     .admin-stats-toolbar { margin-bottom: 20px; }
     .admin-stats-daterange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .admin-stats-daterange label { font-size: 0.875rem; font-weight: 500; }
-    .admin-stats-daterange input[type="date"] { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; }
+    .admin-stats-daterange input[type="date"] { width: 140px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; box-sizing: border-box; }
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit { padding: 0; }
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit-text { padding: 0; margin: 0; }
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit-fields-wrapper { padding: 0; }
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit-year-field,
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit-month-field,
+    .admin-stats-daterange input[type="date"]::-webkit-datetime-edit-day-field { padding: 0; }
+    .admin-stats-search-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius); cursor: pointer; color: var(--color-text-secondary); }
+    .admin-stats-search-btn:hover { color: var(--color-text); }
+    .admin-stats-search-btn svg { width: 20px; height: 20px; }
     .admin-stats-presets { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .admin-stats-preset-btn { font-size: 0.75rem; padding: 4px 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); cursor: pointer; color: var(--color-text-secondary); }
     .admin-stats-preset-btn:hover { color: var(--color-text); border-color: var(--color-text-secondary); }
@@ -208,8 +216,8 @@
     </div>
 
     <div class="admin-tabs">
-      <button class="admin-tab" data-tab="stores">매장·메뉴 관리</button>
-      <button class="admin-tab active" data-tab="payments">결제 관리</button>
+      <button class="admin-tab" data-tab="stores">매장관리</button>
+      <button class="admin-tab active" data-tab="payments">결제관리</button>
       <button class="admin-tab" data-tab="stats">통계</button>
     </div>
 

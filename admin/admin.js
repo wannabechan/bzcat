@@ -956,7 +956,6 @@ function getPresetStatsRange(preset) {
 async function loadStats() {
   const content = document.getElementById('adminStatsContent');
   if (!content) return;
-  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
   const startInput = document.getElementById('adminStatsStartDate');
   const endInput = document.getElementById('adminStatsEndDate');
   let startDate = startInput?.value?.trim() || '';
@@ -964,6 +963,8 @@ async function loadStats() {
   const defaultRange = getDefaultStatsRange();
   if (!startDate) startDate = defaultRange.start;
   if (!endDate) endDate = defaultRange.end;
+
+  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
   try {
     const token = await getToken();
     const params = new URLSearchParams();
@@ -998,7 +999,7 @@ function renderStats(container, data) {
   const startVal = dateRange.startDate || defaultRange.start;
   const endVal = dateRange.endDate || defaultRange.end;
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
-  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><label>기간</label><input type="date" id="adminStatsStartDate" value="' + escapeHtml(startVal) + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(endVal) + '"><button type="button" class="admin-btn admin-btn-primary" id="adminStatsApplyBtn">적용</button></div>';
+  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><input type="date" id="adminStatsStartDate" value="' + escapeHtml(startVal) + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(endVal) + '"><button type="button" class="admin-stats-search-btn" id="adminStatsApplyBtn" title="조회" aria-label="조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button></div>';
   html += '<div class="admin-stats-presets"><button type="button" class="admin-stats-preset-btn" data-preset="this_week">이번 주</button><button type="button" class="admin-stats-preset-btn" data-preset="last_week">지난 1주일</button><button type="button" class="admin-stats-preset-btn" data-preset="this_month">이번 달</button><button type="button" class="admin-stats-preset-btn" data-preset="last_month">지난 1개월</button></div></div>';
   html += '<div class="admin-stats-section"><h3>주문 현황</h3><p class="admin-stats-big">총 주문 <strong>' + (orderSummary.total ?? 0) + '</strong>건</p><div class="admin-stats-grid">';
   const byStatus = orderSummary.byStatus || {};
@@ -1012,14 +1013,14 @@ function renderStats(container, data) {
     const v = e[1];
     const progress = (v && v.count) ?? 0;
     const cancelled = (v && v.cancelledCount) ?? 0;
-    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' 진행 <strong>' + progress + '</strong>건 (취소 <strong>' + cancelled + '</strong>건)</li>';
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : 진행 <strong>' + progress + '</strong>건 (취소 <strong>' + cancelled + '</strong>건)</li>';
   });
   html += '</ul></div>';
   html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + formatMoney(revenue.total) + '</strong></p><ul class="admin-stats-list">';
   const revByStore = revenue.byStore || {};
   Object.entries(revByStore).forEach(function (e) {
     const v = e[1];
-    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' ' + formatMoney(v && v.amount) + '</li>';
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + formatMoney(v && v.amount) + '</li>';
   });
   html += '</ul></div>';
   html += '<div class="admin-stats-section"><h3>전환 · 취소</h3><ul class="admin-stats-list"><li>신청 완료 <strong>' + (conversion.submittedCount ?? 0) + '</strong>건</li><li>결제 완료(이상) <strong>' + (conversion.paymentCompletedCount ?? 0) + '</strong>건</li><li>취소 <strong>' + (conversion.cancelledCount ?? 0) + '</strong>건</li><li>전환율 <strong>' + (conversion.conversionRate ?? 0) + '%</strong></li><li>취소율 <strong>' + (conversion.cancelRate ?? 0) + '%</strong></li></ul></div>';

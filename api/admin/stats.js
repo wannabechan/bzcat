@@ -215,14 +215,15 @@ module.exports = async (req, res) => {
     });
 
     const ORDER_STAGE_LABELS = {
-      submitted: '신청완료',
-      order_accepted: '결제준비중',
-      payment_link_issued: '결제하기',
-      payment_completed: '결제완료',
+      new_orders: '신규주문',
+      payment_link_issued: '결제대기',
+      payment_completed: '배송대기',
       shipping: '배송중',
     };
     const orderSummaryByStatus = {};
-    ['submitted', 'order_accepted', 'payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
+    const newOrdersCount = (byStatus.submitted || 0) + (byStatus.order_accepted || 0);
+    orderSummaryByStatus.new_orders = { count: newOrdersCount, label: '신규주문' };
+    ['payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
       let count = byStatus[k] || 0;
       if (k === 'shipping') count = (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
       orderSummaryByStatus[k] = { count, label: k === 'cancelled' ? '취소' : (ORDER_STAGE_LABELS[k] || k) };
