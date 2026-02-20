@@ -41,7 +41,7 @@
 | `NHN_ALIMTALK_APPKEY` | O | NHN Cloud 앱키 |
 | `NHN_ALIMTALK_SECRET_KEY` | O | NHN Cloud 시크릿 키 |
 | `NHN_ALIMTALK_SENDER_KEY` | O | 발신 프로필 발신 키(40자) |
-| `NHN_ALIMTALK_TEMPLATE_CODE_NEW_ORDER` | O | 위에서 등록한 **신규 주문** 템플릿 코드 |
+| `NHN_ALIMTALK_TEMPLATE_CODE_STORE_NEW_ORDER` | O | 위에서 등록한 **신규 주문**(매장 담당자용) 템플릿 코드 |
 
 - **Vercel**: 프로젝트 > Settings > Environment Variables 에 추가.
 - **로컬**: 프로젝트 루트 `.env.local` 에 추가.

@@ -128,7 +128,7 @@ module.exports = async (req, res) => {
       // 신규 주문 알림톡: 해당 매장 담당자 연락처(010 휴대폰)로 발송
       if (store) {
         const storeContact = (store.storeContact || '').trim();
-        const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_NEW_ORDER || '').trim();
+        const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_NEW_ORDER || '').trim();
         if (storeContact && templateCode) {
           try {
             const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
