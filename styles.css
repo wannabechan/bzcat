@@ -1343,6 +1343,11 @@ body {
   cursor: default;
 }
 
+.profile-menu-copy-second-line {
+  display: block;
+  margin-top: 4px;
+}
+
 .profile-menu-item {
   font-size: 0.75rem;
   font-weight: 500;
