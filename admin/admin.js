@@ -351,6 +351,9 @@ function setupTabs() {
       } else if (targetTab === 'payments') {
         document.getElementById('paymentsView').classList.add('active');
         loadPaymentManagement().then(() => startPaymentIdleRefresh());
+      } else if (targetTab === 'stats') {
+        document.getElementById('statsView').classList.add('active');
+        loadStats();
       }
     });
   });
@@ -906,6 +909,104 @@ function clearPaymentIdleTimer() {
     document.removeEventListener('keydown', resetPaymentIdleTimer);
     document.removeEventListener('input', resetPaymentIdleTimer);
   }
+}
+
+async function loadStats() {
+  const content = document.getElementById('adminStatsContent');
+  if (!content) return;
+  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  const startInput = document.getElementById('adminStatsStartDate');
+  const endInput = document.getElementById('adminStatsEndDate');
+  const startDate = startInput?.value?.trim() || '';
+  const endDate = endInput?.value?.trim() || '';
+  try {
+    const token = await getToken();
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/stats?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      content.innerHTML = `<div class="admin-stats-error">${escapeHtml(err.error || '통계를 불러올 수 없습니다.')}</div>`;
+      return;
+    }
+    const data = await res.json();
+    renderStats(content, data);
+  } catch (e) {
+    content.innerHTML = `<div class="admin-stats-error">${escapeHtml(e.message || '통계를 불러올 수 없습니다.')}</div>`;
+  }
+}
+
+function renderStats(container, data) {
+  const orderSummary = data.orderSummary || {};
+  const revenue = data.revenue || {};
+  const conversion = data.conversion || {};
+  const delivery = data.delivery || {};
+  const topMenus = data.topMenus || [];
+  const timeSeries = data.timeSeries || [];
+  const crm = data.crm || {};
+  const alerts = data.alerts || {};
+  const dateRange = data.dateRange || {};
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><label>기간</label><input type="date" id="adminStatsStartDate" value="' + escapeHtml(dateRange.startDate || '') + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(dateRange.endDate || '') + '"><button type="button" class="admin-btn admin-btn-primary" id="adminStatsApplyBtn">적용</button></div></div>';
+  html += '<div class="admin-stats-alerts">';
+  if ((alerts.unacceptedCount || 0) > 0 || (alerts.unpaidCount || 0) > 0) {
+    if (alerts.unacceptedCount > 0) html += '<p class="admin-stats-alert-item">미수령 주문 <strong>' + alerts.unacceptedCount + '</strong>건</p>';
+    if (alerts.unpaidCount > 0) html += '<p class="admin-stats-alert-item">결제 대기 <strong>' + alerts.unpaidCount + '</strong>건</p>';
+  } else {
+    html += '<p class="admin-stats-alert-item admin-stats-alert-ok">특별 대기 건 없음</p>';
+  }
+  html += '</div>';
+  html += '<div class="admin-stats-section"><h3>주문 현황</h3><p class="admin-stats-big">총 주문 <strong>' + (orderSummary.total ?? 0) + '</strong>건</p><div class="admin-stats-grid">';
+  const byStatus = orderSummary.byStatus || {};
+  Object.entries(byStatus).forEach(function (e) {
+    const v = e[1];
+    html += '<div class="admin-stats-card"><span class="admin-stats-card-label">' + escapeHtml((v && v.label) || e[0]) + '</span><span class="admin-stats-card-value">' + ((v && v.count) ?? 0) + '</span></div>';
+  });
+  html += '</div><h4>매장별 주문</h4><ul class="admin-stats-list">';
+  const byStore = orderSummary.byStore || {};
+  Object.entries(byStore).forEach(function (e) {
+    const v = e[1];
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' <strong>' + ((v && v.count) ?? 0) + '</strong>건</li>';
+  });
+  html += '</ul></div>';
+  html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + formatMoney(revenue.total) + '</strong></p><ul class="admin-stats-list">';
+  const revByStore = revenue.byStore || {};
+  Object.entries(revByStore).forEach(function (e) {
+    const v = e[1];
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' ' + formatMoney(v && v.amount) + '</li>';
+  });
+  html += '</ul></div>';
+  html += '<div class="admin-stats-section"><h3>전환 · 취소</h3><ul class="admin-stats-list"><li>신청 완료 <strong>' + (conversion.submittedCount ?? 0) + '</strong>건</li><li>결제 완료(이상) <strong>' + (conversion.paymentCompletedCount ?? 0) + '</strong>건</li><li>취소 <strong>' + (conversion.cancelledCount ?? 0) + '</strong>건</li><li>전환율 <strong>' + (conversion.conversionRate ?? 0) + '%</strong></li><li>취소율 <strong>' + (conversion.cancelRate ?? 0) + '%</strong></li></ul></div>';
+  html += '<div class="admin-stats-section"><h3>배송</h3><p>배송 완료 <strong>' + (delivery.deliveryCompletedCount ?? 0) + '</strong>건</p>';
+  const byDel = delivery.byDeliveryDate || {};
+  const delDates = Object.entries(byDel).sort(function (a, b) { return a[0].localeCompare(b[0]); }).slice(-10);
+  if (delDates.length) {
+    html += '<h4>배송 희망일별 (최근)</h4><ul class="admin-stats-list">';
+    delDates.forEach(function (d) { html += '<li>' + d[0] + ' <strong>' + d[1] + '</strong>건</li>'; });
+    html += '</ul>';
+  }
+  html += '</div>';
+  html += '<div class="admin-stats-section"><h3>인기 메뉴 (상위 20)</h3><table class="admin-stats-table"><thead><tr><th>메뉴</th><th>주문 수</th><th>매출</th></tr></thead><tbody>';
+  topMenus.slice(0, 20).forEach(function (m) {
+    html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="admin-stats-section"><h3>시계열 (일별)</h3><table class="admin-stats-table"><thead><tr><th>날짜</th><th>주문</th><th>매출</th></tr></thead><tbody>';
+  timeSeries.slice(-14).reverse().forEach(function (d) {
+    html += '<tr><td>' + escapeHtml(d.date) + '</td><td>' + d.orders + '</td><td>' + formatMoney(d.revenue) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="admin-stats-section"><h3>고객(CRM)</h3><p>총 고객 수 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명 · 재주문 <strong>' + (crm.repeatCustomers ?? 0) + '</strong>명 · 90일 미주문 <strong>' + (crm.inactiveCount ?? 0) + '</strong>명</p><h4>고객별 매출 상위 (최대 50명)</h4><table class="admin-stats-table"><thead><tr><th>이메일</th><th>주문 수</th><th>총 매출</th><th>최근 주문</th></tr></thead><tbody>';
+  (crm.byCustomer || []).forEach(function (c) {
+    const last = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
+    html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + last + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+  document.getElementById('adminStatsApplyBtn')?.addEventListener('click', loadStats);
 }
 
 function getStatusLabel(status, cancelReason) {
