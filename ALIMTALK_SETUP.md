@@ -53,3 +53,17 @@
 - **매장·메뉴 관리(admin)** 에서 해당 매장의 **담당자연락처**에 **010으로 시작하는 11자리 휴대폰 번호**가 저장되어 있어야 합니다.
 - 위 환경 변수 4개가 모두 설정되어 있어야 발송을 시도합니다.
 - 주문 생성 시 해당 주문의 매장(카테고리)에 연결된 담당자 연락처로만 발송됩니다.
+
+---
+
+## 4. 추가 알림톡 (주문 취소 / 결제 완료 / 배송 준비)
+
+다음 3종도 NHN 콘솔에 템플릿을 등록한 뒤, 아래 환경 변수에 **템플릿 코드**를 넣습니다.
+
+| 환경 변수 | 발송 시점 | 치환자 |
+|-----------|-----------|--------|
+| `NHN_ALIMTALK_TEMPLATE_CODE_STORE_CANCEL_ORDER` | 주문 취소 시 (고객/관리자/매장거부/결제기한만료 등) | `#{orderId}`, `#{storeName}`, `#{depositor}`, `#{cancelReason}` |
+| `NHN_ALIMTALK_TEMPLATE_CODE_STORE_PAY_ORDER` | 결제 링크로 결제 완료 시 | `#{orderId}`, `#{storeName}`, `#{depositor}`, `#{totalAmount}`, `#{deliveryDate}` |
+| `NHN_ALIMTALK_TEMPLATE_CODE_STORE_PREPARE_ORDER` | 배송일 **하루 전 오전 10시(KST)** 크론 발송 | `#{orderId}`, `#{storeName}`, `#{deliveryDate}`, `#{deliveryTime}`, `#{depositor}`, `#{totalAmount}` |
+
+- **배송 준비**는 Vercel Cron `0 1 * * *`(매일 01:00 UTC = 10:00 KST)에 `/api/cron/alimtalk-delivery-reminder`가 호출되며, 배송 희망일이 **내일**인 주문(결제완료/배송중/배송완료)에 대해 매장 담당자에게만 발송됩니다. `CRON_SECRET`이 설정되어 있어야 합니다.

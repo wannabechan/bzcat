@@ -6,6 +6,8 @@
 const { put } = require('@vercel/blob');
 const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
+const { getStoreForOrder } = require('./orders/_order-email');
+const { sendAlimtalk } = require('./_alimtalk');
 
 /** 배송 희망일 문자열을 (배송일 - 4일) 23:59 KST Date로 변환 */
 function getPaymentDeadline(deliveryDateStr) {
@@ -56,6 +58,32 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
   } catch (err) {
     console.error('PDF regeneration on cancel:', err);
   }
+
+  // 주문 취소 시 매장 담당자 알림톡
+  try {
+    const stores = await getStores();
+    const store = getStoreForOrder(order, stores || []);
+    const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_CANCEL_ORDER || '').trim();
+    if (store && templateCode) {
+      const storeContact = (store.storeContact || '').trim();
+      if (storeContact) {
+        const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+        await sendAlimtalk({
+          templateCode,
+          recipientNo: storeContact,
+          templateParameter: {
+            orderId: order.id,
+            storeName,
+            depositor: (order.depositor || '').trim() || '-',
+            cancelReason: (order.cancel_reason || '').trim() || '-',
+          },
+        });
+      }
+    }
+  } catch (alimErr) {
+    console.error('Alimtalk cancel notification error:', alimErr);
+  }
+
   return order;
 }
 

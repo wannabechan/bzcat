@@ -3,8 +3,10 @@
  * Toss 결제 성공 리다이렉트: 확인 후 주문 상태를 결제 완료로 변경
  */
 
-const { getOrderById, updateOrderStatus, updateOrderTossPaymentKey } = require('../_redis');
+const { getOrderById, updateOrderStatus, updateOrderTossPaymentKey, getStores } = require('../_redis');
 const { getAppOrigin, getTossSecretKeyForOrder } = require('./_helpers');
+const { getStoreForOrder } = require('../orders/_order-email');
+const { sendAlimtalk } = require('../_alimtalk');
 
 const TOSS_CONFIRM = 'https://api.tosspayments.com/v1/payments/confirm';
 
@@ -67,6 +69,37 @@ module.exports = async (req, res) => {
 
     await updateOrderTossPaymentKey(orderIdStr, String(paymentKey).trim());
     await updateOrderStatus(orderIdStr, 'payment_completed');
+
+    // 결제 완료 시 매장 담당자 알림톡
+    const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_PAY_ORDER || '').trim();
+    if (templateCode) {
+      try {
+        const stores = await getStores();
+        const store = getStoreForOrder(order, stores || []);
+        if (store) {
+          const storeContact = (store.storeContact || '').trim();
+          if (storeContact) {
+            const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+            const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
+            const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
+            await sendAlimtalk({
+              templateCode,
+              recipientNo: storeContact,
+              templateParameter: {
+                orderId: order.id,
+                storeName,
+                depositor: (order.depositor || '').trim() || '-',
+                totalAmount: totalAmountStr,
+                deliveryDate: deliveryDateStr,
+              },
+            });
+          }
+        }
+      } catch (alimErr) {
+        console.error('Alimtalk payment-completed notification error:', alimErr);
+      }
+    }
+
     return res.redirect(302, `${redirectBase}?payment=success`);
   } catch (err) {
     console.error('Payment success handler error:', err);
