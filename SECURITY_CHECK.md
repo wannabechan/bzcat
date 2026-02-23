@@ -42,8 +42,13 @@
 ### 8. 환경 변수 / 비밀값
 - `.env`, `.env.local` 등이 `.gitignore`에 포함되어 있어 코드에 직접 노출되지 않음. 비밀값은 모두 `process.env` 사용.
 
-### 9. Cron 인증 (`api/cron/auto-cancel-orders.js`)
-- `CRON_SECRET`으로 Bearer/query 검증. `CRON_SECRET`이 비어 있으면 모든 요청 거절되므로, 프로덕션에서만 강한 시크릿 설정하면 됨.
+### 9. Cron 인증 (`api/cron/auto-cancel-orders.js`, `api/cron/alimtalk-delivery-reminder.js`)
+- `CRON_SECRET`으로 **Authorization: Bearer &lt;시크릿&gt;** 헤더만 검증. 쿼리스트링(`?secret=`)은 사용하지 않아 URL/리퍼러/로그에 시크릿이 남지 않음.
+- `CRON_SECRET`이 비어 있으면 모든 요청 거절. 프로덕션에서 강한 시크릿 설정 필요.
+
+### 10. 주문 생성 입력 검증 (`api/orders/create.js`)
+- `orderItems`: 배열 여부, 길이 1~100 제한, 각 항목에 `id`/`name`/`price`/`quantity` 필수. `quantity`는 1~999 정수, `price`는 0 이상 유한수만 허용.
+- 비정상 body로 인한 과다 주문·메모리 사용 완화.
 
 ---
 

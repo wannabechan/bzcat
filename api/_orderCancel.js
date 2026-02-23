@@ -46,8 +46,10 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
   await updateOrderCancelReason(orderId, cancelReason || null);
   order.status = 'cancelled';
   order.cancel_reason = cancelReason || null;
+
+  let stores = [];
   try {
-    const stores = await getStores();
+    stores = await getStores() || [];
     const pdfBuffer = await generateOrderPdf(order, stores, { isCancelled: true });
     const pathname = `orders/order-${orderId}.pdf`;
     const blob = await put(pathname, pdfBuffer, {
@@ -61,8 +63,7 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
 
   // 주문 취소 시 매장 담당자 알림톡
   try {
-    const stores = await getStores();
-    const store = getStoreForOrder(order, stores || []);
+    const store = getStoreForOrder(order, stores);
     const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_CANCEL_ORDER || '').trim();
     if (store && templateCode) {
       const storeContact = (store.storeContact || '').trim();

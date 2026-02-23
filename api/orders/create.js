@@ -55,6 +55,23 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '필수 정보를 모두 입력해 주세요.' });
     }
 
+    // orderItems 구조 검증 (배열, 최대 100건, 각 항목 id/name/price/quantity)
+    const MAX_ORDER_ITEMS = 100;
+    if (!Array.isArray(orderItems) || orderItems.length === 0 || orderItems.length > MAX_ORDER_ITEMS) {
+      return apiResponse(res, 400, { error: '주문 메뉴가 올바르지 않습니다.' });
+    }
+    for (let i = 0; i < orderItems.length; i++) {
+      const it = orderItems[i];
+      if (!it || typeof it !== 'object' || it.id == null || it.name == null || it.price == null || it.quantity == null) {
+        return apiResponse(res, 400, { error: '주문 메뉴 형식이 올바르지 않습니다.' });
+      }
+      const qty = Number(it.quantity);
+      const price = Number(it.price);
+      if (!Number.isInteger(qty) || qty < 1 || qty > 999 || !Number.isFinite(price) || price < 0) {
+        return apiResponse(res, 400, { error: '주문 메뉴 수량/가격이 올바르지 않습니다.' });
+      }
+    }
+
     // 최소 주문 금액 검증 (테스트용 100원)
     const TOTAL_MIN = 100;
     const orderTotal = Number(totalAmount) || 0;
