@@ -592,7 +592,7 @@ function renderStoreOrdersStats(container, data) {
     html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + line + '</li>';
   });
   html += '</ul></div>';
-  html += '<div class="admin-stats-section"><h3>일 매출</h3><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>날짜</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section"><h3 class="admin-stats-section-title-with-hint">일 매출<span class="admin-stats-section-hint">&nbsp;*매출은 예상매출 포함</span></h3><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>날짜</th><th>진행주문</th><th>매출</th></tr></thead><tbody>';
   timeSeries.slice(-14).reverse().forEach(function (d) {
     html += '<tr><td>' + escapeHtml(d.date) + '</td><td>' + d.orders + '</td><td>' + formatMoney(d.revenue) + '</td></tr>';
   });
@@ -600,7 +600,7 @@ function renderStoreOrdersStats(container, data) {
   const menuFilterLimit = storeOrdersStatsMenuFilter === 'top10' ? 10 : (topMenus.length || 20);
   const menuList = topMenus.slice(0, menuFilterLimit);
   const menuFilterClass = (key) => 'admin-stats-menu-filter-btn' + (storeOrdersStatsMenuFilter === key ? ' active' : '');
-  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출</h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3 admin-stats-table-menu"><thead><tr><th>메뉴</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출<span class="admin-stats-section-hint">&nbsp;*매출은 예상매출 포함</span></h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3 admin-stats-table-menu"><thead><tr><th>메뉴</th><th>진행주문</th><th>매출</th></tr></thead><tbody>';
   menuList.forEach(function (m) {
     html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
   });
@@ -617,7 +617,7 @@ function renderStoreOrdersStats(container, data) {
   html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
   html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
   html += '</ul></div>';
-  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><p class="admin-stats-crm-intro">총 고객 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명<br>30일이내 재주문 <strong>' + (crm.repeatWithin30 ?? 0) + '</strong>명<br>60일이내 재주문 <strong>' + (crm.repeatWithin60 ?? 0) + '</strong>명<br>90일이내 재주문 <strong>' + (crm.repeatWithin90 ?? 0) + '</strong>명<br><br></p><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
   (crm.byCustomer || []).forEach(function (c) {
     const lastDate = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
     html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + lastDate + '</td><td>n/a</td></tr>';
