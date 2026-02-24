@@ -1071,7 +1071,7 @@ function renderStats(container, data) {
   const menuFilterLimit = adminStatsMenuFilter === 'top10' ? 10 : (topMenus.length || 20);
   const menuList = topMenus.slice(0, menuFilterLimit);
   const menuFilterClass = (key) => 'admin-stats-menu-filter-btn' + (adminStatsMenuFilter === key ? ' active' : '');
-  html += '<div class="admin-stats-section admin-stats-section-menu"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출</h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>메뉴</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출</h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3 admin-stats-table-menu"><thead><tr><th>메뉴</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
   menuList.forEach(function (m) {
     html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
   });
