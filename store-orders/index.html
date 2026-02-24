@@ -146,11 +146,13 @@
     .admin-stats-table-cols3 th:nth-child(3), .admin-stats-table-cols3 td:nth-child(3) { width: 30%; }
     .admin-stats-table th, .admin-stats-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
     .admin-stats-table th { font-weight: 600; color: var(--color-text-secondary); }
-    .admin-stats-table-menu tbody tr { height: 10em; }
-    .admin-stats-table-menu tbody td { height: 10em; min-height: 10em; max-height: 10em; box-sizing: border-box; vertical-align: middle; }
+    .admin-stats-table-menu tbody tr { height: 3em; }
+    .admin-stats-table-menu tbody td { height: 3em; min-height: 3em; max-height: 3em; box-sizing: border-box; vertical-align: middle; }
     .admin-stats-table-menu tbody td:first-child { overflow: hidden; }
     .admin-stats-error { padding: 20px; color: #c5221f; font-size: 0.9375rem; }
     @media (max-width: 768px) {
+      .admin-stats-table-menu tbody tr { height: 5em; }
+      .admin-stats-table-menu tbody td { height: 5em; min-height: 5em; max-height: 5em; }
       .admin-stats-daterange input[type="date"] { flex: 1; min-width: 0; font-size: 0.8125rem; }
       .admin-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .admin-stats-card { min-width: 0; }
