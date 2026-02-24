@@ -179,12 +179,12 @@ module.exports = async (req, res) => {
       payment_link_issued: '결제대기',
       payment_completed: '배송대기',
       shipping: '배송중',
+      delivery_completed: '배송완료',
     };
     const orderSummaryByStatus = {};
     orderSummaryByStatus.new_orders = { count: newOrdersCount, label: '신규주문' };
-    ['payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
-      let count = byStatus[k] || 0;
-      if (k === 'shipping') count = (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
+    ['payment_link_issued', 'payment_completed', 'shipping', 'delivery_completed', 'cancelled'].forEach((k) => {
+      const count = byStatus[k] || 0;
       orderSummaryByStatus[k] = { count, label: k === 'cancelled' ? '취소' : (ORDER_STAGE_LABELS[k] || k) };
     });
     const byStoreWithTitle = {};

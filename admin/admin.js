@@ -5,6 +5,7 @@
 const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
 const FETCH_TIMEOUT_MS = 15000;
+const ADMIN_TAB_KEY = 'bzcat_admin_tab';
 
 let adminPaymentOrders = [];
 let adminPaymentTotal = 0;
@@ -340,26 +341,40 @@ function showLoadingError(msg, showRetry = false) {
 function setupTabs() {
   const tabs = document.querySelectorAll('.admin-tab');
   const views = document.querySelectorAll('.admin-view');
-  
+
+  function activateTab(targetTab) {
+    tabs.forEach(t => t.classList.remove('active'));
+    views.forEach(v => v.classList.remove('active'));
+    const tabEl = document.querySelector(`.admin-tab[data-tab="${targetTab}"]`);
+    if (tabEl) tabEl.classList.add('active');
+    if (targetTab === 'stores') {
+      document.getElementById('storesView').classList.add('active');
+      clearPaymentIdleTimer();
+    } else if (targetTab === 'payments') {
+      document.getElementById('paymentsView').classList.add('active');
+      loadPaymentManagement().then(() => startPaymentIdleRefresh());
+    } else     if (targetTab === 'stats') {
+      document.getElementById('statsView').classList.add('active');
+      loadStats();
+    } else if (targetTab === 'settlement') {
+      document.getElementById('settlementView').classList.add('active');
+    }
+  }
+
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetTab = tab.dataset.tab;
-      tabs.forEach(t => t.classList.remove('active'));
-      views.forEach(v => v.classList.remove('active'));
-      tab.classList.add('active');
-      if (targetTab === 'stores') {
-        document.getElementById('storesView').classList.add('active');
-        clearPaymentIdleTimer();
-      } else if (targetTab === 'payments') {
-        document.getElementById('paymentsView').classList.add('active');
-        loadPaymentManagement().then(() => startPaymentIdleRefresh());
-      } else if (targetTab === 'stats') {
-        document.getElementById('statsView').classList.add('active');
-        loadStats();
-      }
+      if (targetTab) sessionStorage.setItem(ADMIN_TAB_KEY, targetTab);
+      activateTab(targetTab);
     });
   });
 
+  const nav = performance.getEntriesByType?.('navigation')?.[0];
+  const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
+  const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
+  if (isReload && saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved)) {
+    activateTab(saved);
+  }
 }
 
 /** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */

@@ -4,6 +4,7 @@
 
 const TOKEN_KEY = 'bzcat_token';
 const API_BASE = '';
+const STORE_ORDERS_TAB_KEY = 'bzcat_store_orders_tab';
 
 let storeOrdersData = [];
 let storeOrdersTotal = 0;
@@ -765,25 +766,41 @@ function setupStoreOrdersTabs() {
   const tabs = document.querySelectorAll('.store-orders-tab[data-store-tab]');
   const listView = document.getElementById('storeOrdersListView');
   const statsView = document.getElementById('storeOrdersStatsView');
+
+  function activateTab(targetTab) {
+    tabs.forEach((t) => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    listView?.classList.remove('active');
+    statsView?.classList.remove('active');
+    const tabEl = document.querySelector(`.store-orders-tab[data-store-tab="${targetTab}"]`);
+    if (tabEl) {
+      tabEl.classList.add('active');
+      tabEl.setAttribute('aria-selected', 'true');
+    }
+    if (targetTab === 'list') {
+      listView?.classList.add('active');
+    } else if (targetTab === 'stats') {
+      statsView?.classList.add('active');
+      loadStoreOrdersStats();
+    }
+  }
+
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
       const targetTab = tab.dataset.storeTab;
-      tabs.forEach((t) => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      listView?.classList.remove('active');
-      statsView?.classList.remove('active');
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      if (targetTab === 'list') {
-        listView?.classList.add('active');
-      } else if (targetTab === 'stats') {
-        statsView?.classList.add('active');
-        loadStoreOrdersStats();
-      }
+      if (targetTab) sessionStorage.setItem(STORE_ORDERS_TAB_KEY, targetTab);
+      activateTab(targetTab);
     });
   });
+
+  const nav = performance.getEntriesByType?.('navigation')?.[0];
+  const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
+  const saved = sessionStorage.getItem(STORE_ORDERS_TAB_KEY);
+  if (isReload && saved && ['list', 'stats'].includes(saved)) {
+    activateTab(saved);
+  }
 }
 
 setupStoreOrdersTabs();
