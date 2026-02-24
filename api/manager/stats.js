@@ -1,20 +1,12 @@
 /**
- * GET /api/admin/stats
- * 통계 집계 (admin 전용) - 주문/매출/전환/배송/메뉴/시계열/CRM/알림
+ * GET /api/manager/stats
+ * 통계 집계 (매장 담당자 전용) - 로그인한 담당자 매장에 해당하는 주문만 집계
+ * 응답 구조는 /api/admin/stats 와 동일
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
-
-const STATUS_LABELS = {
-  submitted: '신청완료',
-  order_accepted: '결제준비중',
-  payment_link_issued: '결제대기',
-  payment_completed: '결제완료',
-  shipping: '배송중',
-  delivery_completed: '배송완료',
-  cancelled: '취소',
-};
+const { getStoreEmailForOrder } = require('../orders/_order-email');
 
 function parseDate(str) {
   if (!str) return null;
@@ -50,19 +42,20 @@ module.exports = async (req, res) => {
     const token = authHeader.substring(7);
     const user = verifyToken(token);
     if (!user) return apiResponse(res, 401, { error: '유효하지 않은 토큰입니다.' });
-    if (user.level !== 'admin') return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
+
+    const stores = await getStores() || [];
+    const managerEmail = (user.email || '').trim().toLowerCase();
+    if (!managerEmail) {
+      return apiResponse(res, 403, { error: '담당자로 등록된 매장이 없습니다.' });
+    }
 
     const startDate = parseDate(req.query.startDate);
     const endDate = parseDate(req.query.endDate);
     let orders = await getAllOrders() || [];
-    const stores = await getStores() || [];
-    const storeTitles = {};
-    const storeBrands = {};
-    stores.forEach((s) => {
-      storeTitles[s.id] = s.title || s.id;
-      storeTitles[s.slug] = s.title || s.id;
-      storeBrands[s.id] = (s.brand || s.title || s.id).trim() || s.title || s.id;
-      storeBrands[s.slug] = storeBrands[s.id];
+
+    orders = orders.filter((o) => {
+      const storeEmail = getStoreEmailForOrder(o, stores);
+      return storeEmail && storeEmail.trim().toLowerCase() === managerEmail;
     });
 
     if (startDate || endDate) {
@@ -73,6 +66,15 @@ module.exports = async (req, res) => {
         return true;
       });
     }
+
+    const storeTitles = {};
+    const storeBrands = {};
+    stores.forEach((s) => {
+      storeTitles[s.id] = s.title || s.id;
+      storeTitles[s.slug] = s.title || s.id;
+      storeBrands[s.id] = (s.brand || s.title || s.id).trim() || s.title || s.id;
+      storeBrands[s.slug] = storeBrands[s.id];
+    });
 
     const byStatus = {};
     const byStore = {};
@@ -170,8 +172,35 @@ module.exports = async (req, res) => {
     });
 
     const totalOrders = orders.length;
-    const conversionRate = submittedCount > 0 ? Math.round((paymentCompletedCount / (totalOrders - cancelledCount)) * 100) : 0;
-    const cancelRate = totalOrders > 0 ? Math.round((cancelledCount / totalOrders) * 100) : 0;
+    const newOrdersCount = (byStatus.submitted || 0) + (byStatus.order_accepted || 0);
+    const paymentCompletedOrMore = (byStatus.payment_completed || 0) + (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
+    const ORDER_STAGE_LABELS = {
+      new_orders: '신규주문',
+      payment_link_issued: '결제대기',
+      payment_completed: '배송대기',
+      shipping: '배송중',
+    };
+    const orderSummaryByStatus = {};
+    orderSummaryByStatus.new_orders = { count: newOrdersCount, label: '신규주문' };
+    ['payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
+      let count = byStatus[k] || 0;
+      if (k === 'shipping') count = (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
+      orderSummaryByStatus[k] = { count, label: k === 'cancelled' ? '취소' : (ORDER_STAGE_LABELS[k] || k) };
+    });
+    const byStoreWithTitle = {};
+    Object.entries(byStore).forEach(([slug, count]) => {
+      const cancelled = byStoreCancelled[slug] || 0;
+      byStoreWithTitle[slug] = { count: count - cancelled, cancelledCount: cancelled, title: storeBrands[slug] || storeTitles[slug] || slug };
+    });
+    const revenueByStoreWithTitle = {};
+    const allRevenueSlugs = new Set([...Object.keys(revenueByStore), ...Object.keys(revenueExpectedByStore)]);
+    [...allRevenueSlugs].forEach((slug) => {
+      revenueByStoreWithTitle[slug] = {
+        amount: revenueByStore[slug] || 0,
+        expected: revenueExpectedByStore[slug] || 0,
+        title: storeBrands[slug] || storeTitles[slug] || slug,
+      };
+    });
 
     const topMenus = Object.entries(menuOrderCount)
       .filter(([k]) => !k.endsWith(':name'))
@@ -244,36 +273,6 @@ module.exports = async (req, res) => {
       })
       .sort((a, b) => b.totalAmount - a.totalAmount);
 
-    const ORDER_STAGE_LABELS = {
-      new_orders: '신규주문',
-      payment_link_issued: '결제대기',
-      payment_completed: '배송대기',
-      shipping: '배송중',
-    };
-    const orderSummaryByStatus = {};
-    const newOrdersCount = (byStatus.submitted || 0) + (byStatus.order_accepted || 0);
-    const paymentCompletedOrMore = (byStatus.payment_completed || 0) + (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
-    orderSummaryByStatus.new_orders = { count: newOrdersCount, label: '신규주문' };
-    ['payment_link_issued', 'payment_completed', 'shipping', 'cancelled'].forEach((k) => {
-      let count = byStatus[k] || 0;
-      if (k === 'shipping') count = (byStatus.shipping || 0) + (byStatus.delivery_completed || 0);
-      orderSummaryByStatus[k] = { count, label: k === 'cancelled' ? '취소' : (ORDER_STAGE_LABELS[k] || k) };
-    });
-    const byStoreWithTitle = {};
-    Object.entries(byStore).forEach(([slug, count]) => {
-      const cancelled = byStoreCancelled[slug] || 0;
-      byStoreWithTitle[slug] = { count: count - cancelled, cancelledCount: cancelled, title: storeBrands[slug] || storeTitles[slug] || slug };
-    });
-    const revenueByStoreWithTitle = {};
-    const allRevenueSlugs = new Set([...Object.keys(revenueByStore), ...Object.keys(revenueExpectedByStore)]);
-    [...allRevenueSlugs].forEach((slug) => {
-      revenueByStoreWithTitle[slug] = {
-        amount: revenueByStore[slug] || 0,
-        expected: revenueExpectedByStore[slug] || 0,
-        title: storeBrands[slug] || storeTitles[slug] || slug,
-      };
-    });
-
     return apiResponse(res, 200, {
       orderSummary: {
         total: totalOrders,
@@ -316,7 +315,7 @@ module.exports = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Admin stats error:', error);
+    console.error('Manager stats error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });
   }
 };

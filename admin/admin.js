@@ -10,9 +10,11 @@ let adminPaymentOrders = [];
 let adminPaymentTotal = 0;
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
-let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait'
+let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait' | 'shipping' | 'delivery_completed'
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
+let adminStatsLastData = null;
+let adminStatsMenuFilter = 'top10'; // 'top10' | 'all'
 
 const PAYMENT_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
 let paymentIdleTimerId = null;
@@ -24,7 +26,7 @@ const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
 const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
-async function getToken() {
+function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
@@ -50,7 +52,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 async function checkAdmin() {
-  const token = await getToken();
+  const token = getToken();
   if (!token) return { ok: false, error: '로그인이 필요합니다.' };
   try {
     const res = await fetchWithTimeout(`${API_BASE}/api/auth/session`, {
@@ -66,7 +68,7 @@ async function checkAdmin() {
 }
 
 async function fetchStores() {
-  const token = await getToken();
+  const token = getToken();
   try {
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
       headers: { 'Authorization': `Bearer ${token}` },
@@ -83,7 +85,7 @@ async function fetchStores() {
 }
 
 async function saveStores(stores, menus) {
-  const token = await getToken();
+  const token = getToken();
   const res = await fetch(`${API_BASE}/api/admin/stores`, {
     method: 'PUT',
     headers: {
@@ -99,7 +101,7 @@ async function saveStores(stores, menus) {
 }
 
 async function uploadImage(file) {
-  const token = await getToken();
+  const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch(`${API_BASE}/api/admin/upload-image`, {
@@ -358,14 +360,6 @@ function setupTabs() {
     });
   });
 
-  document.getElementById('adminPaymentRefreshBtn')?.addEventListener('click', () => {
-    const btn = document.getElementById('adminPaymentRefreshBtn');
-    if (btn) {
-      btn.classList.add('admin-refresh-pressed');
-      setTimeout(() => btn.classList.remove('admin-refresh-pressed'), 1000);
-    }
-    refetchPaymentOrdersAndRender();
-  });
 }
 
 /** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
@@ -402,6 +396,8 @@ function renderPaymentList() {
   const newCount = allOrders.filter(o => !cancelled(o) && (o.status === 'submitted' || o.status === 'order_accepted')).length;
   const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
   const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
+  const shippingCount = allOrders.filter(o => !cancelled(o) && o.status === 'shipping').length;
+  const deliveryCompletedCount = allOrders.filter(o => !cancelled(o) && o.status === 'delivery_completed').length;
 
   let filtered;
   if (adminPaymentSubFilter === 'new') {
@@ -410,6 +406,10 @@ function renderPaymentList() {
     filtered = allOrders.filter(o => o.status === 'payment_link_issued');
   } else if (adminPaymentSubFilter === 'delivery_wait') {
     filtered = allOrders.filter(o => o.status === 'payment_completed');
+  } else if (adminPaymentSubFilter === 'shipping') {
+    filtered = allOrders.filter(o => o.status === 'shipping');
+  } else if (adminPaymentSubFilter === 'delivery_completed') {
+    filtered = allOrders.filter(o => o.status === 'delivery_completed');
   } else {
     filtered = allOrders.slice();
   }
@@ -427,10 +427,16 @@ function renderPaymentList() {
       </div>
     </div>
     <div class="admin-payment-subfilter">
-      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
-      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
-      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
-      <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
+      </div>
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'shipping' ? 'active' : ''}" data-subfilter="shipping" role="button" tabindex="0">배송중 ${shippingCount}개</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'delivery_completed' ? 'active' : ''}" data-subfilter="delivery_completed" role="button" tabindex="0">배송완료 ${deliveryCompletedCount}개</span>
+      </div>
     </div>
   `;
 
@@ -439,6 +445,8 @@ function renderPaymentList() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
+    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : 'D-' + daysUntilDelivery;
+    const dDayClass = daysUntilDelivery < 0 ? 'admin-days-overdue' : (daysUntilDelivery <= 7 ? 'admin-days-urgent' : '');
     const isCancelled = order.status === 'cancelled';
     const isUrgent = !isCancelled && daysUntilDelivery <= 7 && !(order.payment_link && String(order.payment_link).trim());
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
@@ -466,7 +474,7 @@ function renderPaymentList() {
         </div>
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${dDayClass}">(${dDayText})</span>`}</div>
           <div>배송주소: ${deliveryAddressEsc}</div>
           <div>주문자: ${escapeHtml(order.depositor || '—')} / ${escapeHtml(order.contact || '—')}</div>
           <div>이메일: ${escapeHtml(order.user_email || '—')}</div>
@@ -598,7 +606,7 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = await getToken();
+        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/payment-link`, {
           method: 'POST',
           headers: {
@@ -637,11 +645,12 @@ function renderPaymentList() {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.saveShipping;
       const input = content.querySelector(`.admin-shipping-input[data-order-id="${orderId}"]`);
-      const trackingNumber = input?.value?.trim() || '';
+      const raw = (input?.value || '').trim();
+      const trackingNumber = raw.replace(/\D/g, '');
 
-      const digitsOnly = /^\d{9,11}$/;
-      if (!digitsOnly.test(trackingNumber)) {
-        alert('배송 번호 입력 오류');
+      const isKoreanPhone = /^0\d{8,10}$/.test(trackingNumber);
+      if (!isKoreanPhone) {
+        alert('대한민국 휴대폰 또는 전화번호만 입력 가능합니다. (9~11자리 숫자, 0으로 시작)');
         return;
       }
 
@@ -649,7 +658,7 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = await getToken();
+        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/shipping-number`, {
           method: 'POST',
           headers: {
@@ -697,7 +706,7 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = await getToken();
+        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/delivery-complete`, {
           method: 'POST',
           headers: {
@@ -736,7 +745,7 @@ function renderPaymentList() {
         return;
       }
       try {
-        const token = await getToken();
+        const token = getToken();
         if (!token) return;
         const res = await fetch(`${API_BASE}/api/admin/cancel-order`, {
           method: 'POST',
@@ -769,7 +778,7 @@ function renderPaymentList() {
         return;
       }
       try {
-        const token = await getToken();
+        const token = getToken();
         if (!token) return;
         const res = await fetch(`${API_BASE}/api/admin/delete-order`, {
           method: 'POST',
@@ -797,7 +806,7 @@ async function loadPaymentManagement() {
   content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
 
   try {
-    const token = await getToken();
+    const token = getToken();
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=0`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
@@ -842,7 +851,7 @@ async function loadMorePaymentOrders() {
   const btn = document.querySelector('[data-payment-load-more]');
   if (btn) btn.disabled = true;
   try {
-    const token = await getToken();
+    const token = getToken();
     const offset = adminPaymentOrders.length;
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=${offset}`, {
       headers: { 'Authorization': `Bearer ${token}` },
@@ -860,7 +869,7 @@ async function loadMorePaymentOrders() {
 async function refetchPaymentOrdersAndRender() {
   const content = document.getElementById('adminPaymentContent');
   try {
-    const token = await getToken();
+    const token = getToken();
     const currentLen = adminPaymentOrders.length;
     const limit = Math.max(PAYMENT_PAGE_SIZE, currentLen);
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${limit}&offset=0`, {
@@ -929,6 +938,10 @@ function getDefaultStatsRange() {
 }
 function getPresetStatsRange(preset) {
   const today = new Date();
+  if (preset === 'today') {
+    const s = getStatsDateStr(today);
+    return { start: s, end: s };
+  }
   if (preset === 'this_week') {
     const start = getThisWeekMonday(today);
     return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
@@ -953,6 +966,15 @@ function getPresetStatsRange(preset) {
   return null;
 }
 
+function getActiveStatsPreset(startVal, endVal) {
+  const presets = ['today', 'this_week', 'last_week', 'this_month', 'last_month'];
+  for (const p of presets) {
+    const r = getPresetStatsRange(p);
+    if (r && r.start === startVal && r.end === endVal) return p;
+  }
+  return null;
+}
+
 async function loadStats() {
   const content = document.getElementById('adminStatsContent');
   if (!content) return;
@@ -966,7 +988,7 @@ async function loadStats() {
 
   content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
   try {
-    const token = await getToken();
+    const token = getToken();
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
@@ -979,6 +1001,7 @@ async function loadStats() {
       return;
     }
     const data = await res.json();
+    adminStatsLastData = data;
     renderStats(content, data);
   } catch (e) {
     content.innerHTML = `<div class="admin-stats-error">${escapeHtml(e.message || '통계를 불러올 수 없습니다.')}</div>`;
@@ -1000,14 +1023,19 @@ function renderStats(container, data) {
   const endVal = dateRange.endDate || defaultRange.end;
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
   let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><input type="date" id="adminStatsStartDate" value="' + escapeHtml(startVal) + '"><span>~</span><input type="date" id="adminStatsEndDate" value="' + escapeHtml(endVal) + '"><button type="button" class="admin-stats-search-btn" id="adminStatsApplyBtn" title="조회" aria-label="조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button></div>';
-  html += '<div class="admin-stats-presets"><button type="button" class="admin-stats-preset-btn" data-preset="this_week">이번 주</button><button type="button" class="admin-stats-preset-btn" data-preset="last_week">지난 1주일</button><button type="button" class="admin-stats-preset-btn" data-preset="this_month">이번 달</button><button type="button" class="admin-stats-preset-btn" data-preset="last_month">지난 1개월</button></div></div>';
+  const activePreset = getActiveStatsPreset(startVal, endVal);
+  const presetClass = (key) => 'admin-stats-preset-btn' + (activePreset === key ? ' active' : '');
+  html += '<div class="admin-stats-presets">';
+  html += '<div class="admin-stats-preset-row"><button type="button" class="' + presetClass('today') + '" data-preset="today">오늘</button><button type="button" class="' + presetClass('this_week') + '" data-preset="this_week">이번 주</button><button type="button" class="' + presetClass('last_week') + '" data-preset="last_week">지난 1주일</button></div>';
+  html += '<div class="admin-stats-preset-row"><button type="button" class="' + presetClass('this_month') + '" data-preset="this_month">이번 달</button><button type="button" class="' + presetClass('last_month') + '" data-preset="last_month">지난 1개월</button></div>';
+  html += '</div></div>';
   html += '<div class="admin-stats-section"><h3>주문 현황</h3><p class="admin-stats-big">총 주문 <strong>' + (orderSummary.total ?? 0) + '</strong>건</p><div class="admin-stats-grid">';
   const byStatus = orderSummary.byStatus || {};
   Object.entries(byStatus).forEach(function (e) {
     const v = e[1];
     html += '<div class="admin-stats-card"><span class="admin-stats-card-label">' + escapeHtml((v && v.label) || e[0]) + '</span><span class="admin-stats-card-value">' + ((v && v.count) ?? 0) + '</span></div>';
   });
-  html += '</div><h4 class="admin-stats-brand-heading">브랜드별 주문</h4><ul class="admin-stats-list">';
+  html += '</div><br><h4 class="admin-stats-brand-heading">브랜드별 주문</h4><ul class="admin-stats-list">';
   const byStore = orderSummary.byStore || {};
   Object.entries(byStore).forEach(function (e) {
     const v = e[1];
@@ -1016,37 +1044,48 @@ function renderStats(container, data) {
     html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : 진행 <strong>' + progress + '</strong>건 (취소 <strong>' + cancelled + '</strong>건)</li>';
   });
   html += '</ul></div>';
-  html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + formatMoney(revenue.total) + '</strong></p><ul class="admin-stats-list">';
+  const revTotal = Number(revenue.total) || 0;
+  const revExpected = Number(revenue.expected) || 0;
+  const totalRevText = formatMoney(revTotal) + (revExpected > 0 ? ' (+' + formatMoney(revExpected) + ' 예정)' : '');
+  html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + totalRevText + '</strong></p><br><h4 class="admin-stats-brand-heading">브랜드별 매출</h4><ul class="admin-stats-list">';
   const revByStore = revenue.byStore || {};
   Object.entries(revByStore).forEach(function (e) {
     const v = e[1];
-    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + formatMoney(v && v.amount) + '</li>';
+    const amt = Number(v && v.amount) || 0;
+    const exp = Number(v && v.expected) || 0;
+    const line = formatMoney(amt) + (exp > 0 ? ' (+' + formatMoney(exp) + ' 예정)' : '');
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + line + '</li>';
   });
   html += '</ul></div>';
-  html += '<div class="admin-stats-section"><h3>전환 · 취소</h3><ul class="admin-stats-list"><li>신청 완료 <strong>' + (conversion.submittedCount ?? 0) + '</strong>건</li><li>결제 완료(이상) <strong>' + (conversion.paymentCompletedCount ?? 0) + '</strong>건</li><li>취소 <strong>' + (conversion.cancelledCount ?? 0) + '</strong>건</li><li>전환율 <strong>' + (conversion.conversionRate ?? 0) + '%</strong></li><li>취소율 <strong>' + (conversion.cancelRate ?? 0) + '%</strong></li></ul></div>';
-  html += '<div class="admin-stats-section"><h3>배송</h3><p>배송 완료 <strong>' + (delivery.deliveryCompletedCount ?? 0) + '</strong>건</p>';
-  const byDel = delivery.byDeliveryDate || {};
-  const delDates = Object.entries(byDel).sort(function (a, b) { return a[0].localeCompare(b[0]); }).slice(-10);
-  if (delDates.length) {
-    html += '<h4>배송 희망일별 (최근)</h4><ul class="admin-stats-list">';
-    delDates.forEach(function (d) { html += '<li>' + d[0] + ' <strong>' + d[1] + '</strong>건</li>'; });
-    html += '</ul>';
-  }
-  html += '</div>';
-  html += '<div class="admin-stats-section"><h3>인기 메뉴 (상위 20)</h3><table class="admin-stats-table"><thead><tr><th>메뉴</th><th>주문 수</th><th>매출</th></tr></thead><tbody>';
-  topMenus.slice(0, 20).forEach(function (m) {
+  const totalOrders = Number(orderSummary.total) || 0;
+  const n2 = Number(conversion.paymentCompleted) || 0;
+  const n3 = Number(conversion.cancelledBeforePayment) || 0;
+  const n4 = Number(conversion.cancelledAfterPayment) || 0;
+  const n5 = Number(conversion.deliveryCompleted) || 0;
+  const pct = (a, b) => (b > 0 ? ((a / b) * 100).toFixed(1) : '0.0');
+  html += '<div class="admin-stats-section"><h3>전환율</h3><ul class="admin-stats-list">';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제완료 <strong>' + n2 + '</strong> (' + pct(n2, totalOrders) + '%)</li>';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제전취소 <strong>' + n3 + '</strong> (' + pct(n3, totalOrders) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
+  html += '</ul></div>';
+  const menuFilterLimit = adminStatsMenuFilter === 'top10' ? 10 : (topMenus.length || 20);
+  const menuList = topMenus.slice(0, menuFilterLimit);
+  const menuFilterClass = (key) => 'admin-stats-menu-filter-btn' + (adminStatsMenuFilter === key ? ' active' : '');
+  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출</h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>메뉴</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  menuList.forEach(function (m) {
     html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div class="admin-stats-section"><h3>시계열 (일별)</h3><table class="admin-stats-table"><thead><tr><th>날짜</th><th>주문</th><th>매출</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section"><h3>일 매출</h3><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>날짜</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
   timeSeries.slice(-14).reverse().forEach(function (d) {
     html += '<tr><td>' + escapeHtml(d.date) + '</td><td>' + d.orders + '</td><td>' + formatMoney(d.revenue) + '</td></tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div class="admin-stats-section"><h3>고객(CRM)</h3><p>총 고객 수 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명 · 재주문 <strong>' + (crm.repeatCustomers ?? 0) + '</strong>명 · 90일 미주문 <strong>' + (crm.inactiveCount ?? 0) + '</strong>명</p><h4>고객별 매출 상위 (최대 50명)</h4><table class="admin-stats-table"><thead><tr><th>이메일</th><th>주문 수</th><th>총 매출</th><th>최근 주문</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><p class="admin-stats-crm-intro">총 고객 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명<br>30일이내 재주문 <strong>' + (crm.repeatWithin30 ?? 0) + '</strong>명<br>60일이내 재주문 <strong>' + (crm.repeatWithin60 ?? 0) + '</strong>명<br>90일이내 재주문 <strong>' + (crm.repeatWithin90 ?? 0) + '</strong>명<br><br></p><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
   (crm.byCustomer || []).forEach(function (c) {
-    const last = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
-    html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + last + '</td></tr>';
+    const lastDate = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
+    html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + lastDate + '</td><td>n/a</td></tr>';
   });
   html += '</tbody></table></div>';
   container.innerHTML = html;
@@ -1061,6 +1100,15 @@ function renderStats(container, data) {
       if (startEl) startEl.value = range.start;
       if (endEl) endEl.value = range.end;
       loadStats();
+    });
+  });
+  container.querySelectorAll('[data-menu-filter]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const filter = btn.getAttribute('data-menu-filter');
+      if (filter === 'top10' || filter === 'all') {
+        adminStatsMenuFilter = filter;
+        if (adminStatsLastData) renderStats(container, adminStatsLastData);
+      }
     });
   });
 }
@@ -1160,7 +1208,7 @@ function openAdminOrderDetail(order) {
     const orderIdForPdf = order.id;
     pdfBtn.onclick = async (e) => {
       e.preventDefault();
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
       try {
         const res = await fetch(`${API_BASE}/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
@@ -1389,7 +1437,7 @@ async function init() {
         const menuId = itemEl?.dataset?.menuId;
         if (menuId) {
           try {
-            const token = await getToken();
+            const token = getToken();
             const res = await fetch(`${API_BASE}/api/admin/check-menu-in-use?menuId=${encodeURIComponent(menuId)}`, {
               headers: { Authorization: `Bearer ${token}` },
             });

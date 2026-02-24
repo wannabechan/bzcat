@@ -13,10 +13,6 @@
     .admin-page { max-width: 900px; margin: 0 auto; padding: 24px; }
     .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .admin-header h1 { font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 10px; }
-    .admin-refresh-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; background: none; cursor: pointer; color: var(--color-text-secondary); -webkit-tap-highlight-color: transparent; transition: color 0.2s ease; }
-    .admin-refresh-btn:hover { color: var(--color-primary); }
-    .admin-refresh-btn.admin-refresh-pressed { color: var(--color-primary); }
-    .admin-refresh-btn svg { width: 18px; height: 18px; }
     .admin-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--color-border); }
     .admin-tab { padding: 12px 20px; font-size: 0.9375rem; font-weight: 500; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
     .admin-tab:hover { color: var(--color-primary); }
@@ -56,13 +52,15 @@
     .admin-payment-sort-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .admin-payment-sort-btn.active { border-color: var(--color-primary); background: rgba(230, 123, 25, 0.1); color: var(--color-primary); }
     .admin-payment-sort-btn:disabled { opacity: 0.6; cursor: default; }
-    .admin-payment-subfilter { display: flex; align-items: center; gap: 16px; margin-top: -8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .admin-payment-subfilter { display: flex; flex-direction: column; gap: 6px; margin-top: -8px; margin-bottom: 16px; }
+    .admin-payment-subfilter-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
     .admin-payment-subfilter-item { font-size: 0.8125rem; color: #9e9e9e; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .admin-payment-subfilter-item:hover { color: #757575; }
     .admin-payment-subfilter-item.active { color: var(--color-primary); font-weight: 500; }
     .admin-payment-toggle-btn { margin-left: auto; padding: 8px 16px; font-size: 0.875rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; }
     .admin-payment-toggle-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .admin-payment-order-info .admin-days-urgent { color: #d32f2f; }
+    .admin-payment-order-info .admin-days-overdue { color: #d32f2f; }
     .admin-payment-order-cancelled { opacity: 0.7; }
     .admin-payment-order-cancelled .admin-payment-order-id { text-decoration: line-through; }
     .admin-store { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: 24px; overflow: hidden; }
@@ -181,13 +179,21 @@
     .admin-stats-search-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; background: none; border: none; border-radius: var(--radius); cursor: pointer; color: var(--color-text-secondary); }
     .admin-stats-search-btn:hover { color: var(--color-text); }
     .admin-stats-search-btn svg { width: 20px; height: 20px; }
-    .admin-stats-presets { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
-    .admin-stats-preset-btn { font-size: 0.75rem; padding: 4px 10px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); cursor: pointer; color: var(--color-text-secondary); }
-    .admin-stats-preset-btn:hover { color: var(--color-text); border-color: var(--color-text-secondary); }
+    .admin-stats-presets { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .admin-stats-preset-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .admin-stats-preset-btn { font-size: 0.8125rem; padding: 0; background: none; border: none; border-radius: 0; cursor: pointer; color: #9e9e9e; -webkit-tap-highlight-color: transparent; font-family: inherit; }
+    .admin-stats-preset-btn:hover { color: #757575; }
+    .admin-stats-preset-btn.active { color: var(--color-primary); font-weight: 500; }
     .admin-stats-alert-item { margin: 0; font-size: 0.875rem; }
     .admin-stats-alert-ok { color: var(--color-text-secondary); }
     .admin-stats-section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px; }
     .admin-stats-section h3 { font-size: 1rem; margin: 0 0 12px; font-weight: 600; }
+    .admin-stats-section .admin-stats-section-title-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .admin-stats-section .admin-stats-section-title-row .admin-stats-section-title { margin: 0; font-size: 1rem; font-weight: 600; }
+    .admin-stats-menu-filter { display: inline-flex; gap: 5px; }
+    .admin-stats-menu-filter-btn { font-size: 0.75rem; padding: 4px 8px; min-width: 52px; box-sizing: border-box; text-align: center; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); cursor: pointer; color: var(--color-text-secondary); font-family: inherit; }
+    .admin-stats-menu-filter-btn:hover { color: var(--color-text); border-color: var(--color-text-secondary); }
+    .admin-stats-menu-filter-btn.active { color: var(--color-primary); border-color: var(--color-primary); font-weight: 500; }
     .admin-stats-section h4 { font-size: 0.875rem; margin: 12px 0 8px; font-weight: 500; color: var(--color-text-secondary); }
     .admin-stats-brand-heading { margin-top: 10px; }
     .admin-stats-big { font-size: 1rem; margin: 0 0 12px; }
@@ -197,14 +203,22 @@
     .admin-stats-card-value { font-weight: 600; font-size: 1rem; }
     .admin-stats-list { margin: 0; padding-left: 20px; font-size: 0.875rem; }
     .admin-stats-list li { margin-bottom: 4px; }
+    .admin-stats-crm-intro { margin: 0 0 12px; font-size: 0.875rem; }
     .admin-stats-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .admin-stats-table-cols3 { table-layout: fixed; }
+    .admin-stats-table-cols3 th:nth-child(1), .admin-stats-table-cols3 td:nth-child(1) { width: 40%; }
+    .admin-stats-table-cols3 th:nth-child(2), .admin-stats-table-cols3 td:nth-child(2) { width: 30%; }
+    .admin-stats-table-cols3 th:nth-child(3), .admin-stats-table-cols3 td:nth-child(3) { width: 30%; }
     .admin-stats-table th, .admin-stats-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
     .admin-stats-table th { font-weight: 600; color: var(--color-text-secondary); }
     .admin-stats-error { padding: 20px; color: #c5221f; font-size: 0.9375rem; }
     @media (max-width: 768px) {
       .admin-stats-daterange { width: 100%; justify-content: flex-start; }
-      .admin-stats-daterange input[type="date"] { width: 120px; font-size: 0.7rem; }
-      .admin-stats-search-btn { margin-left: auto; }
+      .admin-stats-daterange input[type="date"] { flex: 1; min-width: 0; font-size: 0.8125rem; }
+      .admin-stats-search-btn { margin-left: auto; flex-shrink: 0; }
+      .admin-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .admin-stats-card { min-width: 0; }
+      .admin-stats-section-crm { display: none; }
     }
   </style>
 </head>
@@ -213,9 +227,6 @@
     <div class="admin-header">
       <h1>
         Admin
-        <button type="button" class="admin-refresh-btn" id="adminPaymentRefreshBtn" title="주문 목록 새로고침" aria-label="주문 목록 새로고침">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </button>
       </h1>
       <a href="/" class="admin-btn admin-btn-secondary">← 메인으로</a>
     </div>

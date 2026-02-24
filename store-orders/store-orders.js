@@ -18,6 +18,8 @@ const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리�
 const STORE_ORDERS_PAGE_SIZE = 25;
 let storeOrdersIdleTimerId = null;
 let storeOrdersIdleListenersAttached = false;
+let storeOrdersStatsMenuFilter = 'top10';
+let storeOrdersStatsLastData = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -57,6 +59,62 @@ function formatAdminOrderDate(isoStr) {
 
 function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
+}
+
+function getStatsDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+function getThisWeekMonday(date) {
+  const x = new Date(date.getTime());
+  const day = x.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+function getDefaultStatsRange() {
+  const end = new Date();
+  const start = getThisWeekMonday(end);
+  return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+}
+function getPresetStatsRange(preset) {
+  const today = new Date();
+  if (preset === 'today') {
+    const s = getStatsDateStr(today);
+    return { start: s, end: s };
+  }
+  if (preset === 'this_week') {
+    const start = getThisWeekMonday(today);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+  }
+  if (preset === 'last_week') {
+    const thisMon = getThisWeekMonday(today);
+    const lastSun = new Date(thisMon.getTime());
+    lastSun.setDate(lastSun.getDate() - 1);
+    const lastMon = new Date(lastSun.getTime());
+    lastMon.setDate(lastMon.getDate() - 6);
+    return { start: getStatsDateStr(lastMon), end: getStatsDateStr(lastSun) };
+  }
+  if (preset === 'this_month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+  }
+  if (preset === 'last_month') {
+    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+    return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+  }
+  return null;
+}
+function getActiveStatsPreset(startVal, endVal) {
+  const presets = ['today', 'this_week', 'last_week', 'this_month', 'last_month'];
+  for (const p of presets) {
+    const r = getPresetStatsRange(p);
+    if (r && r.start === startVal && r.end === endVal) return p;
+  }
+  return null;
 }
 
 /** 신청 완료인데 아직 매장에서 수령/거부를 하지 않은 주문이면 true (목록 연체 강조용) */
@@ -293,6 +351,8 @@ function renderList() {
   const newCount = allOrders.filter(o => !cancelled(o) && (o.status === 'submitted' || o.status === 'order_accepted')).length;
   const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
   const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
+  const shippingCount = allOrders.filter(o => !cancelled(o) && o.status === 'shipping').length;
+  const deliveryCompletedCount = allOrders.filter(o => !cancelled(o) && o.status === 'delivery_completed').length;
 
   let filtered;
   if (storeOrdersSubFilter === 'new') {
@@ -301,6 +361,10 @@ function renderList() {
     filtered = allOrders.filter(o => o.status === 'payment_link_issued');
   } else if (storeOrdersSubFilter === 'delivery_wait') {
     filtered = allOrders.filter(o => o.status === 'payment_completed');
+  } else if (storeOrdersSubFilter === 'shipping') {
+    filtered = allOrders.filter(o => o.status === 'shipping');
+  } else if (storeOrdersSubFilter === 'delivery_completed') {
+    filtered = allOrders.filter(o => o.status === 'delivery_completed');
   } else {
     filtered = allOrders.slice();
   }
@@ -318,10 +382,16 @@ function renderList() {
       </div>
     </div>
     <div class="admin-payment-subfilter">
-      <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
-      <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
-      <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
-      <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
+      </div>
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'shipping' ? 'active' : ''}" data-subfilter="shipping" role="button" tabindex="0">배송중 ${shippingCount}개</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'delivery_completed' ? 'active' : ''}" data-subfilter="delivery_completed" role="button" tabindex="0">배송완료 ${deliveryCompletedCount}개</span>
+      </div>
     </div>
   `;
 
@@ -330,6 +400,8 @@ function renderList() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
+    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : 'D-' + daysUntilDelivery;
+    const dDayClass = daysUntilDelivery < 0 ? 'admin-days-overdue' : (daysUntilDelivery <= 7 ? 'admin-days-urgent' : '');
     const isCancelled = order.status === 'cancelled';
     const overdue = isOverdueForAccept(order);
     const isDeliveryWaitPrepare = storeOrdersSubFilter === 'delivery_wait' && order.status === 'payment_completed' && isDeliveryPrepareTime(order);
@@ -350,7 +422,7 @@ function renderList() {
       ? `
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${dDayClass}">(${dDayText})</span>`}</div>
           <div>배송주소: ${deliveryAddressFull}</div>
           <div>주문자: ${escapeHtml((order.depositor || '').trim() || '—')}</div>
           <div>연락처: ${escapeHtml((order.contact || '').trim() || '—')}</div>
@@ -360,7 +432,7 @@ function renderList() {
       : `
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${daysUntilDelivery <= 7 ? 'admin-days-urgent' : ''}">(D-${daysUntilDelivery})</span>`}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${dDayClass}">(${dDayText})</span>`}</div>
           <div>배송주소: ${escapeHtml((order.delivery_address || '').trim() || '—')}</div>
           <div>총액: ${formatAdminPrice(order.total_amount)}</div>
         </div>
@@ -432,6 +504,146 @@ function renderList() {
       const orderId = el.dataset.orderDetail;
       const order = storeOrdersData.find(o => o.id === orderId);
       if (order) openOrderDetail(order);
+    });
+  });
+}
+
+async function loadStoreOrdersStats() {
+  const content = document.getElementById('storeOrdersStatsContent');
+  if (!content) return;
+  const startInput = document.getElementById('storeOrdersStatsStartDate');
+  const endInput = document.getElementById('storeOrdersStatsEndDate');
+  let startDate = startInput?.value?.trim() || '';
+  let endDate = endInput?.value?.trim() || '';
+  const defaultRange = getDefaultStatsRange();
+  if (!startDate) startDate = defaultRange.start;
+  if (!endDate) endDate = defaultRange.end;
+
+  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  try {
+    const token = getToken();
+    if (!token) {
+      content.innerHTML = '<div class="admin-stats-error">로그인이 필요합니다.</div>';
+      return;
+    }
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const res = await fetch(`${API_BASE}/api/manager/stats?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      content.innerHTML = `<div class="admin-stats-error">${escapeHtml(err.error || '통계를 불러올 수 없습니다.')}</div>`;
+      return;
+    }
+    const data = await res.json();
+    storeOrdersStatsLastData = data;
+    renderStoreOrdersStats(content, data);
+  } catch (e) {
+    content.innerHTML = `<div class="admin-stats-error">${escapeHtml(e.message || '통계를 불러올 수 없습니다.')}</div>`;
+  }
+}
+
+function renderStoreOrdersStats(container, data) {
+  const orderSummary = data.orderSummary || {};
+  const revenue = data.revenue || {};
+  const conversion = data.conversion || {};
+  const topMenus = data.topMenus || [];
+  const timeSeries = data.timeSeries || [];
+  const crm = data.crm || {};
+  const dateRange = data.dateRange || {};
+  const defaultRange = getDefaultStatsRange();
+  const startVal = dateRange.startDate || defaultRange.start;
+  const endVal = dateRange.endDate || defaultRange.end;
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  let html = '<div class="admin-stats-toolbar"><div class="admin-stats-daterange"><input type="date" id="storeOrdersStatsStartDate" value="' + escapeHtml(startVal) + '"><span>~</span><input type="date" id="storeOrdersStatsEndDate" value="' + escapeHtml(endVal) + '"><button type="button" class="admin-stats-search-btn" id="storeOrdersStatsApplyBtn" title="조회" aria-label="조회"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button></div>';
+  const activePreset = getActiveStatsPreset(startVal, endVal);
+  const presetClass = (key) => 'admin-stats-preset-btn' + (activePreset === key ? ' active' : '');
+  html += '<div class="admin-stats-presets">';
+  html += '<div class="admin-stats-preset-row"><button type="button" class="' + presetClass('today') + '" data-preset="today">오늘</button><button type="button" class="' + presetClass('this_week') + '" data-preset="this_week">이번 주</button><button type="button" class="' + presetClass('last_week') + '" data-preset="last_week">지난 1주일</button></div>';
+  html += '<div class="admin-stats-preset-row"><button type="button" class="' + presetClass('this_month') + '" data-preset="this_month">이번 달</button><button type="button" class="' + presetClass('last_month') + '" data-preset="last_month">지난 1개월</button></div>';
+  html += '</div></div>';
+  html += '<div class="admin-stats-section"><h3>주문 현황</h3><p class="admin-stats-big">총 주문 <strong>' + (orderSummary.total ?? 0) + '</strong>건</p><div class="admin-stats-grid">';
+  const byStatus = orderSummary.byStatus || {};
+  Object.entries(byStatus).forEach(function (e) {
+    const v = e[1];
+    html += '<div class="admin-stats-card"><span class="admin-stats-card-label">' + escapeHtml((v && v.label) || e[0]) + '</span><span class="admin-stats-card-value">' + ((v && v.count) ?? 0) + '</span></div>';
+  });
+  html += '</div><br><h4 class="admin-stats-brand-heading">브랜드별 주문</h4><ul class="admin-stats-list">';
+  const byStore = orderSummary.byStore || {};
+  Object.entries(byStore).forEach(function (e) {
+    const v = e[1];
+    const progress = (v && v.count) ?? 0;
+    const cancelled = (v && v.cancelledCount) ?? 0;
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : 진행 <strong>' + progress + '</strong>건 (취소 <strong>' + cancelled + '</strong>건)</li>';
+  });
+  html += '</ul></div>';
+  const revTotal = Number(revenue.total) || 0;
+  const revExpected = Number(revenue.expected) || 0;
+  const totalRevText = formatMoney(revTotal) + (revExpected > 0 ? ' (+' + formatMoney(revExpected) + ' 예정)' : '');
+  html += '<div class="admin-stats-section"><h3>매출</h3><p class="admin-stats-big">총 매출 <strong>' + totalRevText + '</strong></p><br><h4 class="admin-stats-brand-heading">브랜드별 매출</h4><ul class="admin-stats-list">';
+  const revByStore = revenue.byStore || {};
+  Object.entries(revByStore).forEach(function (e) {
+    const v = e[1];
+    const amt = Number(v && v.amount) || 0;
+    const exp = Number(v && v.expected) || 0;
+    const line = formatMoney(amt) + (exp > 0 ? ' (+' + formatMoney(exp) + ' 예정)' : '');
+    html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + line + '</li>';
+  });
+  html += '</ul></div>';
+  const totalOrders = Number(orderSummary.total) || 0;
+  const n2 = Number(conversion.paymentCompleted) || 0;
+  const n3 = Number(conversion.cancelledBeforePayment) || 0;
+  const n4 = Number(conversion.cancelledAfterPayment) || 0;
+  const n5 = Number(conversion.deliveryCompleted) || 0;
+  const pct = (a, b) => (b > 0 ? ((a / b) * 100).toFixed(1) : '0.0');
+  html += '<div class="admin-stats-section"><h3>전환율</h3><ul class="admin-stats-list">';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제완료 <strong>' + n2 + '</strong> (' + pct(n2, totalOrders) + '%)</li>';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제전취소 <strong>' + n3 + '</strong> (' + pct(n3, totalOrders) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
+  html += '</ul></div>';
+  const menuFilterLimit = storeOrdersStatsMenuFilter === 'top10' ? 10 : (topMenus.length || 20);
+  const menuList = topMenus.slice(0, menuFilterLimit);
+  const menuFilterClass = (key) => 'admin-stats-menu-filter-btn' + (storeOrdersStatsMenuFilter === key ? ' active' : '');
+  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출</h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>메뉴</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  menuList.forEach(function (m) {
+    html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="admin-stats-section"><h3>일 매출</h3><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>날짜</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
+  timeSeries.slice(-14).reverse().forEach(function (d) {
+    html += '<tr><td>' + escapeHtml(d.date) + '</td><td>' + d.orders + '</td><td>' + formatMoney(d.revenue) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><p class="admin-stats-crm-intro">총 고객 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명<br>30일이내 재주문 <strong>' + (crm.repeatWithin30 ?? 0) + '</strong>명<br>60일이내 재주문 <strong>' + (crm.repeatWithin60 ?? 0) + '</strong>명<br>90일이내 재주문 <strong>' + (crm.repeatWithin90 ?? 0) + '</strong>명<br><br></p><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
+  (crm.byCustomer || []).forEach(function (c) {
+    const lastDate = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
+    html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + lastDate + '</td><td>n/a</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+  document.getElementById('storeOrdersStatsApplyBtn')?.addEventListener('click', loadStoreOrdersStats);
+  container.querySelectorAll('.admin-stats-preset-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const preset = btn.getAttribute('data-preset');
+      const range = getPresetStatsRange(preset);
+      if (!range) return;
+      const startEl = document.getElementById('storeOrdersStatsStartDate');
+      const endEl = document.getElementById('storeOrdersStatsEndDate');
+      if (startEl) startEl.value = range.start;
+      if (endEl) endEl.value = range.end;
+      loadStoreOrdersStats();
+    });
+  });
+  container.querySelectorAll('[data-menu-filter]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const filter = btn.getAttribute('data-menu-filter');
+      if (filter === 'top10' || filter === 'all') {
+        storeOrdersStatsMenuFilter = filter;
+        if (storeOrdersStatsLastData) renderStoreOrdersStats(container, storeOrdersStatsLastData);
+      }
     });
   });
 }
@@ -550,13 +762,30 @@ document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e
   if (e.target.id === 'storeOrderDetailOverlay') closeOrderDetail();
 });
 
-document.getElementById('storeOrdersRefreshBtn')?.addEventListener('click', () => {
-  const btn = document.getElementById('storeOrdersRefreshBtn');
-  if (btn) {
-    btn.classList.add('store-orders-refresh-pressed');
-    setTimeout(() => btn.classList.remove('store-orders-refresh-pressed'), 1000);
-  }
-  loadStoreOrders();
-});
+function setupStoreOrdersTabs() {
+  const tabs = document.querySelectorAll('.store-orders-tab[data-store-tab]');
+  const listView = document.getElementById('storeOrdersListView');
+  const statsView = document.getElementById('storeOrdersStatsView');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.storeTab;
+      tabs.forEach((t) => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      listView?.classList.remove('active');
+      statsView?.classList.remove('active');
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      if (targetTab === 'list') {
+        listView?.classList.add('active');
+      } else if (targetTab === 'stats') {
+        statsView?.classList.add('active');
+        loadStoreOrdersStats();
+      }
+    });
+  });
+}
 
+setupStoreOrdersTabs();
 loadStoreOrders();

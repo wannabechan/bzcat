@@ -19,8 +19,13 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const orderId = req.query.orderId;
-  if (!orderId || typeof orderId !== 'string') {
+  const rawOrderId = req.query.orderId;
+  if (!rawOrderId || typeof rawOrderId !== 'string') {
+    setCorsHeaders(res);
+    return res.status(400).json({ error: '주문 번호가 필요합니다.' });
+  }
+  const orderId = rawOrderId.trim();
+  if (!orderId) {
     setCorsHeaders(res);
     return res.status(400).json({ error: '주문 번호가 필요합니다.' });
   }
@@ -37,7 +42,7 @@ module.exports = async (req, res) => {
     return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });
   }
 
-  const order = await getOrderById(orderId.trim());
+  const order = await getOrderById(orderId);
   if (!order) {
     setCorsHeaders(res);
     return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
@@ -56,7 +61,7 @@ module.exports = async (req, res) => {
 
     setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="order-${orderId}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="order-${String(order.id).replace(/[^\w-]/g, '_')}.pdf"`);
     res.send(pdfBuffer);
   } catch (err) {
     console.error('Order PDF generation error:', err);

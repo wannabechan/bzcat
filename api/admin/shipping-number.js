@@ -10,11 +10,15 @@ function isAdmin(user) {
   return user && user.level === 'admin';
 }
 
+/**
+ * 대한민국 휴대폰·전화번호만 허용 (숫자만 사용, 9~11자리, 0으로 시작)
+ * 예: 0212345678, 01012345678, 0311234567
+ */
 function isValidTrackingNumber(value) {
-  const s = (value || '').trim();
+  const s = String(value || '').replace(/\D/g, '');
   if (!s) return false;
-  if (!/^\d+$/.test(s)) return false;
   if (s.length < 9 || s.length > 11) return false;
+  if (s[0] !== '0') return false;
   return true;
 }
 
@@ -42,7 +46,7 @@ module.exports = async (req, res) => {
     }
 
     if (!isValidTrackingNumber(trackingNumber)) {
-      return apiResponse(res, 400, { error: '배송 번호 입력 오류' });
+      return apiResponse(res, 400, { error: '대한민국 휴대폰 또는 전화번호만 입력 가능합니다.' });
     }
 
     const order = await getOrderById(orderId.trim());
@@ -54,7 +58,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '결제 완료된 주문만 배송 번호를 등록할 수 있습니다.' });
     }
 
-    await updateOrderShippingNumber(orderId.trim(), String(trackingNumber).trim());
+    await updateOrderShippingNumber(orderId.trim(), String(trackingNumber).replace(/\D/g, '').trim());
     return apiResponse(res, 200, { success: true });
   } catch (err) {
     console.error('Admin shipping-number error:', err);

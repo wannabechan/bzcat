@@ -42,8 +42,8 @@
 ### 8. 환경 변수 / 비밀값
 - `.env`, `.env.local` 등이 `.gitignore`에 포함되어 있어 코드에 직접 노출되지 않음. 비밀값은 모두 `process.env` 사용.
 
-### 9. Cron 인증 (`api/cron/auto-cancel-orders.js`, `api/cron/alimtalk-delivery-reminder.js`)
-- `CRON_SECRET`으로 **Authorization: Bearer &lt;시크릿&gt;** 헤더만 검증. 쿼리스트링(`?secret=`)은 사용하지 않아 URL/리퍼러/로그에 시크릿이 남지 않음.
+### 9. Cron 인증 (`api/cron/auto-cancel-orders.js`, `api/cron/alimtalk-*.js`)
+- `CRON_SECRET`으로 **Authorization: Bearer &lt;시크릿&gt;** 헤더만 검증. 쿼리스트링(`?secret=`)은 **사용하지 않음** (URL/리퍼러/로그에 시크릿이 남지 않도록 코드에서 제거됨).
 - `CRON_SECRET`이 비어 있으면 모든 요청 거절. 프로덕션에서 강한 시크릿 설정 필요.
 
 ### 10. 주문 생성 입력 검증 (`api/orders/create.js`)
@@ -63,3 +63,14 @@
 | localStorage 토큰 | 낮음   | 장기적으로 HttpOnly 쿠키 검토 |
 
 위 항목부터 순서대로 반영하면 위험 요소가 크게 줄어듭니다.
+
+---
+
+## 최근 점검 (보안 강화 & 코드 최적화)
+
+### 보안
+- **Cron 인증**: 3개 크론 엔드포인트에서 `req.query?.secret` 폴백 제거. **Authorization: Bearer &lt;CRON_SECRET&gt;** 헤더만 허용하여 URL/리퍼러/로그에 시크릿이 노출되지 않도록 수정.
+- **PDF 다운로드**: `api/orders/pdf.js`에서 `Content-Disposition` filename을 `order.id` 기반으로 정규화(영문/숫자/하이픈·언더스코어만 허용)하여 헤더 인젝션 가능성 제거. `orderId` 쿼리 검증(trim, 빈 문자열 거부) 보강.
+
+### 최적화
+- **admin/admin.js**: `getToken()`을 async에서 동기 함수로 변경. `localStorage.getItem`만 사용하므로 Promise 불필요. 호출부 14곳에서 `await getToken()` → `getToken()`으로 변경.
