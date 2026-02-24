@@ -143,15 +143,21 @@ module.exports = async (req, res) => {
       }
 
       // 신규 주문 알림톡: 해당 매장 담당자 연락처(010 휴대폰)로 발송
-      if (store) {
+      if (!store) {
+        console.warn('Alimtalk skip: 주문에 해당하는 매장을 찾을 수 없음. order_items:', order.order_items?.[0]?.id);
+      } else {
         const storeContact = (store.storeContact || '').trim();
         const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_NEW_ORDER || '').trim();
-        if (storeContact && templateCode) {
+        if (!storeContact) {
+          console.warn('Alimtalk skip: 매장 담당자연락처(storeContact)가 비어 있음. 매장관리에서 010 번호를 입력하세요.');
+        } else if (!templateCode) {
+          console.warn('Alimtalk skip: NHN_ALIMTALK_TEMPLATE_CODE_STORE_NEW_ORDER 환경 변수가 비어 있음.');
+        } else {
           try {
             const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
             const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
-            await sendAlimtalk({
+            const result = await sendAlimtalk({
               templateCode,
               recipientNo: storeContact,
               templateParameter: {
@@ -162,6 +168,9 @@ module.exports = async (req, res) => {
                 deliveryDate: deliveryDateStr,
               },
             });
+            if (!result.success) {
+              console.error('Order notification alimtalk failed:', result.resultCode, result.resultMessage);
+            }
           } catch (alimErr) {
             console.error('Order notification alimtalk error:', alimErr);
           }
