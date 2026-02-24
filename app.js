@@ -1590,6 +1590,12 @@ function init() {
       clearOrderRejectParam();
     });
   }
+
+  // 내 주문 보기 직접 링크: #orders 또는 #profile 로 접속 시 로그인 여부와 관계없이 드로어 열기
+  const hash = (window.location.hash || '').toLowerCase();
+  if (hash === '#orders' || hash === '#profile') {
+    openProfile();
+  }
 }
 
 init();

@@ -57,6 +57,10 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
         templateParameter: params,
       },
     ],
+    // 알림톡 실패 시 SMS/LMS 대체 발송(콘솔에서 대체발송·SMS 서비스 설정 필요)
+    resendParameter: {
+      isResend: true,
+    },
   };
 
   const url = `${ALIMTALK_BASE}/alimtalk/v2.3/appkeys/${encodeURIComponent(appkey)}/messages`;

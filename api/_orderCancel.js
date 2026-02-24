@@ -55,6 +55,7 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
     const blob = await put(pathname, pdfBuffer, {
       access: 'public',
       contentType: 'application/pdf',
+      allowOverwrite: true,
     });
     await updateOrderPdfUrl(orderId, blob.url);
   } catch (err) {
