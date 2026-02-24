@@ -1173,6 +1173,7 @@ function handleMenuGridClick(e) {
 
 // 이벤트 바인딩
 function init() {
+  window.BzCatAppOpenProfile = openProfile;
   categoryTabs.addEventListener('click', handleCategoryClick);
   menuGrid.addEventListener('click', handleMenuGridClick);
   cartItems.addEventListener('click', (e) => {

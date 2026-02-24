@@ -80,15 +80,20 @@ function showApp(user) {
     if (cartToggle) cartToggle.style.display = 'none';
     if (headerLoginBtn) headerLoginBtn.style.display = '';
   }
-  // 신규 로그인 시 기본 화면으로: 내 주문 보기 드로어 닫기
-  const profileDrawer = document.getElementById('profileDrawer');
-  const profileOverlay = document.getElementById('profileOverlay');
-  if (profileDrawer) profileDrawer.classList.remove('open');
-  if (profileOverlay) {
-    profileOverlay.classList.remove('visible');
-    profileOverlay.setAttribute('aria-hidden', 'true');
+  // 신규 로그인 시 기본 화면으로: 내 주문 보기 드로어 닫기 (단, #orders/#profile 링크로 들어온 경우에는 드로어 열기)
+  const hash = (window.location.hash || '').toLowerCase();
+  if (hash === '#orders' || hash === '#profile') {
+    if (typeof window.BzCatAppOpenProfile === 'function') window.BzCatAppOpenProfile();
+  } else {
+    const profileDrawer = document.getElementById('profileDrawer');
+    const profileOverlay = document.getElementById('profileOverlay');
+    if (profileDrawer) profileDrawer.classList.remove('open');
+    if (profileOverlay) {
+      profileOverlay.classList.remove('visible');
+      profileOverlay.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
   }
-  document.body.style.overflow = '';
   if (typeof window.BzCatAppOnShow === 'function') window.BzCatAppOnShow();
 }
 
