@@ -104,6 +104,21 @@ NHN Cloud 콘솔에서 템플릿 등록 시 아래 문구와 치환자를 사용
 
 ---
 
+## 7. 배송 완료 하루 후 인사 (NHN_ALIMTALK_TEMPLATE_CODE_USER_AS_ORDER)
+
+**발송 시점:** 배송 희망일 기준 하루 다음 날 (크론에서 일 1회 발송)
+
+**치환자:** `#{depositor}` (문구에 사용. `#{orderId}`, `#{storeName}`는 코드에서 전달되며 템플릿에 넣을 경우에만 사용)
+
+**예시 문구:**
+```
+[BzCat] 안녕하세요, #{depositor}님. BzCat의 단체 식사 배송 잘 받으셨는지요? 맛있는 식사 시간 되셨길 바랍니다. 오늘도 행복한 하루 되시길 바라며, 다음에 또 뵐게요. 고맙습니다. 🙂
+```
+
+※ NHN 콘솔에 위 문구와 치환자로 템플릿을 등록한 뒤, 환경 변수 `NHN_ALIMTALK_TEMPLATE_CODE_USER_AS_ORDER`에 템플릿 코드를 넣으세요. Vercel Cron `0 2 * * *`(매일 02:00 UTC = 11:00 KST)에 `/api/cron/alimtalk-user-as-order`가 호출됩니다.
+
+---
+
 ## 환경 변수 (Vercel / .env.local)
 
 | 변수명 | 설명 |
@@ -114,5 +129,6 @@ NHN Cloud 콘솔에서 템플릿 등록 시 아래 문구와 치환자를 사용
 | `NHN_ALIMTALK_TEMPLATE_CODE_USER_PAYDONE_ORDER` | 결제 완료 템플릿 코드 |
 | `NHN_ALIMTALK_TEMPLATE_CODE_USER_PREPARE_ORDER` | 배송 1일 전 알림 템플릿 코드 |
 | `NHN_ALIMTALK_TEMPLATE_CODE_USER_GOING_ORDER` | 배송 중(송장 입력) 템플릿 코드 |
+| `NHN_ALIMTALK_TEMPLATE_CODE_USER_AS_ORDER` | 배송 완료 하루 후 인사 템플릿 코드 |
 
 수신 번호는 주문 시 입력한 **연락처(contact)** 또는 **주문자 이메일로 조회한 주문의 contact** 로 발송하면 됩니다.
