@@ -592,18 +592,6 @@ function renderStoreOrdersStats(container, data) {
     html += '<li>' + escapeHtml((v && v.title) || e[0]) + ' : ' + line + '</li>';
   });
   html += '</ul></div>';
-  const totalOrders = Number(orderSummary.total) || 0;
-  const n2 = Number(conversion.paymentCompleted) || 0;
-  const n3 = Number(conversion.cancelledBeforePayment) || 0;
-  const n4 = Number(conversion.cancelledAfterPayment) || 0;
-  const n5 = Number(conversion.deliveryCompleted) || 0;
-  const pct = (a, b) => (b > 0 ? ((a / b) * 100).toFixed(1) : '0.0');
-  html += '<div class="admin-stats-section"><h3>전환율</h3><ul class="admin-stats-list">';
-  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제완료 <strong>' + n2 + '</strong> (' + pct(n2, totalOrders) + '%)</li>';
-  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제전취소 <strong>' + n3 + '</strong> (' + pct(n3, totalOrders) + '%)</li>';
-  html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
-  html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
-  html += '</ul></div>';
   html += '<div class="admin-stats-section"><h3>일 매출</h3><table class="admin-stats-table admin-stats-table-cols3"><thead><tr><th>날짜</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th></tr></thead><tbody>';
   timeSeries.slice(-14).reverse().forEach(function (d) {
     html += '<tr><td>' + escapeHtml(d.date) + '</td><td>' + d.orders + '</td><td>' + formatMoney(d.revenue) + '</td></tr>';
@@ -617,6 +605,18 @@ function renderStoreOrdersStats(container, data) {
     html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
   });
   html += '</tbody></table></div>';
+  const totalOrders = Number(orderSummary.total) || 0;
+  const n2 = Number(conversion.paymentCompleted) || 0;
+  const n3 = Number(conversion.cancelledBeforePayment) || 0;
+  const n4 = Number(conversion.cancelledAfterPayment) || 0;
+  const n5 = Number(conversion.deliveryCompleted) || 0;
+  const pct = (a, b) => (b > 0 ? ((a / b) * 100).toFixed(1) : '0.0');
+  html += '<div class="admin-stats-section"><h3>전환율</h3><ul class="admin-stats-list">';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제완료 <strong>' + n2 + '</strong> (' + pct(n2, totalOrders) + '%)</li>';
+  html += '<li>전체 주문 <strong>' + totalOrders + '</strong> → 결제전취소 <strong>' + n3 + '</strong> (' + pct(n3, totalOrders) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
+  html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
+  html += '</ul></div>';
   html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><p class="admin-stats-crm-intro">총 고객 <strong>' + (crm.uniqueCustomers ?? 0) + '</strong>명<br>30일이내 재주문 <strong>' + (crm.repeatWithin30 ?? 0) + '</strong>명<br>60일이내 재주문 <strong>' + (crm.repeatWithin60 ?? 0) + '</strong>명<br>90일이내 재주문 <strong>' + (crm.repeatWithin90 ?? 0) + '</strong>명<br><br></p><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
   (crm.byCustomer || []).forEach(function (c) {
     const lastDate = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
