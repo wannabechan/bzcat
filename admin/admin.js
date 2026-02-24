@@ -1078,8 +1078,8 @@ function renderStats(container, data) {
   html += '</tbody></table></div>';
   const menuFilterLimit = adminStatsMenuFilter === 'top10' ? 10 : (topMenus.length || 20);
   const menuList = topMenus.slice(0, menuFilterLimit);
-  const menuFilterClass = (key) => 'admin-stats-menu-filter-btn' + (adminStatsMenuFilter === key ? ' active' : '');
-  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출<span class="admin-stats-section-hint">&nbsp;*매출은 예상매출 포함</span></h3><span class="admin-stats-menu-filter"><button type="button" class="' + menuFilterClass('top10') + '" data-menu-filter="top10">top10</button><button type="button" class="' + menuFilterClass('all') + '" data-menu-filter="all">all</button></span></div><table class="admin-stats-table admin-stats-table-cols3 admin-stats-table-menu"><thead><tr><th>메뉴</th><th>진행주문</th><th>매출</th></tr></thead><tbody>';
+  const menuFilterLabel = adminStatsMenuFilter === 'top10' ? 'top10' : 'all';
+  html += '<div class="admin-stats-section"><div class="admin-stats-section-title-row"><h3 class="admin-stats-section-title">메뉴 매출<span class="admin-stats-section-hint">&nbsp;*매출은 예상매출 포함</span></h3><span class="admin-stats-menu-filter"><button type="button" class="admin-stats-menu-filter-btn active" data-menu-filter-toggle>' + menuFilterLabel + '</button></span></div><table class="admin-stats-table admin-stats-table-cols3 admin-stats-table-menu"><thead><tr><th>메뉴</th><th>진행주문</th><th>매출</th></tr></thead><tbody>';
   menuList.forEach(function (m) {
     html += '<tr><td>' + escapeHtml(m.name) + '</td><td>' + m.orderCount + '</td><td>' + formatMoney(m.revenue) + '</td></tr>';
   });
@@ -1116,13 +1116,10 @@ function renderStats(container, data) {
       loadStats();
     });
   });
-  container.querySelectorAll('[data-menu-filter]').forEach(function (btn) {
+  container.querySelectorAll('[data-menu-filter-toggle]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      const filter = btn.getAttribute('data-menu-filter');
-      if (filter === 'top10' || filter === 'all') {
-        adminStatsMenuFilter = filter;
-        if (adminStatsLastData) renderStats(container, adminStatsLastData);
-      }
+      adminStatsMenuFilter = adminStatsMenuFilter === 'top10' ? 'all' : 'top10';
+      if (adminStatsLastData) renderStats(container, adminStatsLastData);
     });
   });
 }
