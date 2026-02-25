@@ -1247,10 +1247,10 @@ async function loadSettlement() {
     '<input type="date" id="adminSettlementStatementStart" value="' + escapeHtml(stRange.start) + '">' +
     '<span>~</span>' +
     '<input type="date" id="adminSettlementStatementEnd" value="' + escapeHtml(stRange.end) + '">' +
-    '<button type="button" class="admin-stats-search-btn" id="adminSettlementStatementSearch" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>' +
     '</div>' +
     '<div class="admin-stats-daterange" style="margin-bottom:16px;">' +
     '<select id="adminSettlementBrandSelect" class="admin-settlement-brand-select"><option value="">브랜드 선택</option></select>' +
+    '<button type="button" class="admin-stats-search-btn" id="adminSettlementStatementSearch" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>' +
     '</div>' +
     '<div id="adminSettlementStatementResult" class="admin-settlement-statement-result"></div>' +
     '<div style="margin-top:16px;"><button type="button" class="admin-btn admin-settlement-pdf-btn" id="adminSettlementPdfBtn">PDF 출력하기</button></div>' +
