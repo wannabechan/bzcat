@@ -358,6 +358,7 @@ function setupTabs() {
       loadStats();
     } else if (targetTab === 'settlement') {
       document.getElementById('settlementView').classList.add('active');
+      loadSettlement();
     }
   }
 
@@ -1023,6 +1024,89 @@ async function loadStats() {
   }
 }
 
+/** YYYY-MM-DD */
+function toDateKey(d) {
+  const x = new Date(d);
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, '0');
+  const day = String(x.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** yy/mm/dd hh:mm:ss (실시간 시계용) */
+function formatSettlementClock() {
+  const x = new Date();
+  const yy = String(x.getFullYear()).slice(-2);
+  const mm = String(x.getMonth() + 1).padStart(2, '0');
+  const dd = String(x.getDate()).padStart(2, '0');
+  const hh = String(x.getHours()).padStart(2, '0');
+  const min = String(x.getMinutes()).padStart(2, '0');
+  const ss = String(x.getSeconds()).padStart(2, '0');
+  return `${yy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+}
+
+function renderSettlementTable(byBrand) {
+  if (!byBrand || byBrand.length === 0) {
+    return '<p class="admin-settlement-empty">해당 날짜에 배송 완료된 주문이 없습니다.</p>';
+  }
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>정산금액</th></tr></thead><tbody>';
+  byBrand.forEach((b) => {
+    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(b.totalAmount) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+let settlementClockIntervalId = null;
+
+async function loadSettlement() {
+  const container = document.getElementById('adminSettlementContent');
+  if (!container) return;
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayMinus7 = new Date(today);
+  todayMinus7.setDate(todayMinus7.getDate() - 7);
+  const tomorrowMinus7 = new Date(tomorrow);
+  tomorrowMinus7.setDate(tomorrowMinus7.getDate() - 7);
+
+  const dateToday = toDateKey(todayMinus7);
+  const dateTomorrow = toDateKey(tomorrowMinus7);
+
+  container.innerHTML =
+    '<div class="admin-settlement-clock" id="adminSettlementClock">' + escapeHtml(formatSettlementClock()) + '</div>' +
+    '<section class="admin-stats-section"><h3>오늘 정산 내역</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateToday) + ' 기준</p><div id="adminSettlementToday"></div></section>' +
+    '<section class="admin-stats-section"><h3>내일 정산 예정</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateTomorrow) + ' 기준</p><div id="adminSettlementTomorrow"></div></section>';
+
+  const clockEl = document.getElementById('adminSettlementClock');
+  if (settlementClockIntervalId) clearInterval(settlementClockIntervalId);
+  settlementClockIntervalId = setInterval(() => {
+    if (clockEl) clockEl.textContent = formatSettlementClock();
+  }, 1000);
+
+  const token = getToken();
+  const todayBox = document.getElementById('adminSettlementToday');
+  const tomorrowBox = document.getElementById('adminSettlementTomorrow');
+  if (todayBox) todayBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  if (tomorrowBox) tomorrowBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+
+  try {
+    const [resToday, resTomorrow] = await Promise.all([
+      fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateToday)}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateTomorrow)}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const dataToday = resToday.ok ? await resToday.json() : { byBrand: [] };
+    const dataTomorrow = resTomorrow.ok ? await resTomorrow.json() : { byBrand: [] };
+    if (todayBox) todayBox.innerHTML = renderSettlementTable(dataToday.byBrand || []);
+    if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(dataTomorrow.byBrand || []);
+  } catch (e) {
+    if (todayBox) todayBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '오늘 정산을 불러올 수 없습니다.') + '</p>';
+    if (tomorrowBox) tomorrowBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '내일 정산 예정을 불러올 수 없습니다.') + '</p>';
+  }
+}
+
 function renderStats(container, data) {
   const orderSummary = data.orderSummary || {};
   const revenue = data.revenue || {};
@@ -1096,7 +1180,7 @@ function renderStats(container, data) {
   html += '<li>결제완료 <strong>' + n2 + '</strong> → 결제후취소 <strong>' + n4 + '</strong> (' + pct(n4, n2) + '%)</li>';
   html += '<li>결제완료 <strong>' + n2 + '</strong> → 배송완료 <strong>' + n5 + '</strong> (' + pct(n5, n2) + '%)</li>';
   html += '</ul></div>';
-  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석</h3><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행 주문 수</th><th>매출 (예상매출포함)</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
+  html += '<div class="admin-stats-section admin-stats-section-crm"><h3>고객 분석<span class="admin-stats-section-hint">&nbsp;*매출은 예상매출 포함</span></h3><table class="admin-stats-table"><thead><tr><th>이메일</th><th>진행주문</th><th>매출</th><th>마지막 주문일</th><th>고객 클러스터</th></tr></thead><tbody>';
   (crm.byCustomer || []).forEach(function (c) {
     const lastDate = c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('ko-KR') : '—';
     html += '<tr><td>' + escapeHtml(c.email) + '</td><td>' + c.orderCount + '</td><td>' + formatMoney(c.totalAmount) + '</td><td>' + lastDate + '</td><td>n/a</td></tr>';
