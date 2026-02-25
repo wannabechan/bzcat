@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>주문 접수 목록 - BzCat</title>
+  <title>주문관리 - BzCat</title>
   <link rel="icon" href="/img/favicon.png" type="image/png">
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -151,6 +151,9 @@
     .admin-stats-table-menu tbody td { height: 3em; min-height: 3em; max-height: 3em; box-sizing: border-box; vertical-align: middle; }
     .admin-stats-table-menu tbody td:first-child { overflow: hidden; }
     .admin-stats-error { padding: 20px; color: #c5221f; font-size: 0.9375rem; }
+    .admin-settlement-clock { font-size: 1.125rem; font-weight: 600; margin-bottom: 20px; letter-spacing: 0.02em; }
+    .admin-settlement-caption { font-size: 0.8125rem; color: var(--color-text-secondary); margin: 0 0 12px; }
+    .admin-settlement-empty { margin: 0; font-size: 0.875rem; color: var(--color-text-secondary); }
     @media (max-width: 768px) {
       .admin-stats-table-menu tbody tr { height: 5em; }
       .admin-stats-table-menu tbody td { height: 5em; min-height: 5em; max-height: 5em; }
@@ -169,8 +172,9 @@
     </div>
 
     <div class="store-orders-tabs">
-      <button type="button" class="store-orders-tab active" data-store-tab="list" aria-selected="true">주문 접수 목록</button>
-      <button type="button" class="store-orders-tab" data-store-tab="stats" aria-selected="false">통계</button>
+      <button type="button" class="store-orders-tab active" data-store-tab="list" aria-selected="true">주문관리</button>
+      <button type="button" class="store-orders-tab" data-store-tab="stats" aria-selected="false">통계관리</button>
+      <button type="button" class="store-orders-tab" data-store-tab="settlement" aria-selected="false">정산관리</button>
     </div>
 
     <div id="storeOrdersListView" class="store-orders-view active">
@@ -183,6 +187,10 @@
       <div id="storeOrdersStatsContent">
         <div class="admin-loading">로딩 중...</div>
       </div>
+    </div>
+
+    <div id="storeOrdersSettlementView" class="store-orders-view">
+      <div id="storeOrdersSettlementContent"></div>
     </div>
 
     <div class="admin-order-detail-overlay" id="storeOrderDetailOverlay" aria-hidden="true">

@@ -759,10 +759,97 @@ document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e
   if (e.target.id === 'storeOrderDetailOverlay') closeOrderDetail();
 });
 
+/** YYYY-MM-DD */
+function toDateKey(d) {
+  const x = new Date(d);
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, '0');
+  const day = String(x.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** yy/mm/dd hh:mm:ss (실시간 시계용) */
+function formatSettlementClock() {
+  const x = new Date();
+  const yy = String(x.getFullYear()).slice(-2);
+  const mm = String(x.getMonth() + 1).padStart(2, '0');
+  const dd = String(x.getDate()).padStart(2, '0');
+  const hh = String(x.getHours()).padStart(2, '0');
+  const min = String(x.getMinutes()).padStart(2, '0');
+  const ss = String(x.getSeconds()).padStart(2, '0');
+  return `${yy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+}
+
+function renderStoreSettlementTable(byBrand) {
+  if (!byBrand || byBrand.length === 0) {
+    return '<p class="admin-settlement-empty">해당 날짜에 배송 완료된 주문이 없습니다.</p>';
+  }
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
+  byBrand.forEach((b) => {
+    const sales = Number(b.totalAmount) || 0;
+    const fee = Math.round(sales * 0.15);
+    const settlement = sales - fee;
+    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+let storeSettlementClockIntervalId = null;
+
+async function loadStoreSettlement() {
+  const container = document.getElementById('storeOrdersSettlementContent');
+  if (!container) return;
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayMinus7 = new Date(today);
+  todayMinus7.setDate(todayMinus7.getDate() - 7);
+  const tomorrowMinus7 = new Date(tomorrow);
+  tomorrowMinus7.setDate(tomorrowMinus7.getDate() - 7);
+
+  const dateToday = toDateKey(todayMinus7);
+  const dateTomorrow = toDateKey(tomorrowMinus7);
+
+  container.innerHTML =
+    '<div class="admin-settlement-clock" id="storeSettlementClock">' + escapeHtml(formatSettlementClock()) + '</div>' +
+    '<section class="admin-stats-section"><h3>오늘 정산 내역</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateToday) + ' 기준</p><div id="storeSettlementToday"></div></section>' +
+    '<section class="admin-stats-section"><h3>내일 정산 예정</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateTomorrow) + ' 기준</p><div id="storeSettlementTomorrow"></div></section>';
+
+  const clockEl = document.getElementById('storeSettlementClock');
+  if (storeSettlementClockIntervalId) clearInterval(storeSettlementClockIntervalId);
+  storeSettlementClockIntervalId = setInterval(() => {
+    if (clockEl) clockEl.textContent = formatSettlementClock();
+  }, 1000);
+
+  const token = getToken();
+  const todayBox = document.getElementById('storeSettlementToday');
+  const tomorrowBox = document.getElementById('storeSettlementTomorrow');
+  if (todayBox) todayBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  if (tomorrowBox) tomorrowBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+
+  try {
+    const [resToday, resTomorrow] = await Promise.all([
+      fetch(`${API_BASE}/api/manager/settlement?date=${encodeURIComponent(dateToday)}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_BASE}/api/manager/settlement?date=${encodeURIComponent(dateTomorrow)}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const dataToday = resToday.ok ? await resToday.json() : { byBrand: [] };
+    const dataTomorrow = resTomorrow.ok ? await resTomorrow.json() : { byBrand: [] };
+    if (todayBox) todayBox.innerHTML = renderStoreSettlementTable(dataToday.byBrand || []);
+    if (tomorrowBox) tomorrowBox.innerHTML = renderStoreSettlementTable(dataTomorrow.byBrand || []);
+  } catch (e) {
+    if (todayBox) todayBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '오늘 정산을 불러올 수 없습니다.') + '</p>';
+    if (tomorrowBox) tomorrowBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '내일 정산 예정을 불러올 수 없습니다.') + '</p>';
+  }
+}
+
 function setupStoreOrdersTabs() {
   const tabs = document.querySelectorAll('.store-orders-tab[data-store-tab]');
   const listView = document.getElementById('storeOrdersListView');
   const statsView = document.getElementById('storeOrdersStatsView');
+  const settlementView = document.getElementById('storeOrdersSettlementView');
 
   function activateTab(targetTab) {
     tabs.forEach((t) => {
@@ -771,6 +858,7 @@ function setupStoreOrdersTabs() {
     });
     listView?.classList.remove('active');
     statsView?.classList.remove('active');
+    settlementView?.classList.remove('active');
     const tabEl = document.querySelector(`.store-orders-tab[data-store-tab="${targetTab}"]`);
     if (tabEl) {
       tabEl.classList.add('active');
@@ -781,6 +869,9 @@ function setupStoreOrdersTabs() {
     } else if (targetTab === 'stats') {
       statsView?.classList.add('active');
       loadStoreOrdersStats();
+    } else if (targetTab === 'settlement') {
+      settlementView?.classList.add('active');
+      loadStoreSettlement();
     }
   }
 
@@ -795,7 +886,7 @@ function setupStoreOrdersTabs() {
   const nav = performance.getEntriesByType?.('navigation')?.[0];
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(STORE_ORDERS_TAB_KEY);
-  if (isReload && saved && ['list', 'stats'].includes(saved)) {
+  if (isReload && saved && ['list', 'stats', 'settlement'].includes(saved)) {
     activateTab(saved);
   }
 }

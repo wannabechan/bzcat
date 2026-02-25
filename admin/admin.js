@@ -27,6 +27,9 @@ const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
 const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
+/** 정산관리 탭 테스트용 목 데이터 사용. '정산관리 테스트 종료' 요청 시 false로 변경 후 실제 DB 적용 */
+const SETTLEMENT_MOCK_FOR_TEST = true;
+
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -1050,15 +1053,174 @@ function renderSettlementTable(byBrand) {
     return '<p class="admin-settlement-empty">해당 날짜에 배송 완료된 주문이 없습니다.</p>';
   }
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
-  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>정산금액</th></tr></thead><tbody>';
+  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
   byBrand.forEach((b) => {
-    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(b.totalAmount) + '</td></tr>';
+    const sales = Number(b.totalAmount) || 0;
+    const fee = Math.round(sales * 0.15);
+    const settlement = sales - fee;
+    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
   });
   html += '</tbody></table>';
   return html;
 }
 
 let settlementClockIntervalId = null;
+
+/** 정산서 출력용 기본 기간 (최근 7일) */
+function getStatementDefaultRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);
+  return { start: toDateKey(start), end: toDateKey(end) };
+}
+
+function renderSettlementStatementContent(data) {
+  if (!data || !data.days) return '';
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  const brandName = escapeHtml(data.brandTitle || data.slug || '');
+  const periodText = (data.startDate || '') + ' ~ ' + (data.endDate || '');
+  const contactEmail = escapeHtml(data.storeContactEmail || '');
+  const repName = escapeHtml(data.representative || '');
+  const issueDate = toDateKey(new Date());
+
+  let html = '<div class="admin-settlement-statement-print">';
+  html += '<div class="admin-settlement-statement-print-inner">';
+  html += '<div class="admin-settlement-statement-header">';
+  html += '<p class="admin-settlement-statement-logo">BzCat</p>';
+  html += '<p class="admin-settlement-statement-title">정산서</p>';
+  html += '<p class="admin-settlement-statement-period">' + escapeHtml(periodText) + '</p>';
+  html += '<hr class="admin-settlement-statement-hr">';
+  html += '</div>';
+
+  html += '<div class="admin-settlement-statement-brand">';
+  html += '<br><p><strong>브랜드 정보</strong></p><br>';
+  html += '<p class="admin-settlement-statement-bullet">• 브랜드명: ' + brandName + '</p>';
+  html += '<p class="admin-settlement-statement-bullet">• 담당자이메일: ' + contactEmail + '</p>';
+  html += '<p class="admin-settlement-statement-bullet">• 대표자이름: ' + repName + '</p>';
+  html += '</div>';
+
+  html += '<div class="admin-settlement-statement-body">';
+  html += '<br><p><strong>정산 내역</strong></p><br>';
+  html += '<table class="admin-stats-table admin-settlement-statement-table"><thead><tr><th>일자</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
+  (data.days || []).forEach((row) => {
+    html += '<tr><td>' + escapeHtml(row.date) + '</td><td>' + (row.orderCount || 0) + '</td><td>' + formatMoney(row.totalAmount) + '</td><td>' + formatMoney(row.fee) + '</td><td>' + formatMoney(row.settlement) + '</td></tr>';
+  });
+  html += '<tr class="admin-settlement-statement-total"><td>합계</td><td>' + (data.totalOrderCount || 0) + '</td><td>' + formatMoney(data.totalSales) + '</td><td>' + formatMoney(data.totalFee) + '</td><td>' + formatMoney(data.totalSettlement) + '</td></tr>';
+  html += '</tbody></table>';
+  html += '<br><hr class="admin-settlement-statement-hr admin-settlement-statement-hr--footer"><br>';
+  html += '</div>';
+
+  html += '<div class="admin-settlement-statement-footer">';
+  html += '<p>* 수수료는 판매금액의 15%이며, 정산금액 = 판매금액 − 수수료입니다.</p>';
+  html += '<p>* 정산서 확인 후, 본사의 지정된 이메일 주소로 전자세금계산서 발행 부탁드립니다.</p>';
+  html += '<p>* 정산금액은 귀사의 지정된 입금 계좌로 현금 지급됩니다.</p>';
+  html += '</div>';
+  html += '<br><br>';
+  html += '<div class="admin-settlement-statement-issuer">';
+  html += '<p>정산서 발행일: ' + escapeHtml(issueDate) + '</p>';
+  html += '<p>정산서 발행처: (주)코코로키친</p>';
+  html += '</div>';
+  html += '</div></div>';
+  return html;
+}
+
+async function runSettlementStatementSearch() {
+  const startEl = document.getElementById('adminSettlementStatementStart');
+  const endEl = document.getElementById('adminSettlementStatementEnd');
+  const slugEl = document.getElementById('adminSettlementBrandSelect');
+  const resultBox = document.getElementById('adminSettlementStatementResult');
+  if (!startEl || !endEl || !slugEl || !resultBox) return;
+  const startDate = (startEl.value || '').trim();
+  const endDate = (endEl.value || '').trim();
+  const slug = (slugEl.value || '').trim().toLowerCase();
+  if (!slug) {
+    resultBox.innerHTML = '<p class="admin-stats-error">브랜드를 선택해 주세요.</p>';
+    return;
+  }
+  if (!startDate || !endDate) {
+    resultBox.innerHTML = '<p class="admin-stats-error">시작일·종료일을 입력해 주세요.</p>';
+    return;
+  }
+  if (startDate > endDate) {
+    resultBox.innerHTML = '<p class="admin-stats-error">시작일이 종료일보다 늦을 수 없습니다.</p>';
+    return;
+  }
+  resultBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  if (SETTLEMENT_MOCK_FOR_TEST) {
+    const days = [];
+    const d = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    const row = { orderCount: 1, totalAmount: 500000, fee: 75000, settlement: 425000 };
+    for (; d <= end; d.setDate(d.getDate() + 1)) {
+      const dateKey = toDateKey(new Date(d));
+      days.push({ date: dateKey, ...row });
+    }
+    const n = days.length;
+    const mockStatementData = {
+      brandTitle: '오늘Brand1',
+      slug: 'todaybrand1',
+      storeContactEmail: 'contact@todaybrand1.com',
+      representative: '대표자명',
+      startDate,
+      endDate,
+      days,
+      totalOrderCount: n,
+      totalSales: 500000 * n,
+      totalFee: 75000 * n,
+      totalSettlement: 425000 * n,
+    };
+    resultBox.innerHTML = renderSettlementStatementContent(mockStatementData);
+    return;
+  }
+  try {
+    const token = getToken();
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&slug=${encodeURIComponent(slug)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      resultBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(err.error || '정산서를 불러올 수 없습니다.') + '</p>';
+      return;
+    }
+    const data = await res.json();
+    resultBox.innerHTML = renderSettlementStatementContent(data);
+  } catch (e) {
+    resultBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '정산서를 불러올 수 없습니다.') + '</p>';
+  }
+}
+
+function printSettlementStatement() {
+  const wrap = document.getElementById('adminSettlementStatementResult');
+  const printEl = wrap?.querySelector('.admin-settlement-statement-print');
+  if (!printEl || !printEl.innerHTML.trim()) {
+    alert('먼저 검색하여 정산서 내용을 불러온 뒤 PDF 출력해 주세요.');
+    return;
+  }
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('팝업이 차단되었을 수 있습니다. 브라우저에서 팝업을 허용해 주세요.');
+    return;
+  }
+  win.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>정산서</title><style>' +
+    'body{font-family:inherit;padding:24px;color:#333;font-size:14px;max-width:640px;margin:0 auto;}' +
+    '.admin-settlement-statement-print{}' +
+    '.admin-settlement-statement-header{text-align:center;margin-bottom:20px;}' +
+    '.admin-settlement-statement-logo{margin:0 0 4px;font-size:1.25rem;font-weight:600;}' +
+    '.admin-settlement-statement-title{margin:0 0 4px;font-size:0.875rem;color:#000;}' +
+    '.admin-settlement-statement-period{margin:0 0 12px;font-size:0.875rem;color:#666;}' +
+    '.admin-settlement-statement-hr{border:none;border-top:1px solid #ddd;margin:12px 0;}' +
+    '.admin-settlement-statement-hr--footer{margin:20px 0 12px;}' +
+    '.admin-settlement-statement-brand{margin-bottom:20px;font-size:0.875rem;}.admin-settlement-statement-brand p{margin:4px 0;}' +
+    '.admin-settlement-statement-body{margin-bottom:12px;}.admin-settlement-statement-body>p{margin:0 0 8px;font-size:0.875rem;}' +
+    'table{width:100%;border-collapse:collapse;}th,td{padding:10px 12px;text-align:left;border:1px solid #ddd;}' +
+    'th{font-weight:600;background:#f5f5f5;}.admin-settlement-statement-total{font-weight:600;background:#f9f9f9;}' +
+    '.admin-settlement-statement-footer{font-size:12px;color:#666;text-align:left;}.admin-settlement-statement-footer p{margin:4px 0;}' +
+    '.admin-settlement-statement-issuer{text-align:left;font-size:13px;}.admin-settlement-statement-issuer p{margin:2px 0;}' +
+    '</style></head><body>' + printEl.outerHTML + '</body></html>'
+  );
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 300);
+}
 
 async function loadSettlement() {
   const container = document.getElementById('adminSettlementContent');
@@ -1074,11 +1236,29 @@ async function loadSettlement() {
 
   const dateToday = toDateKey(todayMinus7);
   const dateTomorrow = toDateKey(tomorrowMinus7);
+  const stRange = getStatementDefaultRange();
+
+  const statementBlock =
+    '<div class="admin-settlement-statement-area">' +
+    '<h3 class="admin-settlement-statement-heading">정산서 출력</h3>' +
+    '<div class="admin-stats-daterange" style="margin-bottom:12px;">' +
+    '<input type="date" id="adminSettlementStatementStart" value="' + escapeHtml(stRange.start) + '">' +
+    '<span>~</span>' +
+    '<input type="date" id="adminSettlementStatementEnd" value="' + escapeHtml(stRange.end) + '">' +
+    '<button type="button" class="admin-stats-search-btn" id="adminSettlementStatementSearch" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>' +
+    '</div>' +
+    '<div class="admin-stats-daterange" style="margin-bottom:16px;">' +
+    '<select id="adminSettlementBrandSelect" class="admin-settlement-brand-select"><option value="">브랜드 선택</option></select>' +
+    '</div>' +
+    '<div id="adminSettlementStatementResult" class="admin-settlement-statement-result"></div>' +
+    '<div style="margin-top:16px;"><button type="button" class="admin-btn admin-settlement-pdf-btn" id="adminSettlementPdfBtn">PDF 출력하기</button></div>' +
+    '</div>';
 
   container.innerHTML =
     '<div class="admin-settlement-clock" id="adminSettlementClock">' + escapeHtml(formatSettlementClock()) + '</div>' +
     '<section class="admin-stats-section"><h3>오늘 정산 내역</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateToday) + ' 기준</p><div id="adminSettlementToday"></div></section>' +
-    '<section class="admin-stats-section"><h3>내일 정산 예정</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateTomorrow) + ' 기준</p><div id="adminSettlementTomorrow"></div></section>';
+    '<section class="admin-stats-section"><h3>내일 정산 예정</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateTomorrow) + ' 기준</p><div id="adminSettlementTomorrow"></div></section>' +
+    statementBlock;
 
   const clockEl = document.getElementById('adminSettlementClock');
   if (settlementClockIntervalId) clearInterval(settlementClockIntervalId);
@@ -1092,15 +1272,43 @@ async function loadSettlement() {
   if (todayBox) todayBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
   if (tomorrowBox) tomorrowBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
 
+  document.getElementById('adminSettlementStatementSearch')?.addEventListener('click', runSettlementStatementSearch);
+  document.getElementById('adminSettlementPdfBtn')?.addEventListener('click', printSettlementStatement);
+
+  if (SETTLEMENT_MOCK_FOR_TEST) {
+    const mockToday = { byBrand: [{ brandTitle: '오늘Brand1', orderCount: 1, totalAmount: 500000 }, { brandTitle: '오늘Brand2', orderCount: 1, totalAmount: 1000000 }] };
+    const mockTomorrow = { byBrand: [{ brandTitle: '내일Brand1', orderCount: 1, totalAmount: 500000 }, { brandTitle: '내일Brand2', orderCount: 1, totalAmount: 1000000 }] };
+    if (todayBox) todayBox.innerHTML = renderSettlementTable(mockToday.byBrand);
+    if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(mockTomorrow.byBrand);
+  }
+
   try {
-    const [resToday, resTomorrow] = await Promise.all([
-      fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateToday)}`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateTomorrow)}`, { headers: { Authorization: `Bearer ${token}` } }),
-    ]);
-    const dataToday = resToday.ok ? await resToday.json() : { byBrand: [] };
-    const dataTomorrow = resTomorrow.ok ? await resTomorrow.json() : { byBrand: [] };
-    if (todayBox) todayBox.innerHTML = renderSettlementTable(dataToday.byBrand || []);
-    if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(dataTomorrow.byBrand || []);
+    const promises = SETTLEMENT_MOCK_FOR_TEST
+      ? [fetchStores()]
+      : [
+          fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateToday)}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateTomorrow)}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetchStores(),
+        ];
+    const results = await Promise.all(promises);
+    const storesData = SETTLEMENT_MOCK_FOR_TEST ? results[0] : results[2];
+    if (!SETTLEMENT_MOCK_FOR_TEST) {
+      const dataToday = results[0].ok ? await results[0].json() : { byBrand: [] };
+      const dataTomorrow = results[1].ok ? await results[1].json() : { byBrand: [] };
+      if (todayBox) todayBox.innerHTML = renderSettlementTable(dataToday.byBrand || []);
+      if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(dataTomorrow.byBrand || []);
+    }
+
+    const stores = (storesData && storesData.stores) || [];
+    const sorted = stores.slice().sort((a, b) => (a.brand || a.title || a.id || '').toString().localeCompare((b.brand || b.title || b.id || '').toString(), 'ko'));
+    const selectEl = document.getElementById('adminSettlementBrandSelect');
+    if (selectEl) {
+      sorted.forEach((s) => {
+        const sid = (s.slug || s.id || '').toString().toLowerCase();
+        const label = (s.brand || s.title || s.id || sid).toString().trim() || sid;
+        if (sid) selectEl.appendChild(new Option(label, sid));
+      });
+    }
   } catch (e) {
     if (todayBox) todayBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '오늘 정산을 불러올 수 없습니다.') + '</p>';
     if (tomorrowBox) tomorrowBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '내일 정산 예정을 불러올 수 없습니다.') + '</p>';
