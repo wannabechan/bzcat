@@ -376,8 +376,10 @@ function setupTabs() {
   const nav = performance.getEntriesByType?.('navigation')?.[0];
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
-  if (isReload && saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved)) {
-    activateTab(saved);
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved) && (saved !== 'settlement' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  if (isReload && saved) {
+    activateTab(tabToActivate);
   }
 }
 

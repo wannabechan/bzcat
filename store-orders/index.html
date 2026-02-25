@@ -155,6 +155,8 @@
     .admin-settlement-caption { font-size: 0.8125rem; color: var(--color-text-secondary); margin: 0 0 12px; }
     .admin-settlement-empty { margin: 0; font-size: 0.875rem; color: var(--color-text-secondary); }
     @media (max-width: 768px) {
+      .store-orders-tab[data-store-tab="settlement"] { display: none; }
+      #storeOrdersSettlementView { display: none !important; }
       .admin-stats-table-menu tbody tr { height: 5em; }
       .admin-stats-table-menu tbody td { height: 5em; min-height: 5em; max-height: 5em; }
       .admin-stats-daterange input[type="date"] { flex: 1; min-width: 0; font-size: 0.8125rem; }

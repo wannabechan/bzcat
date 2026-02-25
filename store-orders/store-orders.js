@@ -886,8 +886,10 @@ function setupStoreOrdersTabs() {
   const nav = performance.getEntriesByType?.('navigation')?.[0];
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(STORE_ORDERS_TAB_KEY);
-  if (isReload && saved && ['list', 'stats', 'settlement'].includes(saved)) {
-    activateTab(saved);
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  const tabToActivate = (saved && ['list', 'stats', 'settlement'].includes(saved) && (saved !== 'settlement' || !isMobile())) ? saved : (isMobile() ? 'list' : 'list');
+  if (isReload && saved) {
+    activateTab(tabToActivate);
   }
 }
 

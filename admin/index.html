@@ -244,6 +244,8 @@
     .admin-settlement-pdf-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
     .admin-settlement-pdf-btn:hover { opacity: 0.9; }
     @media (max-width: 768px) {
+      .admin-tab[data-tab="settlement"] { display: none; }
+      #settlementView { display: none !important; }
       .admin-tabs { display: flex; gap: 0; }
       .admin-tabs .admin-tab { flex: 1; min-width: 0; padding: 12px 6px; font-size: 0.8125rem; text-align: center; }
       .admin-stats-table-menu tbody tr { height: 5em; }
