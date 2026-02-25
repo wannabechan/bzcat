@@ -160,7 +160,11 @@ module.exports = async (req, res) => {
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
             const digits = storeContact.replace(/\D/g, '');
             const maskedNo = digits.length >= 4 ? '010****' + digits.slice(-4) : '***';
-            console.log('Alimtalk sending: orderId=', order.id, 'store=', storeSlug, 'recipient=', maskedNo);
+            const codeLen = (templateCode || '').length;
+            console.log('Alimtalk sending: orderId=', order.id, 'store=', storeSlug, 'recipient=', maskedNo, 'templateCodeLen=', codeLen);
+            if (codeLen > 20) {
+              console.warn('Alimtalk: NHN templateCode is max 20 chars. Current length=', codeLen, '- use the short template code from NHN console (e.g. STORE_NEW_ORDER), not the long Kakao code.');
+            }
             const result = await sendAlimtalk({
               templateCode,
               recipientNo: storeContact,
