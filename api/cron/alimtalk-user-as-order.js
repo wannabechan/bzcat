@@ -4,8 +4,7 @@
  * Vercel Cron 02:00 UTC (= 11:00 KST) 또는 외부 스케줄러에서 호출 (CRON_SECRET 필요)
  */
 
-const { getAllOrders, getStores, updateOrderUserAsOrderSent } = require('../_redis');
-const { getStoreForOrder } = require('../orders/_order-email');
+const { getAllOrders, updateOrderUserAsOrderSent } = require('../_redis');
 const { sendAlimtalk } = require('../_alimtalk');
 
 /** 날짜 문자열을 YYYY-MM-DD로 정규화 */
@@ -50,7 +49,6 @@ module.exports = async (req, res) => {
   try {
     const yesterdayStr = getYesterdayKstStr();
     const orders = await getAllOrders();
-    const stores = (await getStores()) || [];
 
     const toNotify = orders.filter((o) => {
       if ((o.status || '') !== 'delivery_completed') return false;
@@ -64,8 +62,6 @@ module.exports = async (req, res) => {
     let sent = 0;
     for (const order of toNotify) {
       try {
-        const store = getStoreForOrder(order, stores);
-        const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || 'BzCat';
         const depositor = (order.depositor || '').trim() || '고객';
         const recipientNo = (order.contact || '').toString().trim();
 
@@ -74,8 +70,6 @@ module.exports = async (req, res) => {
           recipientNo,
           templateParameter: {
             depositor,
-            orderId: order.id,
-            storeName,
           },
         });
         if (result.success) {

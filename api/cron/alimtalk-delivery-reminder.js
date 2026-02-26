@@ -44,9 +44,10 @@ module.exports = async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_PREPARE_ORDER || '').trim();
-  if (!templateCode) {
-    return res.status(200).json({ ok: true, sent: 0, message: 'NHN_ALIMTALK_TEMPLATE_CODE_STORE_PREPARE_ORDER not set' });
+  const storeTemplateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_PREPARE_ORDER || '').trim();
+  const userTemplateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_USER_PREPARE_ORDER || '').trim();
+  if (!storeTemplateCode && !userTemplateCode) {
+    return res.status(200).json({ ok: true, sent: 0, message: 'No STORE_PREPARE_ORDER or USER_PREPARE_ORDER template set' });
   }
 
   try {
@@ -63,29 +64,49 @@ module.exports = async (req, res) => {
     let sent = 0;
     for (const order of toNotify) {
       try {
-        const store = getStoreForOrder(order, stores);
-        if (!store) continue;
-        const storeContact = (store.storeContact || '').trim();
-        if (!storeContact) continue;
-
-        const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
-        const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
         const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
-        const deliveryTimeStr = (order.delivery_time || '').toString().trim() || '';
+        const deliveryTimeStr = (order.delivery_time || '').toString().trim() || '-';
 
-        const result = await sendAlimtalk({
-          templateCode,
-          recipientNo: storeContact,
-          templateParameter: {
-            orderId: order.id,
-            storeName,
-            deliveryDate: deliveryDateStr,
-            deliveryTime: deliveryTimeStr || '-',
-            depositor: (order.depositor || '').trim() || '-',
-            totalAmount: totalAmountStr,
-          },
-        });
-        if (result.success) sent += 1;
+        if (storeTemplateCode) {
+          const store = getStoreForOrder(order, stores);
+          const storeContact = (store?.storeContact || '').trim();
+          if (store && storeContact) {
+            const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+            const result = await sendAlimtalk({
+              templateCode: storeTemplateCode,
+              recipientNo: storeContact,
+              templateParameter: {
+                storeName,
+                orderId: order.id,
+                deliveryDate: deliveryDateStr,
+                deliveryTime: deliveryTimeStr || '-',
+              },
+            });
+            if (result.success) sent += 1;
+          }
+        }
+
+        if (userTemplateCode) {
+          const orderContact = (order.contact || '').trim();
+          if (orderContact) {
+            const store = getStoreForOrder(order, stores);
+            const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+            const deliveryAddressStr = (order.delivery_address || '').trim() || '-';
+            const detailAddressStr = (order.detail_address || '').trim() || '-';
+            await sendAlimtalk({
+              templateCode: userTemplateCode,
+              recipientNo: orderContact,
+              templateParameter: {
+                storeName,
+                orderId: order.id,
+                deliveryDate: deliveryDateStr,
+                deliveryTime: deliveryTimeStr || '-',
+                deliveryAddress: deliveryAddressStr,
+                detailAddress: detailAddressStr,
+              },
+            });
+          }
+        }
       } catch (err) {
         console.error('Alimtalk delivery reminder error for order', order.id, err);
       }

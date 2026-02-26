@@ -74,9 +74,8 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
           templateCode,
           recipientNo: storeContact,
           templateParameter: {
-            orderId: order.id,
             storeName,
-            depositor: (order.depositor || '').trim() || '-',
+            orderId: order.id,
             cancelReason: (order.cancel_reason || '').trim() || '-',
           },
         });
@@ -84,6 +83,30 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
     }
   } catch (alimErr) {
     console.error('Alimtalk cancel notification error:', alimErr);
+  }
+
+  // 주문 취소 시 주문자(고객) 알림톡: cancelReason, storeName, orderId, deliveryDate, deliveryAddress, detailAddress
+  try {
+    const userTemplateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_USER_CANCEL_ORDER || '').trim();
+    const orderContact = (order.contact || '').trim();
+    if (userTemplateCode && orderContact) {
+      const store = getStoreForOrder(order, stores);
+      const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+      await sendAlimtalk({
+        templateCode: userTemplateCode,
+        recipientNo: orderContact,
+        templateParameter: {
+          cancelReason: (order.cancel_reason || '').trim() || '-',
+          storeName,
+          orderId: order.id,
+          deliveryDate: (order.delivery_date || '').toString().trim() || '-',
+          deliveryAddress: (order.delivery_address || '').trim() || '-',
+          detailAddress: (order.detail_address || '').trim() || '-',
+        },
+      });
+    }
+  } catch (alimErr) {
+    console.error('Alimtalk cancel (user) notification error:', alimErr);
   }
 
   return order;
