@@ -190,7 +190,7 @@ function renderStore(store, menus) {
             <div class="admin-form-field admin-form-field--representative">
               <label>대표자</label>
               <input type="text" data-field="representative" value="${escapeHtml(store.representative || '')}" placeholder="대표자명">
-            </div>
+        </div>
             <div class="admin-form-field">
               <label>담당자연락처</label>
               <input type="text" data-field="storeContact" value="${escapeHtml(store.storeContact || '')}" placeholder="예: 02-1234-5678">
@@ -198,7 +198,7 @@ function renderStore(store, menus) {
             <div class="admin-form-field admin-form-field--store-contact-email">
               <label>담당자이메일</label>
               <input type="email" data-field="storeContactEmail" value="${escapeHtml(store.storeContactEmail || '')}" placeholder="예: contact@example.com">
-            </div>
+          </div>
             <div class="admin-form-field">
               <label>suburl</label>
               <input type="text" data-field="suburl" value="${escapeHtml(store.suburl || '')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
@@ -344,18 +344,18 @@ function showLoadingError(msg, showRetry = false) {
 function setupTabs() {
   const tabs = document.querySelectorAll('.admin-tab');
   const views = document.querySelectorAll('.admin-view');
-
+  
   function activateTab(targetTab) {
-    tabs.forEach(t => t.classList.remove('active'));
-    views.forEach(v => v.classList.remove('active'));
+      tabs.forEach(t => t.classList.remove('active'));
+      views.forEach(v => v.classList.remove('active'));
     const tabEl = document.querySelector(`.admin-tab[data-tab="${targetTab}"]`);
     if (tabEl) tabEl.classList.add('active');
-    if (targetTab === 'stores') {
-      document.getElementById('storesView').classList.add('active');
-      clearPaymentIdleTimer();
-    } else if (targetTab === 'payments') {
-      document.getElementById('paymentsView').classList.add('active');
-      loadPaymentManagement().then(() => startPaymentIdleRefresh());
+      if (targetTab === 'stores') {
+        document.getElementById('storesView').classList.add('active');
+        clearPaymentIdleTimer();
+      } else if (targetTab === 'payments') {
+        document.getElementById('paymentsView').classList.add('active');
+        loadPaymentManagement().then(() => startPaymentIdleRefresh());
     } else     if (targetTab === 'stats') {
       document.getElementById('statsView').classList.add('active');
       loadStats();
