@@ -31,14 +31,25 @@ function formatOrderDate(isoStr) {
 
 /**
  * 주문에 해당하는 매장 객체 반환 (없으면 null)
+ * 주문 첫 상품 id가 매장 id(또는 slug)로 시작하는 매장을 찾고, 여러 개면 id가 가장 긴(가장 구체적인) 매장을 반환.
  */
 function getStoreForOrder(order, stores) {
   const items = order.order_items || order.orderItems || [];
   if (!Array.isArray(items) || items.length === 0) return null;
-  const firstId = items[0].id || '';
-  const slug = (firstId.split('-')[0] || '').toLowerCase();
-  if (!slug) return null;
-  return stores.find((s) => (s.id || '').toLowerCase() === slug || (s.slug || '').toLowerCase() === slug) || null;
+  const firstId = (items[0].id || '').toLowerCase();
+  if (!firstId) return null;
+  const match = (s) => {
+    const id = (s.id || '').toLowerCase();
+    const slug = (s.slug || '').toLowerCase();
+    if (!id && !slug) return false;
+    const prefix = id || slug;
+    return firstId === prefix || firstId.startsWith(prefix + '-');
+  };
+  const candidates = stores.filter(match);
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  candidates.sort((a, b) => (b.id || b.slug || '').length - (a.id || a.slug || '').length);
+  return candidates[0];
 }
 
 /**
