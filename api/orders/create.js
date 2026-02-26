@@ -158,6 +158,10 @@ module.exports = async (req, res) => {
             const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
             const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
+            const deliveryTimeStr = (order.delivery_time || '').toString().trim() || '-';
+            const deliveryAddressStr = (order.delivery_address || '').trim() || '-';
+            const detailAddressStr = (order.detail_address || '').trim() || '-';
+            const contactStr = (order.contact || '').trim() || '-';
             const digits = storeContact.replace(/\D/g, '');
             const maskedNo = digits.length >= 4 ? '010****' + digits.slice(-4) : '***';
             const codeLen = (templateCode || '').length;
@@ -169,11 +173,16 @@ module.exports = async (req, res) => {
               templateCode,
               recipientNo: storeContact,
               templateParameter: {
-                orderId: order.id,
                 storeName,
-                depositor: (order.depositor || '').trim() || '-',
-                totalAmount: totalAmountStr,
+                orderId: order.id,
                 deliveryDate: deliveryDateStr,
+                cancelReason: '', // 신규 주문에는 해당 없음
+                totalAmount: totalAmountStr,
+                deliveryTime: deliveryTimeStr,
+                deliveryAddress: deliveryAddressStr,
+                detailAddress: detailAddressStr,
+                contact: contactStr,
+                depositor: (order.depositor || '').trim() || '-',
               },
             });
             if (result.success) {
@@ -195,6 +204,10 @@ module.exports = async (req, res) => {
           const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
           const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
           const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
+          const deliveryTimeStr = (order.delivery_time || '').toString().trim() || '-';
+          const deliveryAddressStr = (order.delivery_address || '').trim() || '-';
+          const detailAddressStr = (order.detail_address || '').trim() || '-';
+          const contactStr = (order.contact || '').trim() || '-';
           const digitsU = orderContact.replace(/\D/g, '');
           const maskedU = digitsU.length >= 4 ? '010****' + digitsU.slice(-4) : '***';
           console.log('Alimtalk (user) sending: orderId=', order.id, 'recipient=', maskedU);
@@ -202,11 +215,16 @@ module.exports = async (req, res) => {
             templateCode: userTemplateCode,
             recipientNo: orderContact,
             templateParameter: {
-              orderId: order.id,
               storeName,
-              depositor: (order.depositor || '').trim() || '-',
-              totalAmount: totalAmountStr,
+              orderId: order.id,
               deliveryDate: deliveryDateStr,
+              cancelReason: '',
+              totalAmount: totalAmountStr,
+              deliveryTime: deliveryTimeStr,
+              deliveryAddress: deliveryAddressStr,
+              detailAddress: detailAddressStr,
+              contact: contactStr,
+              depositor: (order.depositor || '').trim() || '-',
             },
           });
           if (resultUser.success) {
