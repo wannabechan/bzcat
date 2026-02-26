@@ -199,11 +199,13 @@ module.exports = async (req, res) => {
           const digitsU = orderContact.replace(/\D/g, '');
           const maskedU = digitsU.length >= 4 ? '010****' + digitsU.slice(-4) : '***';
           console.log('Alimtalk (user) sending: orderId=', order.id, 'recipient=', maskedU);
-          // USER_NEW_ORDER 템플릿: storeName, orderId, totalAmount, deliveryDate, deliveryAddress, detailAddress
+          // USER_NEW_ORDER 템플릿: depositor, storeName, orderId, totalAmount, deliveryDate, deliveryAddress, detailAddress
+          const depositorStr = (order.depositor || '').trim() || '-';
           const resultUser = await sendAlimtalk({
             templateCode: userTemplateCode,
             recipientNo: orderContact,
             templateParameter: {
+              depositor: depositorStr,
               storeName,
               orderId: order.id,
               totalAmount: totalAmountStr,

@@ -61,10 +61,12 @@ module.exports = async (req, res) => {
             const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
             const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
+            const depositorStr = (order.depositor || '').trim() || '-';
             await sendAlimtalk({
               templateCode: userPayaskCode,
               recipientNo: orderContact,
               templateParameter: {
+                depositor: depositorStr,
                 storeName,
                 orderId: order.id,
                 totalAmount: totalAmountStr,
