@@ -47,7 +47,7 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
     const key = (typeof k === 'string' && k.startsWith('#{') && k.endsWith('}')) ? k : '#' + '{' + bare + '}';
     params[key] = String(v ?? '');
   }
-  console.log('Alimtalk templateParameter', params);
+  console.log('Alimtalk templateParameter', JSON.stringify(params));
 
   const body = {
     senderKey,
