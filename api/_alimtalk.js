@@ -40,12 +40,11 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
     return { success: false, resultMessage: '유효하지 않은 수신번호입니다.' };
   }
 
-  // 템플릿 파라미터: 콘솔에 등록한 치환자 #{변수명} 형태로 전달
+  // 템플릿 파라미터: key는 #{} 제거한 변수명(예: storeName), NHN API는 변수명만 사용
   const params = {};
   for (const [k, v] of Object.entries(templateParameter || {})) {
-    const bare = typeof k === 'string' ? k.replace(/^#?\{?|\}$/g, '') : String(k);
-    const key = (typeof k === 'string' && k.startsWith('#{') && k.endsWith('}')) ? k : '#' + '{' + bare + '}';
-    params[key] = String(v ?? '');
+    const key = typeof k === 'string' ? k.replace(/^#?\{?|\}$/g, '') : String(k);
+    if (key) params[key] = String(v ?? '');
   }
   console.log('Alimtalk templateParameter', JSON.stringify(params));
 
