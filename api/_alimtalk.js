@@ -78,7 +78,8 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
   const isSuccessful = header.isSuccessful === true;
 
   if (!isSuccessful) {
-    console.error('Alimtalk send error', header.resultCode, header.resultMessage, data);
+    const sendResultsStr = data.message?.sendResults != null ? JSON.stringify(data.message.sendResults) : '';
+    console.error('Alimtalk send error', header.resultCode, header.resultMessage, sendResultsStr || data);
   }
 
   return {
