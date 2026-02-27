@@ -5,7 +5,7 @@
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getOrderById, updateOrderPaymentLink, updateOrderStatus, getStores } = require('../_redis');
-const { getStoreForOrder } = require('../orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
 
 module.exports = async (req, res) => {
@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
           try {
             const stores = await getStores();
             const store = getStoreForOrder(order, stores || []);
-            const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+            const storeName = getStoreDisplayName(store);
             const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
             const depositorStr = (order.depositor || '').trim() || '-';

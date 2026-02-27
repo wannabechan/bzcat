@@ -6,7 +6,7 @@
 const { put } = require('@vercel/blob');
 const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
-const { getStoreForOrder } = require('./orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName } = require('./orders/_order-email');
 const { sendAlimtalk } = require('./_alimtalk');
 
 /** 배송 희망일 문자열을 (배송일 - 4일) 23:59 KST Date로 변환 */
@@ -69,7 +69,7 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
     if (store && templateCode) {
       const storeContact = (store.storeContact || '').trim();
       if (storeContact) {
-        const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+        const storeName = getStoreDisplayName(store);
         await sendAlimtalk({
           templateCode,
           recipientNo: storeContact,
@@ -91,7 +91,7 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
     const orderContact = (order.contact || '').trim();
     if (userTemplateCode && orderContact) {
       const store = getStoreForOrder(order, stores);
-      const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+      const storeName = getStoreDisplayName(store);
       await sendAlimtalk({
         templateCode: userTemplateCode,
         recipientNo: orderContact,

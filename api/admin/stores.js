@@ -40,9 +40,17 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'PUT') {
-      const { stores, menus } = req.body;
-      if (!stores || !menus) {
-        return apiResponse(res, 400, { error: 'stores와 menus 데이터가 필요합니다.' });
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const { stores, menus } = body;
+      if (!Array.isArray(stores) || typeof menus !== 'object' || menus === null) {
+        return apiResponse(res, 400, { error: 'stores(배열)와 menus(객체)가 필요합니다.' });
+      }
+      if (stores.length > 100) {
+        return apiResponse(res, 400, { error: '매장 수는 100개를 초과할 수 없습니다.' });
+      }
+      const totalMenus = Object.values(menus).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+      if (totalMenus > 2000) {
+        return apiResponse(res, 400, { error: '전체 메뉴 수는 2000개를 초과할 수 없습니다.' });
       }
       await saveStoresAndMenus(stores, menus);
       return apiResponse(res, 200, { success: true });

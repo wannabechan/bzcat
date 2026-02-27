@@ -5,7 +5,7 @@
  */
 
 const { getAllOrders, getStores } = require('../_redis');
-const { getStoreForOrder } = require('../orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
 
 /** 날짜 문자열을 YYYY-MM-DD로 정규화 */
@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
           const store = getStoreForOrder(order, stores);
           const storeContact = (store?.storeContact || '').trim();
           if (store && storeContact) {
-            const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+            const storeName = getStoreDisplayName(store);
             const result = await sendAlimtalk({
               templateCode: storeTemplateCode,
               recipientNo: storeContact,
@@ -90,7 +90,7 @@ module.exports = async (req, res) => {
           const orderContact = (order.contact || '').trim();
           if (orderContact) {
             const store = getStoreForOrder(order, stores);
-            const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+            const storeName = getStoreDisplayName(store);
             const deliveryAddressStr = (order.delivery_address || '').trim() || '-';
             const detailAddressStr = (order.detail_address || '').trim() || '-';
             await sendAlimtalk({

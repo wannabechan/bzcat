@@ -53,6 +53,14 @@ function getStoreForOrder(order, stores) {
 }
 
 /**
+ * 매장 표시명 반환 (알림톡·메일 등에서 사용)
+ */
+function getStoreDisplayName(store) {
+  if (!store) return '주문';
+  return (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+}
+
+/**
  * 주문에 해당하는 매장의 담당자 이메일 반환 (없으면 null)
  */
 function getStoreEmailForOrder(order, stores) {
@@ -183,6 +191,7 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
 
 module.exports = {
   getStoreForOrder,
+  getStoreDisplayName,
   getStoreEmailForOrder,
   buildOrderNotificationHtml,
 };

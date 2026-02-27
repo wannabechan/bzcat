@@ -5,7 +5,7 @@
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getOrderById, updateOrderShippingNumber, getStores } = require('../_redis');
-const { getStoreForOrder } = require('../orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
 
 function isAdmin(user) {
@@ -68,7 +68,7 @@ module.exports = async (req, res) => {
         try {
           const stores = await getStores();
           const store = getStoreForOrder(updatedOrder, stores || []);
-          const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+          const storeName = getStoreDisplayName(store);
           const deliveryDateStr = (updatedOrder.delivery_date || '').toString().trim() || '-';
           const deliveryTimeStr = (updatedOrder.delivery_time || '').toString().trim() || '-';
           const deliveryAddressStr = (updatedOrder.delivery_address || '').trim() || '-';

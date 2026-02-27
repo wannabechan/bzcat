@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 const { getAppOrigin } = require('../payment/_helpers');
-const { getStoreForOrder, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
+const { getStoreForOrder, getStoreDisplayName, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
 
 module.exports = async (req, res) => {
@@ -155,7 +155,7 @@ module.exports = async (req, res) => {
           console.warn('Alimtalk skip: NHN_ALIMTALK_TEMPLATE_CODE_STORE_NEW_ORDER 환경 변수가 비어 있음.');
         } else {
           try {
-            const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+            const storeName = getStoreDisplayName(store);
             const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
             const digits = storeContact.replace(/\D/g, '');
             const maskedNo = digits.length >= 4 ? '010****' + digits.slice(-4) : '***';
@@ -191,7 +191,7 @@ module.exports = async (req, res) => {
       // 주문자 알림톡: USER_NEW_ORDER 템플릿 (env NHN_ALIMTALK_TEMPLATE_CODE_USER_NEW_ORDER = USER_NEW_ORDER)
       if (orderContact && userTemplateCode && store) {
         try {
-          const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+          const storeName = getStoreDisplayName(store);
           const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
           const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
           const deliveryAddressStr = (order.delivery_address || '').trim() || '-';

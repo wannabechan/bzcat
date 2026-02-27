@@ -5,7 +5,7 @@
 
 const { getOrderById, updateOrderStatus, updateOrderTossPaymentKey, getStores } = require('../_redis');
 const { getAppOrigin, getTossSecretKeyForOrder } = require('./_helpers');
-const { getStoreForOrder } = require('../orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
 
 const TOSS_CONFIRM = 'https://api.tosspayments.com/v1/payments/confirm';
@@ -29,7 +29,8 @@ module.exports = async (req, res) => {
   const redirectBase = `${origin}/`;
 
   if (!orderId || !paymentKey || amount === undefined) {
-    console.error('Payment success: missing params', { orderId, paymentKey, amount });
+    const missing = []; if (!orderId) missing.push('orderId'); if (!paymentKey) missing.push('paymentKey'); if (amount === undefined) missing.push('amount');
+    console.error('Payment success: missing params', missing.join(', '));
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
@@ -78,7 +79,7 @@ module.exports = async (req, res) => {
       try {
         const storeContact = (store.storeContact || '').trim();
         if (storeContact) {
-          const storeName = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+          const storeName = getStoreDisplayName(store);
           const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
           const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
           const deliveryTimeStr = (order.delivery_time || '').toString().trim() || '-';
@@ -104,7 +105,7 @@ module.exports = async (req, res) => {
     const orderContact = (order.contact || '').trim();
     if (userPaydoneCode && orderContact) {
       try {
-        const storeName = (store?.brand || store?.title || store?.id || store?.slug || '').trim() || '주문';
+        const storeName = getStoreDisplayName(store);
         const totalAmountStr = Number(order.total_amount || 0).toLocaleString() + '원';
         const deliveryDateStr = (order.delivery_date || '').toString().trim() || '-';
         const deliveryAddressStr = (order.delivery_address || '').trim() || '-';

@@ -36,7 +36,9 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
 
   const normalized = normalizeRecipientNo(recipientNo);
   if (!normalized) {
-    console.warn('Alimtalk: 유효하지 않은 수신번호', recipientNo);
+    const digits = (recipientNo || '').replace(/\D/g, '');
+    const masked = digits.length >= 4 ? '***' + digits.slice(-4) : '***';
+    console.warn('Alimtalk: 유효하지 않은 수신번호', masked);
     return { success: false, resultMessage: '유효하지 않은 수신번호입니다.' };
   }
 
@@ -46,7 +48,9 @@ async function sendAlimtalk({ templateCode, recipientNo, templateParameter = {} 
     const key = typeof k === 'string' ? k.replace(/^#?\{?|\}$/g, '') : String(k);
     if (key) params[key] = String(v ?? '');
   }
-  console.log('Alimtalk templateParameter', JSON.stringify(params));
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Alimtalk templateParameter', JSON.stringify(params));
+  }
 
   const body = {
     senderKey,
