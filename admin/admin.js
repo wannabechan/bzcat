@@ -1620,7 +1620,10 @@ async function init() {
       <div class="admin-stores-list" id="adminStoresList">
         ${stores.map((s) => renderStore(s, menus[s.id] || [])).join('')}
       </div>
-      <button type="button" class="admin-btn admin-btn-secondary admin-btn-add-store" data-add-store>+ 카테고리 추가</button>
+      <div class="admin-add-store-row">
+        <button type="button" class="admin-btn admin-btn-secondary admin-btn-add-store" data-add-store>+ 카테고리 추가</button>
+        <button type="button" class="admin-btn admin-btn-reorder-stores" data-reorder-stores aria-label="카테고리 순서 변경" title="카테고리 순서 변경"><span class="admin-reorder-icon" aria-hidden="true">↕</span></button>
+      </div>
     `;
 
     content.addEventListener('click', async (e) => {
@@ -1665,6 +1668,9 @@ async function init() {
         const storeId = e.target.closest('[data-goto-store]').dataset.gotoStore;
         const el = document.getElementById(`admin-store-${storeId}`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (e.target.closest('[data-reorder-stores]')) {
+        openReorderStoresModal();
       }
       if (e.target.closest('[data-add-store]')) {
         const list = document.getElementById('adminStoresList');
@@ -1808,6 +1814,70 @@ async function init() {
   }
 }
 
+function openReorderStoresModal() {
+  const list = document.getElementById('adminStoresList');
+  if (!list) return;
+  const storeEls = list.querySelectorAll('.admin-store');
+  const items = [...storeEls].map((el) => ({
+    id: el.dataset.storeId,
+    title: (el.querySelector('.admin-store-title')?.textContent?.trim()) || (el.querySelector('input[data-field="title"]')?.value?.trim()) || el.dataset.storeId || '',
+  }));
+  const listContainer = document.getElementById('adminReorderStoresList');
+  if (!listContainer) return;
+  listContainer.innerHTML = items
+    .map(
+      (item) =>
+        `<li data-store-id="${escapeHtml(item.id)}" class="admin-reorder-modal-item">
+          <span class="admin-reorder-modal-title">${escapeHtml(item.title)}</span>
+          <div class="admin-reorder-modal-move">
+            <button type="button" data-move-up aria-label="위로">↑</button>
+            <button type="button" data-move-down aria-label="아래로">↓</button>
+          </div>
+        </li>`
+    )
+    .join('');
+  const modal = document.getElementById('adminReorderStoresModal');
+  if (modal) {
+    modal.classList.add('admin-modal-visible');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+}
+
+function closeReorderStoresModal() {
+  const modal = document.getElementById('adminReorderStoresModal');
+  if (modal) {
+    modal.classList.remove('admin-modal-visible');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function applyReorderAndSave() {
+  const listEl = document.getElementById('adminReorderStoresList');
+  const storesList = document.getElementById('adminStoresList');
+  const indexBtns = document.querySelector('.admin-index-btns');
+  if (!listEl || !storesList) return;
+  const order = [...listEl.querySelectorAll('li')].map((li) => li.dataset.storeId);
+  const storeEls = storesList.querySelectorAll('.admin-store');
+  const byId = {};
+  storeEls.forEach((el) => {
+    byId[el.dataset.storeId] = el;
+  });
+  order.forEach((id) => {
+    if (byId[id]) storesList.appendChild(byId[id]);
+  });
+  if (indexBtns) {
+    const btns = indexBtns.querySelectorAll('[data-goto-store]');
+    const btnById = {};
+    btns.forEach((b) => {
+      btnById[b.dataset.gotoStore] = b;
+    });
+    order.forEach((id) => {
+      if (btnById[id]) indexBtns.appendChild(btnById[id]);
+    });
+  }
+  handleSave();
+}
+
 async function handleSave() {
   hideError();
   try {
@@ -1824,5 +1894,27 @@ async function handleSave() {
     showError(err.message);
   }
 }
+
+(function bindReorderStoresModal() {
+  const modal = document.getElementById('adminReorderStoresModal');
+  if (!modal) return;
+  modal.querySelector('#adminReorderStoresModalClose')?.addEventListener('click', closeReorderStoresModal);
+  modal.querySelector('#adminReorderStoresCancel')?.addEventListener('click', closeReorderStoresModal);
+  modal.querySelector('#adminReorderStoresConfirm')?.addEventListener('click', () => {
+    applyReorderAndSave();
+    closeReorderStoresModal();
+  });
+  document.getElementById('adminReorderStoresList')?.addEventListener('click', (e) => {
+    const up = e.target.closest('[data-move-up]');
+    const down = e.target.closest('[data-move-down]');
+    if (up) {
+      const li = up.closest('li');
+      if (li?.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling);
+    } else if (down) {
+      const li = down.closest('li');
+      if (li?.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li);
+    }
+  });
+})();
 
 init();

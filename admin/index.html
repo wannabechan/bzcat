@@ -73,6 +73,18 @@
     .admin-section-title-row .admin-section-title { margin-bottom: 0; }
     .admin-btn-settings { padding: 6px; min-width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--color-text-secondary); background: transparent; border: 1px solid var(--color-border); }
     .admin-btn-settings:hover { color: var(--color-primary); border-color: var(--color-primary); }
+    .admin-add-store-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+    .admin-btn-reorder-stores { padding: 8px 12px; background: none; border: none; color: var(--color-text-secondary); cursor: pointer; border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; }
+    .admin-btn-reorder-stores:hover { color: var(--color-primary); }
+    .admin-reorder-icon { font-size: 1.25rem; line-height: 1; }
+    .admin-reorder-modal-list { list-style: none; margin: 0; padding: 0; }
+    .admin-reorder-modal-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); margin-bottom: 8px; background: var(--color-bg); }
+    .admin-reorder-modal-item:last-child { margin-bottom: 0; }
+    .admin-reorder-modal-title { flex: 1; font-size: 0.9375rem; min-width: 0; }
+    .admin-reorder-modal-move { display: flex; flex-direction: column; gap: 2px; }
+    .admin-reorder-modal-move button { padding: 2px 8px; font-size: 0.75rem; line-height: 1.2; background: none; border: none; color: var(--color-text-secondary); cursor: pointer; border-radius: 2px; }
+    .admin-reorder-modal-move button:hover:not(:disabled) { color: var(--color-primary); }
+    .admin-reorder-modal-move button:disabled { opacity: 0.4; cursor: default; }
     .admin-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
     .admin-modal-overlay.admin-modal-visible { opacity: 1; visibility: visible; }
     .admin-modal { background: var(--color-surface); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column; }
@@ -368,6 +380,23 @@
         <div class="admin-modal-footer">
           <button type="button" class="admin-btn admin-btn-secondary" id="adminApiSettingsCancel">취소</button>
           <button type="button" class="admin-btn admin-btn-primary" id="adminApiSettingsApply">적용</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-modal-overlay" id="adminReorderStoresModal" aria-hidden="true">
+      <div class="admin-modal">
+        <div class="admin-modal-header">
+          <h3>카테고리 순서 변경</h3>
+          <button type="button" class="admin-modal-close" id="adminReorderStoresModalClose" aria-label="닫기">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+          <p class="admin-modal-hint">아래 목록에서 위/아래 버튼으로 순서를 바꾼 뒤 확인을 누르면 저장됩니다.</p>
+          <ul class="admin-reorder-modal-list" id="adminReorderStoresList"></ul>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="admin-btn admin-btn-secondary" id="adminReorderStoresCancel">취소</button>
+          <button type="button" class="admin-btn admin-btn-primary" id="adminReorderStoresConfirm">확인</button>
         </div>
       </div>
     </div>
