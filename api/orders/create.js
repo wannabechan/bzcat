@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
     const user = verifyToken(token);
 
     if (!user) {
-      return apiResponse(res, 401, { error: '유효하지 않은 토큰입니다.' });
+      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
     const {

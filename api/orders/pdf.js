@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
   const user = verifyToken(authHeader.substring(7));
   if (!user) {
     setCorsHeaders(res);
-    return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });
+    return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
 
   const order = await getOrderById(orderId);

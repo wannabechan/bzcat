@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
     }
     const token = authHeader.substring(7);
     const user = verifyToken(token);
-    if (!user) return apiResponse(res, 401, { error: '유효하지 않은 토큰입니다.' });
+    if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     if (user.level !== 'admin') return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
 
     const startDate = parseDate(req.query.startDate);
