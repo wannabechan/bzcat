@@ -509,7 +509,7 @@ function renderPaymentList() {
         </div>
         <div class="admin-payment-order-info">
           <div>주문시간: ${formatAdminOrderDate(order.created_at)}</div>
-          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled ? '' : ` <span class="${dDayClass}">(${dDayText})</span>`}</div>
+          <div>배송희망: ${escapeHtml(order.delivery_date || '')} ${escapeHtml(order.delivery_time || '')}${isCancelled || adminPaymentSubFilter === 'delivery_completed' ? '' : ` <span class="${dDayClass}">(${dDayText})</span>`}</div>
           <div>배송주소: ${deliveryAddressEsc}</div>
           <div>주문자: ${escapeHtml(order.depositor || '—')} / ${escapeHtml(order.contact || '—')}</div>
           <div>이메일: ${escapeHtml(order.user_email || '—')}</div>
