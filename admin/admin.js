@@ -1056,9 +1056,11 @@ function formatSettlementClock() {
   return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
+var _settlementEmptyParagraph = '<p class="admin-settlement-empty">내역이 없습니다.</p>';
+
 function renderSettlementTable(byBrand) {
   if (!byBrand || byBrand.length === 0) {
-    return '<p class="admin-settlement-empty">해당 기간에 배송 완료된 주문이 없습니다.</p>';
+    return _settlementEmptyParagraph;
   }
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
   let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
@@ -1214,9 +1216,9 @@ function renderMockSettlementTwoLists(executed, notExecuted) {
   const table2 = renderSettlementTable(notExecuted).replace('<table class="admin-stats-table">', '<table class="' + _settlementTableClass + '">');
   return (
     '<div class="admin-settlement-mock-lists">' +
-    '<br><h4 class="admin-settlement-subheading">*정산 집행 (배송 완료 처리)</h4>' +
+    '<br><h4 class="admin-settlement-subheading">정산 집행 (배송 완료 처리)</h4>' +
     '<div class="admin-settlement-mock-table-wrap">' + table1 + '</div>' +
-    '<br><h4 class="admin-settlement-subheading">*정산 미집행 (배송 완료 미처리)</h4>' +
+    '<br><h4 class="admin-settlement-subheading">정산 미집행 (배송 완료 미처리)</h4>' +
     '<div class="admin-settlement-mock-table-wrap">' + table2 + '</div>' +
     '</div>'
   );
@@ -1438,7 +1440,7 @@ async function loadSettlementPeriod(settlementDateStr) {
       return;
     }
     if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
-    _applySettlementPeriodResult(renderSettlementTable(data.byBrand || []));
+    _applySettlementPeriodResult(renderMockSettlementTwoLists(data.byBrand || [], []));
   } catch (e) {
     if (document.getElementById('adminSettlementDateSelect')?.value !== requestedDate) {
       if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
