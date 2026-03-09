@@ -478,12 +478,12 @@ function renderPaymentList() {
   const todayKstStr = getKSTTodayString();
   const todayStart = new Date(todayKstStr + 'T00:00:00+09:00').getTime();
   const ordersHtml = sorted.map(order => {
-    const deliveryDate = new Date((order.delivery_date || '').toString().trim() + 'T12:00:00+09:00');
-    const daysUntilDelivery = Math.ceil((deliveryDate.getTime() - todayStart) / 86400000);
-    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : 'D-' + daysUntilDelivery;
+    const deliveryDayStart = new Date((order.delivery_date || '').toString().trim() + 'T00:00:00+09:00').getTime();
+    const daysUntilDelivery = Math.floor((deliveryDayStart - todayStart) / 86400000);
+    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : (daysUntilDelivery === 0 ? 'D-day' : 'D-' + daysUntilDelivery);
     const dDayClass = daysUntilDelivery < 0 ? 'admin-days-overdue' : (daysUntilDelivery <= 7 ? 'admin-days-urgent' : '');
     const isCancelled = order.status === 'cancelled';
-    const isUrgent = !isCancelled && daysUntilDelivery <= 7 && !(order.payment_link && String(order.payment_link).trim());
+    const isUrgent = !isCancelled && daysUntilDelivery >= 0 && daysUntilDelivery <= 7 && !(order.payment_link && String(order.payment_link).trim());
     const isPaymentDone = order.status === 'payment_completed' || order.status === 'shipping' || order.status === 'delivery_completed';
     const paymentLinkRowDisabled = isCancelled || isPaymentDone || order.status === 'submitted' || !!(order.payment_link && String(order.payment_link).trim());
     const shippingRowDisabled = order.status !== 'payment_completed';

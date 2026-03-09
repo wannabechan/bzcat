@@ -399,12 +399,12 @@ function renderList() {
     </div>
   `;
 
+  const todayKstStr = getKSTTodayString();
+  const todayStart = new Date(todayKstStr + 'T00:00:00+09:00').getTime();
   const ordersHtml = sorted.map(order => {
-    const deliveryDate = new Date(order.delivery_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
-    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : 'D-' + daysUntilDelivery;
+    const deliveryDayStart = new Date((order.delivery_date || '').toString().trim() + 'T00:00:00+09:00').getTime();
+    const daysUntilDelivery = Math.floor((deliveryDayStart - todayStart) / 86400000);
+    const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : (daysUntilDelivery === 0 ? 'D-day' : 'D-' + daysUntilDelivery);
     const dDayClass = daysUntilDelivery < 0 ? 'admin-days-overdue' : (daysUntilDelivery <= 7 ? 'admin-days-urgent' : '');
     const isCancelled = order.status === 'cancelled';
     const overdue = isOverdueForAccept(order);
