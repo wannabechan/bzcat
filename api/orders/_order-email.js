@@ -3,6 +3,8 @@
  * (내 주문 보기 페이지의 주문 내역과 동일한 수준으로 구성)
  */
 
+const { formatDateKST } = require('../_kst');
+
 function escapeHtml(str) {
   if (str == null || str === '') return '';
   const s = String(str);
@@ -20,13 +22,7 @@ function formatPrice(price) {
 
 function formatOrderDate(isoStr) {
   if (!isoStr) return '—';
-  const d = new Date(isoStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}. ${m}. ${day} ${h}:${min}`;
+  return formatDateKST(isoStr);
 }
 
 /**

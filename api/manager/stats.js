@@ -7,20 +7,15 @@
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreEmailForOrder } = require('../orders/_order-email');
+const { parseKSTDate, getKSTDateString } = require('../_kst');
 
 function parseDate(str) {
-  if (!str) return null;
-  const d = new Date(str + 'T00:00:00');
-  return isNaN(d.getTime()) ? null : d;
+  return parseKSTDate(str);
 }
 
 function toDateKey(isoStr) {
   if (!isoStr) return '';
-  const d = new Date(isoStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return getKSTDateString(isoStr);
 }
 
 function getStoreSlugFromOrder(order) {
@@ -59,10 +54,12 @@ module.exports = async (req, res) => {
     });
 
     if (startDate || endDate) {
+      const startMs = startDate ? startDate.getTime() : null;
+      const endMs = endDate ? endDate.getTime() + 86400000 - 1 : null;
       orders = orders.filter((o) => {
         const t = new Date(o.created_at).getTime();
-        if (startDate && t < startDate.getTime()) return false;
-        if (endDate && t > endDate.getTime() + 86400000) return false;
+        if (startMs != null && t < startMs) return false;
+        if (endMs != null && t > endMs) return false;
         return true;
       });
     }

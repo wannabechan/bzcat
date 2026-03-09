@@ -9,6 +9,7 @@
  */
 
 const { Redis } = require('@upstash/redis');
+const { getYymmddKST: getYymmddKSTFromKst } = require('./_kst');
 
 let _redisClient = null;
 
@@ -81,25 +82,9 @@ async function updateUserLogin(email) {
   return { ...user, is_first_login: isFirstLogin };
 }
 
-function getYymmddKST() {
-  const d = new Date();
-  const formatter = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  const parts = formatter.formatToParts(d);
-  const get = (type) => parts.find((p) => p.type === type)?.value || '';
-  const y = get('year');
-  const m = get('month');
-  const day = get('day');
-  return `${y}${m}${day}`;
-}
-
 async function getNextOrderId() {
   const redis = getRedis();
-  const yymmdd = getYymmddKST();
+  const yymmdd = getYymmddKSTFromKst();
   const count = await redis.incr(`orders:count:${yymmdd}`);
   return `${yymmdd}${String(count).padStart(3, '0')}`;
 }

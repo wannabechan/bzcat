@@ -7,6 +7,7 @@
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
+const { formatDateKST } = require('./_kst');
 
 const DEFAULT_CATEGORY_TITLES = {
   bento: '도시락',
@@ -26,22 +27,6 @@ function formatPrice(price) {
   return Number(price).toLocaleString() + '원';
 }
 
-function formatDateKST(isoStr) {
-  if (!isoStr) return '—';
-  const d = new Date(isoStr);
-  const formatter = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const parts = formatter.formatToParts(d);
-  const get = (type) => parts.find((p) => p.type === type)?.value || '';
-  return `${get('year')}.${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`;
-}
 
 async function generateOrderPdf(order, stores = [], options = {}) {
   const isCancelled = options.isCancelled === true;

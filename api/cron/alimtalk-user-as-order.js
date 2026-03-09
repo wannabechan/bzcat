@@ -6,6 +6,7 @@
 
 const { getAllOrders, updateOrderUserAsOrderSent } = require('../_redis');
 const { sendAlimtalk } = require('../_alimtalk');
+const { getKSTYesterdayString } = require('../_kst');
 
 /** 날짜 문자열을 YYYY-MM-DD로 정규화 */
 function normalizeDateKey(str) {
@@ -13,17 +14,6 @@ function normalizeDateKey(str) {
   const s = str.trim().replace(/\D/g, '');
   if (s.length === 8) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
   return '';
-}
-
-/** KST 기준 어제 날짜 문자열 (YYYY-MM-DD) */
-function getYesterdayKstStr() {
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const yesterday = new Date(kst.getTime() - 24 * 60 * 60 * 1000);
-  const y = yesterday.getUTCFullYear();
-  const m = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(yesterday.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 module.exports = async (req, res) => {
@@ -47,7 +37,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const yesterdayStr = getYesterdayKstStr();
+    const yesterdayStr = getKSTYesterdayString();
     const orders = await getAllOrders();
 
     const toNotify = orders.filter((o) => {

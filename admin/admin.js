@@ -27,8 +27,22 @@ const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 
 const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
-/** 정산관리 탭: false = 실제 DB 데이터 사용, true = 테스트용 목 데이터 */
-const SETTLEMENT_MOCK_FOR_TEST = false;
+/** 정산관리 탭: false = 실제 DB 데이터 사용, true = 테스트용 샘플(DB 미반영, 화면만) */
+const SETTLEMENT_MOCK_FOR_TEST = true;
+
+// KST(한국 표준시) 기준 날짜 (프로젝트 시간 판단 통일)
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+function getKSTDateStr(ts) {
+  return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+function getKSTTodayString() {
+  return getKSTDateStr(Date.now());
+}
+function getKSTTomorrowString() {
+  const today = getKSTTodayString();
+  const start = new Date(today + 'T00:00:00+09:00');
+  return getKSTDateStr(start.getTime() + 86400000);
+}
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -383,14 +397,14 @@ function setupTabs() {
   }
 }
 
-/** 신청 완료 주문이 주문일+1일 15:00까지 승인/거절되지 않은 경우 true */
+/** 신청 완료 주문이 주문일(KST)+1일 15:00 KST까지 승인/거절되지 않은 경우 true */
 function isOverdueForAccept(order) {
   if (order.status !== 'submitted') return false;
   const created = new Date(order.created_at);
-  const deadline = new Date(created);
-  deadline.setDate(deadline.getDate() + 1);
-  deadline.setHours(15, 0, 0, 0);
-  return new Date() > deadline;
+  const createdKstStr = getKSTDateStr(created.getTime());
+  const deadline = new Date(createdKstStr + 'T00:00:00+09:00');
+  deadline.setTime(deadline.getTime() + 86400000 + 15 * 3600000);
+  return Date.now() > deadline.getTime();
 }
 
 function sortPaymentOrders(orders, sortBy, dir) {
@@ -461,11 +475,11 @@ function renderPaymentList() {
     </div>
   `;
 
+  const todayKstStr = getKSTTodayString();
+  const todayStart = new Date(todayKstStr + 'T00:00:00+09:00').getTime();
   const ordersHtml = sorted.map(order => {
-    const deliveryDate = new Date(order.delivery_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysUntilDelivery = Math.ceil((deliveryDate - today) / (1000 * 60 * 60 * 24));
+    const deliveryDate = new Date((order.delivery_date || '').toString().trim() + 'T12:00:00+09:00');
+    const daysUntilDelivery = Math.ceil((deliveryDate.getTime() - todayStart) / 86400000);
     const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : 'D-' + daysUntilDelivery;
     const dDayClass = daysUntilDelivery < 0 ? 'admin-days-overdue' : (daysUntilDelivery <= 7 ? 'admin-days-urgent' : '');
     const isCancelled = order.status === 'cancelled';
@@ -942,47 +956,45 @@ function clearPaymentIdleTimer() {
 }
 
 function getStatsDateStr(d) {
-  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
+  return getKSTDateStr(d instanceof Date ? d.getTime() : d);
 }
-function getThisWeekMonday(d) {
-  const x = new Date(d.getTime());
-  const day = x.getDay();
+function getThisWeekMondayKST() {
+  const todayStr = getKSTTodayString();
+  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
+  const day = new Date(todayStart + KST_OFFSET_MS).getUTCDay();
   const diff = day === 0 ? 6 : day - 1;
-  x.setDate(x.getDate() - diff);
-  return x;
+  return getKSTDateStr(todayStart - diff * 86400000);
 }
 function getDefaultStatsRange() {
-  const end = new Date();
-  const start = getThisWeekMonday(end);
-  return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+  const endStr = getKSTTodayString();
+  const startStr = getThisWeekMondayKST();
+  return { start: startStr, end: endStr };
 }
 function getPresetStatsRange(preset) {
-  const today = new Date();
-  if (preset === 'today') {
-    const s = getStatsDateStr(today);
-    return { start: s, end: s };
-  }
+  const todayStr = getKSTTodayString();
+  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
+  if (preset === 'today') return { start: todayStr, end: todayStr };
   if (preset === 'this_week') {
-    const start = getThisWeekMonday(today);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+    const startStr = getThisWeekMondayKST();
+    return { start: startStr, end: todayStr };
   }
   if (preset === 'last_week') {
-    const thisMon = getThisWeekMonday(today);
-    const lastSun = new Date(thisMon.getTime());
-    lastSun.setDate(lastSun.getDate() - 1);
-    const lastMon = new Date(lastSun.getTime());
-    lastMon.setDate(lastMon.getDate() - 6);
-    return { start: getStatsDateStr(lastMon), end: getStatsDateStr(lastSun) };
+    const thisMonStr = getThisWeekMondayKST();
+    const thisMonStart = new Date(thisMonStr + 'T00:00:00+09:00').getTime();
+    const lastSunStart = thisMonStart - 86400000;
+    const lastMonStart = thisMonStart - 7 * 86400000;
+    return { start: getKSTDateStr(lastMonStart), end: getKSTDateStr(lastSunStart) };
   }
   if (preset === 'this_month') {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+    const start = todayStr.replace(/-(\d{2})$/, '-01');
+    return { start, end: todayStr };
   }
   if (preset === 'last_month') {
-    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const end = new Date(today.getFullYear(), today.getMonth(), 0);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+    const d = new Date(todayStr + 'T12:00:00+09:00');
+    const y = d.getFullYear(), m = d.getMonth();
+    const start = new Date(Date.UTC(y, m - 1, 1));
+    const end = new Date(Date.UTC(y, m, 0));
+    return { start: getKSTDateStr(start.getTime()), end: getKSTDateStr(end.getTime()) };
   }
   return null;
 }
@@ -1029,30 +1041,24 @@ async function loadStats() {
   }
 }
 
-/** YYYY-MM-DD */
+/** YYYY-MM-DD (KST) */
 function toDateKey(d) {
-  const x = new Date(d);
-  const y = x.getFullYear();
-  const m = String(x.getMonth() + 1).padStart(2, '0');
-  const day = String(x.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  const x = d instanceof Date ? d : new Date(d);
+  return getKSTDateStr(x.getTime());
 }
 
-/** yy/mm/dd hh:mm:ss (실시간 시계용) */
+/** yy/mm/dd hh:mm:ss KST (실시간 시계용) */
 function formatSettlementClock() {
   const x = new Date();
-  const yy = String(x.getFullYear()).slice(-2);
-  const mm = String(x.getMonth() + 1).padStart(2, '0');
-  const dd = String(x.getDate()).padStart(2, '0');
-  const hh = String(x.getHours()).padStart(2, '0');
-  const min = String(x.getMinutes()).padStart(2, '0');
-  const ss = String(x.getSeconds()).padStart(2, '0');
-  return `${yy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(x);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
 function renderSettlementTable(byBrand) {
   if (!byBrand || byBrand.length === 0) {
-    return '<p class="admin-settlement-empty">해당 날짜에 배송 완료된 주문이 없습니다.</p>';
+    return '<p class="admin-settlement-empty">해당 기간에 배송 완료된 주문이 없습니다.</p>';
   }
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
   let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
@@ -1066,14 +1072,164 @@ function renderSettlementTable(byBrand) {
   return html;
 }
 
+/** 정산 기준일 목록: 2026-01-01 ~ 오늘(KST), 10일·20일·말일만, 최신순 */
+function getSettlementDatesList() {
+  const todayStr = getKSTTodayString();
+  const [endY, endM] = todayStr.split('-').map(Number);
+  const list = [];
+  for (let y = 2026; y <= endY; y++) {
+    const monthStart = y === 2026 ? 1 : 1;
+    const monthEnd = y === endY ? endM : 12;
+    for (let m = monthStart; m <= monthEnd; m++) {
+      const pad = (n) => String(n).padStart(2, '0');
+      const d10 = y + '-' + pad(m) + '-10';
+      const d20 = y + '-' + pad(m) + '-20';
+      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const dLast = y + '-' + pad(m) + '-' + pad(lastDay);
+      if (d10 >= '2026-01-01' && d10 <= todayStr) list.push(d10);
+      if (d20 >= '2026-01-01' && d20 <= todayStr) list.push(d20);
+      if (dLast >= '2026-01-01' && dLast <= todayStr && dLast !== d10 && dLast !== d20) list.push(dLast);
+    }
+  }
+  list.sort((a, b) => b.localeCompare(a));
+  return list;
+}
+
+/** 정산 기준일에 해당하는 지급 기간 반환 (startDate, endDate) */
+function getPeriodForSettlementDate(settlementDateStr) {
+  const parts = settlementDateStr.split('-').map(Number);
+  const y = parts[0], m = parts[1], dayNum = parts[2];
+  const pad = (n) => String(n).padStart(2, '0');
+  if (dayNum === 10) {
+    const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+    const prevLast = new Date(Date.UTC(prev.y, prev.m, 0)).getUTCDate();
+    return { start: prev.y + '-' + pad(prev.m) + '-21', end: prev.y + '-' + pad(prev.m) + '-' + pad(prevLast) };
+  }
+  if (dayNum === 20) {
+    return { start: y + '-' + pad(m) + '-01', end: y + '-' + pad(m) + '-10' };
+  }
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  if (dayNum === lastDay) {
+    return { start: y + '-' + pad(m) + '-11', end: y + '-' + pad(m) + '-20' };
+  }
+  return null;
+}
+
+/**
+ * 정산관리 탭 테스트용 샘플 데이터 (실제 DB 미사용).
+ * 가정: 2026-02-01부터 매일 9시, 주문 페이지 첫 번째 카테고리(매장) 전메뉴 1개씩 주문, 배송희망일 = 주문일+8일.
+ * → 최초 배송일은 2026-02-09. 그 이전 구간에는 배송/정산 없음.
+ * 배송일이 토요일인 주문만 admin이 배송완료 미저장.
+ * 샘플 매장 = loadSettlement 시점의 매장 목록(getStores) 첫 번째 = 주문 페이지 첫 카테고리와 동일.
+ */
+const SAMPLE_FIRST_ORDER_DATE = '2026-02-01';
+const SAMPLE_FIRST_DELIVERY_DATE = '2026-02-09';
+
+var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '' };
+
+function getMockSettlementByBrandForPeriod(startDateStr, endDateStr) {
+  const SAMPLE_AMOUNT_PER_ORDER = 50000;
+  const MOCK_BRAND = { slug: _mockFirstCategory.slug, brandTitle: _mockFirstCategory.brandTitle || _mockFirstCategory.slug };
+  if (!_mockFirstCategory.slug) return { executed: [], notExecuted: [] };
+  if (endDateStr < SAMPLE_FIRST_DELIVERY_DATE || startDateStr > endDateStr) {
+    return { executed: [], notExecuted: [] };
+  }
+  const rangeStart = startDateStr < SAMPLE_FIRST_DELIVERY_DATE ? SAMPLE_FIRST_DELIVERY_DATE : startDateStr;
+  const rangeEnd = endDateStr;
+  let executedCount = 0;
+  let notExecutedCount = 0;
+  const start = new Date(rangeStart + 'T12:00:00+09:00');
+  const end = new Date(rangeEnd + 'T12:00:00+09:00');
+  for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
+    const dayKst = new Date(t + KST_OFFSET_MS).getUTCDay();
+    if (dayKst === 6) notExecutedCount += 1;
+    else executedCount += 1;
+  }
+  const executed = executedCount > 0
+    ? [{ ...MOCK_BRAND, orderCount: executedCount, totalAmount: executedCount * SAMPLE_AMOUNT_PER_ORDER }]
+    : [];
+  const notExecuted = notExecutedCount > 0
+    ? [{ ...MOCK_BRAND, orderCount: notExecutedCount, totalAmount: notExecutedCount * SAMPLE_AMOUNT_PER_ORDER }]
+    : [];
+  return { executed, notExecuted };
+}
+
+/** 정산서 출력 mock: 정산 내역과 동일한 샘플 규칙(2026-02-09 이후, 토요일 제외). 정산 집행분만 일별로 반환. 매장 = 주문 페이지 첫 카테고리. */
+function getMockSettlementStatementData(startDateStr, endDateStr) {
+  const SAMPLE_AMOUNT_PER_ORDER = 50000;
+  const slug = _mockFirstCategory.slug;
+  const brandTitle = _mockFirstCategory.brandTitle || slug;
+  if (endDateStr < SAMPLE_FIRST_DELIVERY_DATE || startDateStr > endDateStr || !slug) {
+    return {
+      brandTitle: brandTitle || '',
+      slug: slug || '',
+      storeContactEmail: _mockFirstCategory.storeContactEmail || '',
+      representative: _mockFirstCategory.representative || '',
+      startDate: startDateStr,
+      endDate: endDateStr,
+      days: [],
+      totalOrderCount: 0,
+      totalSales: 0,
+      totalFee: 0,
+      totalSettlement: 0,
+    };
+  }
+  const rangeStart = startDateStr < SAMPLE_FIRST_DELIVERY_DATE ? SAMPLE_FIRST_DELIVERY_DATE : startDateStr;
+  const rangeEnd = endDateStr;
+  const days = [];
+  const start = new Date(rangeStart + 'T12:00:00+09:00');
+  const end = new Date(rangeEnd + 'T12:00:00+09:00');
+  for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
+    const dayKst = new Date(t + KST_OFFSET_MS).getUTCDay();
+    if (dayKst === 6) continue;
+    const d = new Date(t);
+    const dateKey = getKSTDateStr(t);
+    const sales = SAMPLE_AMOUNT_PER_ORDER;
+    const fee = Math.round(sales * 0.15);
+    const settlement = sales - fee;
+    days.push({ date: dateKey, orderCount: 1, totalAmount: sales, fee, settlement });
+  }
+  const totalOrderCount = days.length;
+  const totalSales = totalOrderCount * SAMPLE_AMOUNT_PER_ORDER;
+  const totalFee = Math.round(totalSales * 0.15);
+  const totalSettlement = totalSales - totalFee;
+  return {
+    brandTitle,
+    slug,
+    storeContactEmail: _mockFirstCategory.storeContactEmail || '',
+    representative: _mockFirstCategory.representative || '',
+    startDate: startDateStr,
+    endDate: endDateStr,
+    days,
+    totalOrderCount,
+    totalSales,
+    totalFee,
+    totalSettlement,
+  };
+}
+
+var _settlementTableClass = 'admin-stats-table admin-settlement-equal-cols';
+function renderMockSettlementTwoLists(executed, notExecuted) {
+  const table1 = renderSettlementTable(executed).replace('<table class="admin-stats-table">', '<table class="' + _settlementTableClass + '">');
+  const table2 = renderSettlementTable(notExecuted).replace('<table class="admin-stats-table">', '<table class="' + _settlementTableClass + '">');
+  return (
+    '<div class="admin-settlement-mock-lists">' +
+    '<br><h4 class="admin-settlement-subheading">*정산 집행 (배송 완료 처리)</h4>' +
+    '<div class="admin-settlement-mock-table-wrap">' + table1 + '</div>' +
+    '<br><h4 class="admin-settlement-subheading">*정산 미집행 (배송 완료 미처리)</h4>' +
+    '<div class="admin-settlement-mock-table-wrap">' + table2 + '</div>' +
+    '</div>'
+  );
+}
+
 let settlementClockIntervalId = null;
 
-/** 정산서 출력용 기본 기간 (최근 7일) */
+/** 정산서 출력용 기본 기간 (최근 7일, KST) */
 function getStatementDefaultRange() {
-  const end = new Date();
-  const start = new Date(end);
-  start.setDate(start.getDate() - 6);
-  return { start: toDateKey(start), end: toDateKey(end) };
+  const endStr = getKSTTodayString();
+  const endStart = new Date(endStr + 'T00:00:00+09:00').getTime();
+  const startStr = getKSTDateStr(endStart - 6 * 86400000);
+  return { start: startStr, end: endStr };
 }
 
 function renderSettlementStatementContent(data) {
@@ -1126,51 +1282,63 @@ function renderSettlementStatementContent(data) {
   return html;
 }
 
+function _showStatementSpinner(show) {
+  const el = document.getElementById('adminSettlementStatementSpinner');
+  if (!el) return;
+  if (show) {
+    el.style.display = '';
+    el.innerHTML = '<div class="admin-settlement-spinner" role="status" aria-label="로딩 중"></div>';
+  } else {
+    el.innerHTML = '';
+    el.style.display = 'none';
+  }
+}
+
 async function runSettlementStatementSearch() {
-  const startEl = document.getElementById('adminSettlementStatementStart');
-  const endEl = document.getElementById('adminSettlementStatementEnd');
+  const dateSelectEl = document.getElementById('adminSettlementDateSelect');
   const slugEl = document.getElementById('adminSettlementBrandSelect');
   const resultBox = document.getElementById('adminSettlementStatementResult');
-  if (!startEl || !endEl || !slugEl || !resultBox) return;
-  const startDate = (startEl.value || '').trim();
-  const endDate = (endEl.value || '').trim();
+  if (!dateSelectEl || !slugEl || !resultBox) return;
   const slug = (slugEl.value || '').trim().toLowerCase();
   if (!slug) {
-    resultBox.innerHTML = '<p class="admin-stats-error">브랜드를 선택해 주세요.</p>';
+    _showStatementSpinner(false);
+    resultBox.innerHTML = '';
     return;
   }
-  if (!startDate || !endDate) {
-    resultBox.innerHTML = '<p class="admin-stats-error">시작일·종료일을 입력해 주세요.</p>';
+  const period = getPeriodForSettlementDate(dateSelectEl.value || '');
+  if (!period) {
+    _showStatementSpinner(false);
+    resultBox.innerHTML = '<p class="admin-stats-error">정산 기준일을 선택해 주세요.</p>';
     return;
   }
-  if (startDate > endDate) {
-    resultBox.innerHTML = '<p class="admin-stats-error">시작일이 종료일보다 늦을 수 없습니다.</p>';
-    return;
-  }
-  resultBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  const startDate = period.start;
+  const endDate = period.end;
+  _showStatementSpinner(true);
+  resultBox.innerHTML = '';
   if (SETTLEMENT_MOCK_FOR_TEST) {
-    const days = [];
-    const d = new Date(startDate + 'T00:00:00');
-    const end = new Date(endDate + 'T00:00:00');
-    const row = { orderCount: 1, totalAmount: 500000, fee: 75000, settlement: 425000 };
-    for (; d <= end; d.setDate(d.getDate() + 1)) {
-      const dateKey = toDateKey(new Date(d));
-      days.push({ date: dateKey, ...row });
+    const slugNorm = slug.replace(/\s/g, '');
+    const mockBrandSlug = (_mockFirstCategory.slug || '').replace(/\s/g, '');
+    const brandLabel = (slugEl.options[slugEl.selectedIndex] && slugEl.options[slugEl.selectedIndex].text) || slug;
+    if (slugNorm !== mockBrandSlug) {
+      const emptyData = {
+        brandTitle: brandLabel,
+        slug,
+        storeContactEmail: '',
+        representative: '',
+        startDate,
+        endDate,
+        days: [],
+        totalOrderCount: 0,
+        totalSales: 0,
+        totalFee: 0,
+        totalSettlement: 0,
+      };
+      _showStatementSpinner(false);
+      resultBox.innerHTML = renderSettlementStatementContent(emptyData);
+      return;
     }
-    const n = days.length;
-    const mockStatementData = {
-      brandTitle: '오늘Brand1',
-      slug: 'todaybrand1',
-      storeContactEmail: 'contact@todaybrand1.com',
-      representative: '대표자명',
-      startDate,
-      endDate,
-      days,
-      totalOrderCount: n,
-      totalSales: 500000 * n,
-      totalFee: 75000 * n,
-      totalSettlement: 425000 * n,
-    };
+    const mockStatementData = getMockSettlementStatementData(startDate, endDate);
+    _showStatementSpinner(false);
     resultBox.innerHTML = renderSettlementStatementContent(mockStatementData);
     return;
   }
@@ -1179,12 +1347,15 @@ async function runSettlementStatementSearch() {
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&slug=${encodeURIComponent(slug)}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      _showStatementSpinner(false);
       resultBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(err.error || '정산서를 불러올 수 없습니다.') + '</p>';
       return;
     }
     const data = await res.json();
+    _showStatementSpinner(false);
     resultBox.innerHTML = renderSettlementStatementContent(data);
   } catch (e) {
+    _showStatementSpinner(false);
     resultBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '정산서를 불러올 수 없습니다.') + '</p>';
   }
 }
@@ -1193,7 +1364,7 @@ function printSettlementStatement() {
   const wrap = document.getElementById('adminSettlementStatementResult');
   const printEl = wrap?.querySelector('.admin-settlement-statement-print');
   if (!printEl || !printEl.innerHTML.trim()) {
-    alert('먼저 검색하여 정산서 내용을 불러온 뒤 PDF 출력해 주세요.');
+    alert('먼저 브랜드를 선택하여 정산서를 생성한 뒤 PDF 출력해 주세요.');
     return;
   }
   const win = window.open('', '_blank');
@@ -1224,97 +1395,131 @@ function printSettlementStatement() {
   setTimeout(() => { win.print(); win.close(); }, 300);
 }
 
+function _applySettlementPeriodResult(html) {
+  const view = document.getElementById('settlementView');
+  const box = view ? view.querySelector('#adminSettlementPeriodResult') : document.getElementById('adminSettlementPeriodResult');
+  if (box) box.innerHTML = html;
+}
+
+var _periodSpinnerHtml = '<div class="admin-settlement-spinner" role="status" aria-label="로딩 중"></div>';
+
+async function loadSettlementPeriod(settlementDateStr) {
+  if (!settlementDateStr) return;
+  const period = getPeriodForSettlementDate(settlementDateStr);
+  if (!period) return;
+  const periodSpinnerEl = document.getElementById('adminSettlementPeriodSpinner');
+  if (periodSpinnerEl) {
+    periodSpinnerEl.style.display = '';
+    periodSpinnerEl.innerHTML = _periodSpinnerHtml;
+  }
+  _applySettlementPeriodResult('');
+  if (SETTLEMENT_MOCK_FOR_TEST) {
+    const data = getMockSettlementByBrandForPeriod(period.start, period.end);
+    if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+    _applySettlementPeriodResult(renderMockSettlementTwoLists(data.executed || [], data.notExecuted || []));
+    return;
+  }
+  const token = getToken();
+  const requestedDate = settlementDateStr;
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-period?startDate=${encodeURIComponent(period.start)}&endDate=${encodeURIComponent(period.end)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const currentSelect = document.getElementById('adminSettlementDateSelect');
+    if (currentSelect && currentSelect.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '정산 내역을 불러올 수 없습니다.');
+    }
+    const data = await res.json();
+    if (document.getElementById('adminSettlementDateSelect')?.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+    _applySettlementPeriodResult(renderSettlementTable(data.byBrand || []));
+  } catch (e) {
+    if (document.getElementById('adminSettlementDateSelect')?.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+    _applySettlementPeriodResult('<p class="admin-stats-error">' + escapeHtml(e.message || '정산 내역을 불러올 수 없습니다.') + '</p>');
+  }
+}
+
 async function loadSettlement() {
   const container = document.getElementById('adminSettlementContent');
   if (!container) return;
 
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const todayMinus7 = new Date(today);
-  todayMinus7.setDate(todayMinus7.getDate() - 7);
-  const tomorrowMinus7 = new Date(tomorrow);
-  tomorrowMinus7.setDate(tomorrowMinus7.getDate() - 7);
-
-  const dateToday = toDateKey(todayMinus7);
-  const dateTomorrow = toDateKey(tomorrowMinus7);
-  const stRange = getStatementDefaultRange();
+  const settlementDates = getSettlementDatesList();
+  const defaultDate = settlementDates[0] || getKSTTodayString();
 
   const statementBlock =
     '<div class="admin-settlement-statement-area">' +
-    '<h3 class="admin-settlement-statement-heading">정산서 출력</h3>' +
-    '<div class="admin-stats-daterange" style="margin-bottom:12px;">' +
-    '<input type="date" id="adminSettlementStatementStart" value="' + escapeHtml(stRange.start) + '">' +
-    '<span>~</span>' +
-    '<input type="date" id="adminSettlementStatementEnd" value="' + escapeHtml(stRange.end) + '">' +
-    '</div>' +
+    '<h3 class="admin-settlement-statement-heading">정산서 출력<span id="adminSettlementStatementSpinner" class="admin-settlement-heading-spinner" style="display:none;"></span></h3>' +
     '<div class="admin-stats-daterange" style="margin-bottom:16px;">' +
     '<select id="adminSettlementBrandSelect" class="admin-settlement-brand-select"><option value="">브랜드 선택</option></select>' +
-    '<button type="button" class="admin-stats-search-btn" id="adminSettlementStatementSearch" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></button>' +
     '</div>' +
     '<div id="adminSettlementStatementResult" class="admin-settlement-statement-result"></div>' +
     '<div style="margin-top:16px;"><button type="button" class="admin-btn admin-settlement-pdf-btn" id="adminSettlementPdfBtn">PDF 출력하기</button></div>' +
     '</div>';
 
+  const comboOptions = settlementDates.map((d) => '<option value="' + escapeHtml(d) + '"' + (d === defaultDate ? ' selected' : '') + '>' + escapeHtml(d) + '</option>').join('');
+  const defaultPeriod = getPeriodForSettlementDate(defaultDate);
+  const periodRangeLabel = defaultPeriod ? '>> 정산구간 : ' + defaultPeriod.start + '~' + defaultPeriod.end : '';
   container.innerHTML =
-    '<div class="admin-settlement-clock" id="adminSettlementClock">' + escapeHtml(formatSettlementClock()) + '</div>' +
-    '<section class="admin-stats-section"><h3>오늘 정산 내역</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateToday) + ' 기준</p><div id="adminSettlementToday"></div></section>' +
-    '<section class="admin-stats-section"><h3>내일 정산 예정</h3><p class="admin-settlement-caption">배송완료일 ' + escapeHtml(dateTomorrow) + ' 기준</p><div id="adminSettlementTomorrow"></div></section>' +
+    '<div class="admin-settlement-period-select-wrap">' +
+    '<h3 class="admin-settlement-period-heading">정산 기준일<span id="adminSettlementPeriodSpinner" class="admin-settlement-heading-spinner" style="display:none;"></span></h3>' +
+    '<select id="adminSettlementDateSelect" class="admin-settlement-brand-select" style="min-width:160px;">' + comboOptions + '</select>' +
+    '<p class="admin-settlement-caption" id="adminSettlementPeriodRangeLabel" style="margin-top:8px;">' + escapeHtml(periodRangeLabel) + '</p>' +
+    '</div>' +
+    '<section class="admin-stats-section"><h3>정산 내역' + (SETTLEMENT_MOCK_FOR_TEST ? ' <span class="admin-settlement-mock-badge">[샘플 데이터]</span>' : '') + '</h3><div id="adminSettlementPeriodResult"></div></section>' +
     statementBlock;
 
-  const clockEl = document.getElementById('adminSettlementClock');
-  if (settlementClockIntervalId) clearInterval(settlementClockIntervalId);
-  settlementClockIntervalId = setInterval(() => {
-    if (clockEl) clockEl.textContent = formatSettlementClock();
-  }, 1000);
-
-  const token = getToken();
-  const todayBox = document.getElementById('adminSettlementToday');
-  const tomorrowBox = document.getElementById('adminSettlementTomorrow');
-  if (todayBox) todayBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
-  if (tomorrowBox) tomorrowBox.innerHTML = '<div class="admin-loading">로딩 중...</div>';
-
-  document.getElementById('adminSettlementStatementSearch')?.addEventListener('click', runSettlementStatementSearch);
+  document.getElementById('adminSettlementBrandSelect')?.addEventListener('change', runSettlementStatementSearch);
   document.getElementById('adminSettlementPdfBtn')?.addEventListener('click', printSettlementStatement);
 
-  if (SETTLEMENT_MOCK_FOR_TEST) {
-    const mockToday = { byBrand: [{ brandTitle: '오늘Brand1', orderCount: 1, totalAmount: 500000 }, { brandTitle: '오늘Brand2', orderCount: 1, totalAmount: 1000000 }] };
-    const mockTomorrow = { byBrand: [{ brandTitle: '내일Brand1', orderCount: 1, totalAmount: 500000 }, { brandTitle: '내일Brand2', orderCount: 1, totalAmount: 1000000 }] };
-    if (todayBox) todayBox.innerHTML = renderSettlementTable(mockToday.byBrand);
-    if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(mockTomorrow.byBrand);
-  }
+  const dateSelect = document.getElementById('adminSettlementDateSelect');
+  const rangeLabelEl = document.getElementById('adminSettlementPeriodRangeLabel');
+  dateSelect?.addEventListener('change', function () {
+    const val = this.value;
+    if (!val) return;
+    const period = getPeriodForSettlementDate(val);
+    if (rangeLabelEl && period) rangeLabelEl.textContent = '>> 정산구간 : ' + period.start + '~' + period.end;
+    const brandSelectEl = document.getElementById('adminSettlementBrandSelect');
+    const statementResultEl = document.getElementById('adminSettlementStatementResult');
+    if (brandSelectEl) brandSelectEl.value = '';
+    if (statementResultEl) statementResultEl.innerHTML = '';
+    setTimeout(() => loadSettlementPeriod(val), 0);
+  });
 
   try {
-    const promises = SETTLEMENT_MOCK_FOR_TEST
-      ? [fetchStores()]
-      : [
-          fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateToday)}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetchWithTimeout(`${API_BASE}/api/admin/settlement?date=${encodeURIComponent(dateTomorrow)}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetchStores(),
-        ];
-    const results = await Promise.all(promises);
-    const storesData = SETTLEMENT_MOCK_FOR_TEST ? results[0] : results[2];
-    if (!SETTLEMENT_MOCK_FOR_TEST) {
-      const dataToday = results[0].ok ? await results[0].json() : { byBrand: [] };
-      const dataTomorrow = results[1].ok ? await results[1].json() : { byBrand: [] };
-      if (todayBox) todayBox.innerHTML = renderSettlementTable(dataToday.byBrand || []);
-      if (tomorrowBox) tomorrowBox.innerHTML = renderSettlementTable(dataTomorrow.byBrand || []);
+    const storesRes = await fetchStores();
+    const stores = (storesRes && storesRes.stores) || [];
+    if (stores.length > 0) {
+      const first = stores[0];
+      _mockFirstCategory = {
+        slug: (first.slug || first.id || '').toString().toLowerCase().trim(),
+        brandTitle: (first.brand || first.title || first.id || first.slug || '').toString().trim() || _mockFirstCategory.slug,
+        storeContactEmail: (first.storeContactEmail || '').toString().trim(),
+        representative: (first.representative || '').toString().trim(),
+      };
     }
-
-    const stores = (storesData && storesData.stores) || [];
     const sorted = stores.slice().sort((a, b) => (a.brand || a.title || a.id || '').toString().localeCompare((b.brand || b.title || b.id || '').toString(), 'ko'));
     const selectEl = document.getElementById('adminSettlementBrandSelect');
     if (selectEl) {
+      selectEl.innerHTML = '<option value="">브랜드 선택</option>';
       sorted.forEach((s) => {
         const sid = (s.slug || s.id || '').toString().toLowerCase();
         const label = (s.brand || s.title || s.id || sid).toString().trim() || sid;
         if (sid) selectEl.appendChild(new Option(label, sid));
       });
     }
-  } catch (e) {
-    if (todayBox) todayBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '오늘 정산을 불러올 수 없습니다.') + '</p>';
-    if (tomorrowBox) tomorrowBox.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '내일 정산 예정을 불러올 수 없습니다.') + '</p>';
-  }
+  } catch (_) {}
+
+  await loadSettlementPeriod(defaultDate);
 }
 
 function renderStats(container, data) {

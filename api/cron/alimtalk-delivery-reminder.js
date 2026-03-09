@@ -7,6 +7,7 @@
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
+const { getKSTTomorrowString } = require('../_kst');
 
 /** 날짜 문자열을 YYYY-MM-DD로 정규화 */
 function normalizeDateKey(str) {
@@ -14,17 +15,6 @@ function normalizeDateKey(str) {
   const s = str.trim().replace(/\D/g, '');
   if (s.length === 8) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
   return '';
-}
-
-/** KST 기준 내일 날짜 문자열 (YYYY-MM-DD) */
-function getTomorrowKstStr() {
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const tomorrow = new Date(kst.getTime() + 24 * 60 * 60 * 1000);
-  const y = tomorrow.getUTCFullYear();
-  const m = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(tomorrow.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 const STATUSES_FOR_DELIVERY_REMINDER = ['payment_completed', 'shipping', 'delivery_completed'];
@@ -51,7 +41,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const tomorrowStr = getTomorrowKstStr();
+    const tomorrowStr = getKSTTomorrowString();
     const orders = await getAllOrders();
     const stores = await getStores() || [];
 

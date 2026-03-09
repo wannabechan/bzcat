@@ -17,6 +17,21 @@ let storeOrdersFlashIntervals = [];
 
 const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
 const STORE_ORDERS_PAGE_SIZE = 25;
+
+// KST(한국 표준시) 기준 날짜 (프로젝트 시간 판단 통일)
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+function getKSTDateStr(ts) {
+  return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+function getKSTTodayString() {
+  return getKSTDateStr(Date.now());
+}
+function getKSTTomorrowString() {
+  const today = getKSTTodayString();
+  const start = new Date(today + 'T00:00:00+09:00');
+  return getKSTDateStr(start.getTime() + 86400000);
+}
+
 let storeOrdersIdleTimerId = null;
 let storeOrdersIdleListenersAttached = false;
 let storeOrdersStatsMenuFilter = 'top10';
@@ -50,12 +65,11 @@ function getStatusLabel(status, cancelReason) {
 function formatAdminOrderDate(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}. ${m}. ${day} ${h}:${min}`;
+  if (isNaN(d.getTime())) return '—';
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}. ${get('month')}. ${get('day')} ${get('hour')}:${get('minute')}`;
 }
 
 function formatAdminPrice(price) {
@@ -63,49 +77,38 @@ function formatAdminPrice(price) {
 }
 
 function getStatsDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
+  return getKSTDateStr(d instanceof Date ? d.getTime() : d);
 }
-function getThisWeekMonday(date) {
-  const x = new Date(date.getTime());
-  const day = x.getDay();
+function getThisWeekMondayKST() {
+  const todayStr = getKSTTodayString();
+  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
+  const day = new Date(todayStart + KST_OFFSET_MS).getUTCDay();
   const diff = day === 0 ? 6 : day - 1;
-  x.setDate(x.getDate() - diff);
-  return x;
+  return getKSTDateStr(todayStart - diff * 86400000);
 }
 function getDefaultStatsRange() {
-  const end = new Date();
-  const start = getThisWeekMonday(end);
-  return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+  return { start: getThisWeekMondayKST(), end: getKSTTodayString() };
 }
 function getPresetStatsRange(preset) {
-  const today = new Date();
-  if (preset === 'today') {
-    const s = getStatsDateStr(today);
-    return { start: s, end: s };
-  }
-  if (preset === 'this_week') {
-    const start = getThisWeekMonday(today);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
-  }
+  const todayStr = getKSTTodayString();
+  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
+  if (preset === 'today') return { start: todayStr, end: todayStr };
+  if (preset === 'this_week') return { start: getThisWeekMondayKST(), end: todayStr };
   if (preset === 'last_week') {
-    const thisMon = getThisWeekMonday(today);
-    const lastSun = new Date(thisMon.getTime());
-    lastSun.setDate(lastSun.getDate() - 1);
-    const lastMon = new Date(lastSun.getTime());
-    lastMon.setDate(lastMon.getDate() - 6);
-    return { start: getStatsDateStr(lastMon), end: getStatsDateStr(lastSun) };
+    const thisMonStr = getThisWeekMondayKST();
+    const thisMonStart = new Date(thisMonStr + 'T00:00:00+09:00').getTime();
+    return { start: getKSTDateStr(thisMonStart - 7 * 86400000), end: getKSTDateStr(thisMonStart - 86400000) };
   }
   if (preset === 'this_month') {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(today) };
+    const start = todayStr.replace(/-(\d{2})$/, '-01');
+    return { start, end: todayStr };
   }
   if (preset === 'last_month') {
-    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const end = new Date(today.getFullYear(), today.getMonth(), 0);
-    return { start: getStatsDateStr(start), end: getStatsDateStr(end) };
+    const d = new Date(todayStr + 'T12:00:00+09:00');
+    const y = d.getFullYear(), m = d.getMonth();
+    const start = new Date(Date.UTC(y, m - 1, 1));
+    const end = new Date(Date.UTC(y, m, 0));
+    return { start: getKSTDateStr(start.getTime()), end: getKSTDateStr(end.getTime()) };
   }
   return null;
 }
@@ -759,25 +762,19 @@ document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e
   if (e.target.id === 'storeOrderDetailOverlay') closeOrderDetail();
 });
 
-/** YYYY-MM-DD */
+/** YYYY-MM-DD (KST) */
 function toDateKey(d) {
-  const x = new Date(d);
-  const y = x.getFullYear();
-  const m = String(x.getMonth() + 1).padStart(2, '0');
-  const day = String(x.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  const x = d instanceof Date ? d : new Date(d);
+  return getKSTDateStr(x.getTime());
 }
 
-/** yy/mm/dd hh:mm:ss (실시간 시계용) */
+/** yy/mm/dd hh:mm:ss KST (실시간 시계용) */
 function formatSettlementClock() {
   const x = new Date();
-  const yy = String(x.getFullYear()).slice(-2);
-  const mm = String(x.getMonth() + 1).padStart(2, '0');
-  const dd = String(x.getDate()).padStart(2, '0');
-  const hh = String(x.getHours()).padStart(2, '0');
-  const min = String(x.getMinutes()).padStart(2, '0');
-  const ss = String(x.getSeconds()).padStart(2, '0');
-  return `${yy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(x);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
 function renderStoreSettlementTable(byBrand) {
@@ -802,16 +799,8 @@ async function loadStoreSettlement() {
   const container = document.getElementById('storeOrdersSettlementContent');
   if (!container) return;
 
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const todayMinus7 = new Date(today);
-  todayMinus7.setDate(todayMinus7.getDate() - 7);
-  const tomorrowMinus7 = new Date(tomorrow);
-  tomorrowMinus7.setDate(tomorrowMinus7.getDate() - 7);
-
-  const dateToday = toDateKey(todayMinus7);
-  const dateTomorrow = toDateKey(tomorrowMinus7);
+  const dateToday = getKSTTodayString();
+  const dateTomorrow = getKSTTomorrowString();
 
   container.innerHTML =
     '<div class="admin-settlement-clock" id="storeSettlementClock">' + escapeHtml(formatSettlementClock()) + '</div>' +

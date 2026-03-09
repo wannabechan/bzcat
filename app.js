@@ -85,6 +85,15 @@ let profileVisibleCount = 10;
 let profileIncludeCancelled = true;
 const PROFILE_PAGE_SIZE = 10;
 
+// KST(한국 표준시) 기준 날짜 유틸 (프로젝트 시간 판단 통일)
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+function getKSTDateStr(ts) {
+  return new Date(ts).toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
+function getKSTDayOfWeek(ts) {
+  return new Date(ts + KST_OFFSET_MS).getUTCDay();
+}
+
 // 180초 무활동 시 API 재호출 + 주문 목록 영역만 다시 그리기
 const PROFILE_IDLE_MS = 180000;
 let profileIdleTimerId = null;
@@ -120,45 +129,50 @@ function safeImageUrl(url) {
   return '';
 }
 
-// 유틸: 주문시간 포맷 (yy년 mm월 dd일 hh시 mm분)
-function formatOrderTime(date) {
-  const y = String(date.getFullYear()).slice(-2);
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${y}년 ${m}월 ${d}일 ${h}시 ${min}분`;
+// 유틸: KST 기준 날짜/시간 표시 (yy년 mm월 dd일 hh시 mm분)
+function formatDateKSTDisplay(dateOrIso) {
+  const d = dateOrIso instanceof Date ? dateOrIso : new Date(dateOrIso);
+  if (isNaN(d.getTime())) return '—';
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}년 ${get('month')}월 ${get('day')}일 ${get('hour')}시 ${get('minute')}분`;
 }
 
-// 유틸: ISO 날짜를 간단 포맷 (yy년 mm월 dd일 | hh시 mm분)
+function formatOrderTime(date) {
+  return formatDateKSTDisplay(date);
+}
+
+// 유틸: ISO 날짜를 간단 포맷 (KST, yy년 mm월 dd일 | hh시 mm분)
 function formatOrderDate(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
-  const y = String(d.getFullYear()).slice(-2);
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}년 ${m}월 ${day}일 | ${h}시 ${min}분`;
+  if (isNaN(d.getTime())) return '—';
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}년 ${get('month')}월 ${get('day')}일 | ${get('hour')}시 ${get('minute')}분`;
 }
 
-// 유틸: 배송희망일 날짜만 (yy년 mm월 dd일)
+// 유틸: 배송희망일 날짜만 (KST, yy년 mm월 dd일)
 function formatDeliveryDateOnly(dateStr) {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  const y = String(d.getFullYear()).slice(-2);
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}년 ${m}월 ${day}일`;
+  const d = new Date(dateStr + 'T12:00:00+09:00');
+  if (isNaN(d.getTime())) return '—';
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit' });
+  const parts = formatter.formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}년 ${get('month')}월 ${get('day')}일`;
 }
 
-// 유틸: 입금기한 표시용 (mm월 dd일 hh시 mm분)
+// 유틸: 입금기한 표시용 (KST, mm월 dd일 hh시 mm분)
 function formatDeadlineShort(date) {
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${m}월 ${d}일 ${h}시 ${min}분`;
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const parts = formatter.formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('month')}월 ${get('day')}일 ${get('hour')}시 ${get('minute')}분`;
 }
 
 // 유틸: 아이콘 이모지 (플레이스홀더)
@@ -220,8 +234,8 @@ function isBusinessDay(dateStr, categorySlug) {
   const data = MENU_DATA[categorySlug];
   const days = data?.businessDays;
   if (!days || !Array.isArray(days) || days.length === 0) return true;
-  const d = new Date(dateStr + 'T12:00:00');
-  const dayOfWeek = d.getDay();
+  const d = new Date(dateStr + 'T12:00:00+09:00');
+  const dayOfWeek = getKSTDayOfWeek(d.getTime());
   return days.includes(dayOfWeek);
 }
 
@@ -247,35 +261,36 @@ function formatDeliveryDateDisplay(dateStr) {
 function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
   const minStr = getMinDeliveryDate();
   const maxStr = getMaxDeliveryDate();
-  const minDate = new Date(minStr + 'T12:00:00');
-  const maxDate = new Date(maxStr + 'T12:00:00');
+  const minDate = new Date(minStr + 'T00:00:00+09:00');
+  const maxDate = new Date(maxStr + 'T00:00:00+09:00');
   const businessDays = (MENU_DATA[categorySlug]?.businessDays && Array.isArray(MENU_DATA[categorySlug].businessDays))
     ? MENU_DATA[categorySlug].businessDays
     : [0, 1, 2, 3, 4, 5, 6];
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
   let html = '<div class="delivery-date-picker-grid">';
   weekdays.forEach((w) => { html += `<div class="delivery-date-picker-weekday">${w}</div>`; });
-  const start = new Date(minDate);
-  start.setDate(start.getDate() - start.getDay());
-  const end = new Date(maxDate);
-  end.setDate(end.getDate() + (6 - end.getDay()));
+  const minDay = getKSTDayOfWeek(minDate.getTime());
+  const start = new Date(minDate.getTime() - minDay * 86400000);
+  const maxDay = getKSTDayOfWeek(maxDate.getTime());
+  const end = new Date(maxDate.getTime() + (6 - maxDay) * 86400000);
   let lastMonth = -1;
   let lastYear = -1;
   for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
-    const d = new Date(t);
-    const y = d.getFullYear();
-    const monthNum = d.getMonth();
+    const kst = new Date(t + KST_OFFSET_MS);
+    const y = kst.getUTCFullYear();
+    const monthNum = kst.getUTCMonth();
     const m = String(monthNum + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const day = String(kst.getUTCDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${day}`;
-    const dayNum = d.getDate();
+    const dayNum = kst.getUTCDate();
     if (monthNum !== lastMonth || y !== lastYear) {
       lastMonth = monthNum;
       lastYear = y;
       html += `<div class="delivery-date-picker-month" style="grid-column: 1 / -1;">${y}년 ${monthNum + 1}월</div>`;
     }
-    const inRange = d >= minDate && d <= maxDate;
-    const isBusiness = businessDays.includes(d.getDay());
+    const cellDateStr = getKSTDateStr(t);
+    const inRange = cellDateStr >= minStr && cellDateStr <= maxStr;
+    const isBusiness = businessDays.includes(getKSTDayOfWeek(t));
     const enabled = inRange && isBusiness;
     if (enabled) {
       html += `<button type="button" class="delivery-date-cell delivery-date-cell--enabled" data-date="${dateStr}">${dayNum}</button>`;
@@ -524,16 +539,16 @@ function closeCart() {
   document.body.style.overflow = '';
 }
 
-// 6일 후 ~ 45일 후 날짜 (배송희망날짜용)
+// 6일 후 ~ 45일 후 날짜 (배송희망날짜용, KST 기준)
 function getMinDeliveryDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 6);
-  return d.toISOString().slice(0, 10);
+  const todayKst = getKSTDateStr(Date.now());
+  const start = new Date(todayKst + 'T00:00:00+09:00');
+  return getKSTDateStr(start.getTime() + 6 * 86400000);
 }
 function getMaxDeliveryDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 45);
-  return d.toISOString().slice(0, 10);
+  const todayKst = getKSTDateStr(Date.now());
+  const start = new Date(todayKst + 'T00:00:00+09:00');
+  return getKSTDateStr(start.getTime() + 45 * 86400000);
 }
 
 function renderOrderSummaryList(entries) {
