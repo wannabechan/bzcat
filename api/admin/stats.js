@@ -26,9 +26,26 @@ function toDateKey(isoStr) {
   return getKSTDateString(isoStr);
 }
 
-function getStoreSlugFromOrder(order) {
+/**
+ * 주문 첫 상품 id가 {storeId}-... 형태이므로, 매장 목록에서 접두사로 일치하는 store id 반환 (가장 긴 id 우선).
+ * 미일치 시 예전처럼 첫 하이픈 앞 segment 소문자 반환.
+ */
+function getStoreSlugFromOrder(order, stores) {
   const items = order.order_items || order.orderItems || [];
-  const firstId = items[0]?.id || '';
+  const firstId = (items[0]?.id || '').toString().trim();
+  if (!firstId) return 'unknown';
+  if (stores && stores.length > 0) {
+    const byIdLen = [...stores].sort((a, b) => {
+      const aid = (a.id || a.slug || '').toString();
+      const bid = (b.id || b.slug || '').toString();
+      return bid.length - aid.length;
+    });
+    for (const s of byIdLen) {
+      const sid = (s.id || s.slug || '').toString();
+      if (!sid) continue;
+      if (firstId === sid || firstId.startsWith(sid + '-')) return sid.toLowerCase();
+    }
+  }
   const slug = (firstId.split('-')[0] || '').toLowerCase();
   return slug || 'unknown';
 }
@@ -107,7 +124,7 @@ module.exports = async (req, res) => {
     orders.forEach((o) => {
       const status = o.status || 'submitted';
       byStatus[status] = (byStatus[status] || 0) + 1;
-      const slug = getStoreSlugFromOrder(o);
+      const slug = getStoreSlugFromOrder(o, stores);
       byStore[slug] = (byStore[slug] || 0) + 1;
       if (status === 'cancelled') {
         byStoreCancelled[slug] = (byStoreCancelled[slug] || 0) + 1;
