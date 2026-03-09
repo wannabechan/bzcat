@@ -28,7 +28,7 @@ const IMAGE_RULE = '가로·세로 1:1 비율, 권장 400×400px';
 const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
 /** 정산관리 탭: false = 실제 DB 데이터 사용, true = 테스트용 샘플(DB 미반영, 화면만) */
-const SETTLEMENT_MOCK_FOR_TEST = true;
+const SETTLEMENT_MOCK_FOR_TEST = false;
 
 // KST(한국 표준시) 기준 날짜 (프로젝트 시간 판단 통일)
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
