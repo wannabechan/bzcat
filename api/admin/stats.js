@@ -54,10 +54,17 @@ module.exports = async (req, res) => {
     const storeTitles = {};
     const storeBrands = {};
     stores.forEach((s) => {
-      storeTitles[s.id] = s.title || s.id;
-      storeTitles[s.slug] = s.title || s.id;
-      storeBrands[s.id] = (s.brand || s.title || s.id).trim() || s.title || s.id;
-      storeBrands[s.slug] = storeBrands[s.id];
+      const id = (s.id || '').toString();
+      const slug = (s.slug || s.id || id).toString();
+      const slugLower = slug.toLowerCase();
+      const titleVal = (s.title || s.id || slug).toString().trim();
+      const brandVal = (s.brand || s.title || s.id || slug).toString().trim() || titleVal;
+      storeTitles[id] = titleVal;
+      storeTitles[slug] = titleVal;
+      storeTitles[slugLower] = titleVal;
+      storeBrands[id] = brandVal;
+      storeBrands[slug] = brandVal;
+      storeBrands[slugLower] = brandVal;
     });
 
     if (startDate || endDate) {
