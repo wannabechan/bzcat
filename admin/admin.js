@@ -281,6 +281,10 @@ function renderMenuItem(storeId, item, index) {
       </div>
       <div class="admin-menu-actions">
         <button type="button" class="admin-btn admin-btn-danger" data-remove-menu data-store-id="${escapeHtml(storeId)}" data-index="${index}">삭제</button>
+        <div class="admin-menu-order-btns">
+          <button type="button" class="admin-btn admin-btn-icon admin-menu-move-btn" data-menu-move="up" title="순서 위로">↑</button>
+          <button type="button" class="admin-btn admin-btn-icon admin-menu-move-btn" data-menu-move="down" title="순서 아래로">↓</button>
+        </div>
       </div>
     </div>
   `;
@@ -1974,6 +1978,23 @@ async function init() {
         const storeEl = content.querySelector(`.admin-store[data-store-id="${storeId}"]`);
         const titleSpan = storeEl?.querySelector('.admin-section-menu .admin-section-title');
         if (titleSpan) titleSpan.textContent = '메뉴 (' + list.querySelectorAll('.admin-menu-item').length + ')';
+      }
+      if (e.target.closest('[data-menu-move]')) {
+        const btn = e.target.closest('[data-menu-move]');
+        const dir = btn?.dataset?.menuMove;
+        const itemEl = btn?.closest('.admin-menu-item');
+        const list = itemEl?.closest('.admin-menu-list');
+        if (!itemEl || !list || !dir) return;
+        if (dir === 'up') {
+          const prev = itemEl.previousElementSibling;
+          if (prev) list.insertBefore(itemEl, prev);
+        } else {
+          const next = itemEl.nextElementSibling;
+          if (next) list.insertBefore(next, itemEl);
+        }
+        const storeEl = list?.closest('.admin-store');
+        const titleSpan = storeEl?.querySelector('.admin-section-menu .admin-section-title');
+        if (titleSpan && list) titleSpan.textContent = '메뉴 (' + list.querySelectorAll('.admin-menu-item').length + ')';
       }
       if (e.target.closest('[data-remove-menu]')) {
         const btn = e.target.closest('[data-remove-menu]');
