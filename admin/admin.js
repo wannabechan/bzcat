@@ -228,7 +228,7 @@ function renderStore(store, menus) {
         </div>
         <div class="admin-section admin-section-menu">
           <div class="admin-section-title-row">
-            <span class="admin-section-title">메뉴</span>
+            <span class="admin-section-title">메뉴 (${items.length})</span>
             <button type="button" class="admin-btn admin-btn-icon admin-menu-toggle-btn" data-menu-toggle aria-label="메뉴 목록 열기" title="메뉴 목록 열기/접기">▼</button>
           </div>
           <div class="admin-menu-list-wrap admin-menu-list-collapsed">
@@ -1971,6 +1971,9 @@ async function init() {
         const itemEl = div.firstElementChild;
         itemEl.dataset.menuId = newItem.id;
         list.appendChild(itemEl);
+        const storeEl = content.querySelector(`.admin-store[data-store-id="${storeId}"]`);
+        const titleSpan = storeEl?.querySelector('.admin-section-menu .admin-section-title');
+        if (titleSpan) titleSpan.textContent = '메뉴 (' + list.querySelectorAll('.admin-menu-item').length + ')';
       }
       if (e.target.closest('[data-remove-menu]')) {
         const btn = e.target.closest('[data-remove-menu]');
@@ -1992,7 +1995,13 @@ async function init() {
             return;
           }
         }
+        const storeEl = itemEl?.closest('.admin-store');
         itemEl?.remove();
+        if (storeEl) {
+          const list = storeEl.querySelector('.admin-menu-list');
+          const titleSpan = storeEl.querySelector('.admin-section-menu .admin-section-title');
+          if (titleSpan && list) titleSpan.textContent = '메뉴 (' + list.querySelectorAll('.admin-menu-item').length + ')';
+        }
       }
       if (e.target.closest('[data-save]')) {
         handleSave();
