@@ -111,6 +111,12 @@
     .admin-business-hour { display: flex; align-items: center; gap: 8px; font-size: 0.9375rem; cursor: pointer; }
     .admin-business-hour input { width: 18px; height: 18px; flex-shrink: 0; }
     .admin-section-title { font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .admin-section-menu .admin-section-title-row { margin-bottom: 0; }
+    .admin-section-menu .admin-section-title-row .admin-menu-toggle-btn { margin-left: -10px; }
+    .admin-menu-list-wrap { overflow: hidden; }
+    .admin-menu-list-wrap.admin-menu-list-collapsed { display: none; }
+    .admin-menu-toggle-btn { padding: 4px 8px; font-size: 0.75rem; color: var(--color-text-secondary); background: transparent; transform: scale(0.85); transform-origin: center; }
+    .admin-menu-toggle-btn:hover { background: var(--color-border); color: var(--color-text); }
     .admin-form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .admin-form-row:last-child { margin-bottom: 0; }
     .admin-form-field { flex: 1; min-width: 150px; }
@@ -274,7 +280,9 @@
     .admin-settlement-pdf-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
     .admin-settlement-pdf-btn:hover { opacity: 0.9; }
     @media (max-width: 768px) {
+      .admin-tab[data-tab="stores"] { display: none; }
       .admin-tab[data-tab="settlement"] { display: none; }
+      #storesView { display: none !important; }
       #settlementView { display: none !important; }
       .admin-tabs { display: flex; gap: 0; }
       .admin-tabs .admin-tab { flex: 1; min-width: 0; padding: 12px 6px; font-size: 0.8125rem; text-align: center; }

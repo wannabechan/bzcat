@@ -691,6 +691,11 @@ body {
   color: var(--color-text);
 }
 
+@media (max-width: 768px) {
+  .menu-card-name { font-size: 0.796875rem; }
+  .menu-card-price { font-size: 0.85rem; }
+}
+
 .menu-card-actions {
   display: flex;
   align-items: center;

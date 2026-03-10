@@ -392,7 +392,7 @@ function renderMenuCards() {
   const bizNo = escapeHtml(data.bizNo || '');
   const titleEscaped = escapeHtml(data.title || '');
   if (brand || bizNo) {
-    menuSectionTitle.innerHTML = titleEscaped + '   <span class="menu-section-madeby">made by ' + brand + ' (' + bizNo + ')</span>';
+    menuSectionTitle.innerHTML = titleEscaped + '   <span class="menu-section-madeby">cooked by ' + brand + ' (' + bizNo + ')</span>';
   } else {
     menuSectionTitle.textContent = data.title;
   }

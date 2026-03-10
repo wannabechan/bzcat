@@ -146,6 +146,13 @@ function generateId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** 사업자등록번호를 000-00-00000 형식으로 정규화 (숫자만 추출 후 3-2-5 구간에 하이픈) */
+function formatBizNo(value) {
+  const digits = (value || '').replace(/\D/g, '');
+  if (digits.length !== 10) return (value || '').trim();
+  return digits.slice(0, 3) + '-' + digits.slice(3, 5) + '-' + digits.slice(5, 10);
+}
+
 function generateStoreId() {
   return `store-${Date.now().toString(36)}`;
 }
@@ -219,12 +226,17 @@ function renderStore(store, menus) {
             </div>
           </div>
         </div>
-        <div class="admin-section">
-          <div class="admin-section-title">메뉴</div>
-          <div class="admin-menu-list" data-store-id="${storeIdEsc}">
-            ${items.map((item, i) => renderMenuItem(store.id, item, i)).join('')}
+        <div class="admin-section admin-section-menu">
+          <div class="admin-section-title-row">
+            <span class="admin-section-title">메뉴</span>
+            <button type="button" class="admin-btn admin-btn-icon admin-menu-toggle-btn" data-menu-toggle aria-label="메뉴 목록 열기" title="메뉴 목록 열기/접기">▼</button>
           </div>
-          <button type="button" class="admin-btn admin-btn-secondary admin-btn-add" data-add-menu="${storeIdEsc}">+ 메뉴 추가</button>
+          <div class="admin-menu-list-wrap admin-menu-list-collapsed">
+            <div class="admin-menu-list" data-store-id="${storeIdEsc}">
+              ${items.map((item, i) => renderMenuItem(store.id, item, i)).join('')}
+            </div>
+            <button type="button" class="admin-btn admin-btn-secondary admin-btn-add" data-add-menu="${storeIdEsc}">+ 메뉴 추가</button>
+          </div>
         </div>
         <div class="admin-save-bar">
           <button type="button" class="admin-btn admin-btn-primary" data-save>저장</button>
@@ -305,7 +317,7 @@ function collectData() {
     const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
     const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
     const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: bizNoInput?.value?.trim() || '', suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -391,7 +403,7 @@ function setupTabs() {
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved) && (saved !== 'settlement' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
   if (isReload && saved) {
     activateTab(tabToActivate);
   }
@@ -1939,6 +1951,17 @@ async function init() {
         const fileInput = item?.querySelector('[data-upload-input]');
         if (fileInput) fileInput.click();
       }
+      if (e.target.closest('[data-menu-toggle]')) {
+        const btn = e.target.closest('[data-menu-toggle]');
+        const section = btn?.closest('.admin-section-menu');
+        const wrap = section?.querySelector('.admin-menu-list-wrap');
+        if (wrap) {
+          wrap.classList.toggle('admin-menu-list-collapsed');
+          btn.textContent = wrap.classList.contains('admin-menu-list-collapsed') ? '▼' : '▲';
+          btn.setAttribute('aria-label', wrap.classList.contains('admin-menu-list-collapsed') ? '메뉴 목록 열기' : '메뉴 목록 접기');
+          btn.setAttribute('title', wrap.classList.contains('admin-menu-list-collapsed') ? '메뉴 목록 열기/접기' : '메뉴 목록 열기/접기');
+        }
+      }
       if (e.target.closest('[data-add-menu]')) {
         const storeId = e.target.closest('[data-add-menu]').dataset.addMenu;
         const list = content.querySelector(`.admin-menu-list[data-store-id="${storeId}"]`);
@@ -1973,6 +1996,14 @@ async function init() {
       }
       if (e.target.closest('[data-save]')) {
         handleSave();
+      }
+    });
+
+    content.addEventListener('blur', (e) => {
+      const input = e.target;
+      if (input?.getAttribute('data-field') === 'bizNo' && input.value?.trim()) {
+        const formatted = formatBizNo(input.value.trim());
+        if (formatted) input.value = formatted;
       }
     });
 
