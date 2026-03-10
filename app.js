@@ -390,11 +390,10 @@ function renderMenuCards() {
 
   const brand = escapeHtml(data.brand || '');
   const bizNo = escapeHtml(data.bizNo || '');
-  const titleEscaped = escapeHtml(data.title || '');
   if (brand || bizNo) {
-    menuSectionTitle.innerHTML = titleEscaped + '   <span class="menu-section-madeby">cooked by ' + brand + ' (' + bizNo + ')</span>';
+    menuSectionTitle.innerHTML = '<span class="menu-section-madeby">cooked by ' + brand + ' (' + bizNo + ')</span>';
   } else {
-    menuSectionTitle.textContent = data.title;
+    menuSectionTitle.textContent = '';
   }
   const emoji = getCategoryEmoji(category);
 
@@ -423,8 +422,10 @@ function renderMenuCards() {
             </div>
           </div>
           <div class="menu-card-body">
-            <h3 class="menu-card-name">${nameEsc}</h3>
-            <p class="menu-card-price">${formatPrice(item.price)}</p>
+            <div class="menu-card-info">
+              <h3 class="menu-card-name">${nameEsc}</h3>
+              <p class="menu-card-price">${formatPrice(item.price)}</p>
+            </div>
             <div class="menu-card-actions">
               <div class="menu-qty-controls">
                 <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${idEsc}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
