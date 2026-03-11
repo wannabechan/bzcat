@@ -5,6 +5,7 @@
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
+const { getAdminSampleOrders } = require('./_sample-orders');
 const { parseKSTDate, getKSTDateString } = require('../_kst');
 
 const STATUS_LABELS = {
@@ -67,6 +68,10 @@ module.exports = async (req, res) => {
     const startDate = parseDate(req.query.startDate);
     const endDate = parseDate(req.query.endDate);
     let orders = await getAllOrders() || [];
+    if (process.env.ADMIN_USE_SAMPLE_ORDERS === 'true') {
+      const sample = await getAdminSampleOrders();
+      orders = [...sample, ...orders];
+    }
     const stores = await getStores() || [];
     const storeTitles = {};
     const storeBrands = {};

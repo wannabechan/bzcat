@@ -6,6 +6,7 @@
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
+const { getAdminSampleOrders } = require('./_sample-orders');
 
 function normalizeDeliveryDate(str) {
   if (!str || typeof str !== 'string') return '';
@@ -38,7 +39,11 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: 'startDate는 endDate 이전이어야 합니다.' });
     }
 
-    const orders = await getAllOrders() || [];
+    let orders = await getAllOrders() || [];
+    if (process.env.ADMIN_USE_SAMPLE_ORDERS === 'true') {
+      const sample = await getAdminSampleOrders();
+      orders = [...sample, ...orders];
+    }
     const stores = await getStores() || [];
 
     const filtered = orders.filter((o) => {

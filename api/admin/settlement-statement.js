@@ -6,6 +6,7 @@
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
+const { getAdminSampleOrders } = require('./_sample-orders');
 
 function normalizeDeliveryDate(str) {
   if (!str || typeof str !== 'string') return '';
@@ -37,7 +38,11 @@ module.exports = async (req, res) => {
     }
     if (!slug) return apiResponse(res, 400, { error: 'slug(브랜드)가 필요합니다.' });
 
-    const orders = await getAllOrders() || [];
+    let orders = await getAllOrders() || [];
+    if (process.env.ADMIN_USE_SAMPLE_ORDERS === 'true') {
+      const sample = await getAdminSampleOrders();
+      orders = [...sample, ...orders];
+    }
     const stores = await getStores() || [];
 
     const filtered = orders.filter((o) => {
@@ -67,7 +72,8 @@ module.exports = async (req, res) => {
       .map((d) => {
         const row = byDate[d];
         const sales = row.totalAmount;
-        const fee = Math.round(sales * 0.15);
+        const feeBase = Math.round(sales * 0.15);
+        const fee = feeBase + Math.round(feeBase * 0.1);
         const settlement = sales - fee;
         return { date: d, orderCount: row.orderCount, totalAmount: sales, fee, settlement };
       });

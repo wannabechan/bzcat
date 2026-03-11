@@ -5,6 +5,7 @@
 
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders } = require('../_redis');
+const { getAdminSampleOrders } = require('./_sample-orders');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -36,8 +37,12 @@ module.exports = async (req, res) => {
     const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 25), 100);
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
 
-    const allOrders = await getAllOrders();
-    const sorted = (allOrders || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    let allOrders = await getAllOrders() || [];
+    if (process.env.ADMIN_USE_SAMPLE_ORDERS === 'true') {
+      const sample = await getAdminSampleOrders();
+      allOrders = [...sample, ...allOrders];
+    }
+    const sorted = allOrders.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const total = sorted.length;
     const orders = sorted.slice(offset, offset + limit);
 

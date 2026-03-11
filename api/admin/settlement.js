@@ -6,6 +6,7 @@
 const { verifyToken, apiResponse } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
+const { getAdminSampleOrders } = require('./_sample-orders');
 
 /** delivery_date 문자열을 YYYY-MM-DD로 정규화 */
 function normalizeDeliveryDate(str) {
@@ -35,7 +36,11 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: 'date 파라미터가 필요합니다. (YYYY-MM-DD)' });
     }
 
-    const orders = await getAllOrders() || [];
+    let orders = await getAllOrders() || [];
+    if (process.env.ADMIN_USE_SAMPLE_ORDERS === 'true') {
+      const sample = await getAdminSampleOrders();
+      orders = [...sample, ...orders];
+    }
     const stores = await getStores() || [];
 
     const targetDate = normalizeDeliveryDate(dateStr);
