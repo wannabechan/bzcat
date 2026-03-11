@@ -30,8 +30,23 @@ function nextWeekdayAfter(fromYmd, weekday) {
   return fromYmd;
 }
 
+/** 배송 희망일·시각 기준으로 현재 시각이 지났는지에 따라 진행 단계 결정 (배송완료는 희망일시+1시간 이후만) */
+function sampleOrderStatusAndFields(deliveryDate, deliveryTime, nowMs, idPrefix, index) {
+  const timeStr = (deliveryTime || '00:00').toString().trim();
+  const shippingNumberAt = new Date(deliveryDate + 'T09:00:00+09:00').getTime();
+  const deliveryCompletedAt = new Date(deliveryDate + 'T' + timeStr.replace(/^(\d{1,2}):(\d{2})$/, (_, h, m) => `${h.padStart(2, '0')}:${m}:00`) + '+09:00').getTime() + 60 * 60 * 1000;
+  const idx = String(index).padStart(4, '0');
+  if (nowMs >= deliveryCompletedAt) {
+    return { status: 'delivery_completed', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx };
+  }
+  if (nowMs >= shippingNumberAt) {
+    return { status: 'shipping', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx };
+  }
+  return { status: 'payment_completed', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: '' };
+}
+
 /**
- * @returns {Promise<Array<object>>} 샘플 주문 배열 (실제 DB 없음)
+ * @returns {Promise<Array<object>>} 샘플 주문 배열 (실제 DB 없음). 배송 희망일이 아직 지나지 않은 주문은 배송완료가 아님.
  */
 async function getAdminSampleOrders() {
   const stores = await getStores();
@@ -42,16 +57,18 @@ async function getAdminSampleOrders() {
   const menu1 = menus[0];
   const menu2 = menus[1] || menus[0];
 
+  const nowMs = Date.now();
   const orders = [];
   const startYmd = '2026-01-15';
 
-  // 사용자-1: 매주 월요일 (1), 8일 후 19:00 (진행: 즉시 승인 → 30분 뒤 결제코드 → 30분 뒤 결제완료 → 배송일 9시 송장 → 희망일시 배송 → 1시간 뒤 배송완료 처리)
+  // 사용자-1: 매주 월요일 (1), 8일 후 19:00
   const firstMonday = nextWeekdayAfter(startYmd, 1);
   for (let i = 0; i < 8; i++) {
     const orderDate = addDays(firstMonday, i * 7);
     const deliveryDate = addDays(orderDate, 8);
     const totalAmount = (menu1.price || 0) * 5;
-    orders.push({
+    const { status, payment_link, tracking_number } = sampleOrderStatusAndFields(deliveryDate, '19:00', nowMs, 'u1', i + 1);
+    const order = {
       id: `sample-u1-${i + 1}`,
       user_email: 'sample@test.local',
       depositor: '사용자-1',
@@ -64,20 +81,22 @@ async function getAdminSampleOrders() {
         { id: menu1.id, name: menu1.name, price: menu1.price, quantity: 5 },
       ],
       total_amount: totalAmount,
-      status: 'delivery_completed',
+      status,
       created_at: `${orderDate}T10:00:00+09:00`,
-      payment_link: 'https://payment.tosspayments.com/sample/u1-' + (i + 1),
-      tracking_number: 'SAMPLE-U1-' + String(i + 1).padStart(4, '0'),
-    });
+      payment_link,
+    };
+    if (tracking_number) order.tracking_number = tracking_number;
+    orders.push(order);
   }
 
-  // 사용자-2: 매주 수요일 (3), 8일 후 17:00 (동일 진행 가정)
+  // 사용자-2: 매주 수요일 (3), 8일 후 17:00
   const firstWednesday = nextWeekdayAfter(startYmd, 3);
   for (let i = 0; i < 8; i++) {
     const orderDate = addDays(firstWednesday, i * 7);
     const deliveryDate = addDays(orderDate, 8);
     const totalAmount = (menu2.price || 0) * 5;
-    orders.push({
+    const { status, payment_link, tracking_number } = sampleOrderStatusAndFields(deliveryDate, '17:00', nowMs, 'u2', i + 1);
+    const order = {
       id: `sample-u2-${i + 1}`,
       user_email: 'sample@test.local',
       depositor: '사용자-2',
@@ -90,11 +109,12 @@ async function getAdminSampleOrders() {
         { id: menu2.id, name: menu2.name, price: menu2.price, quantity: 5 },
       ],
       total_amount: totalAmount,
-      status: 'delivery_completed',
+      status,
       created_at: `${orderDate}T10:00:00+09:00`,
-      payment_link: 'https://payment.tosspayments.com/sample/u2-' + (i + 1),
-      tracking_number: 'SAMPLE-U2-' + String(i + 1).padStart(4, '0'),
-    });
+      payment_link,
+    };
+    if (tracking_number) order.tracking_number = tracking_number;
+    orders.push(order);
   }
 
   return orders;
