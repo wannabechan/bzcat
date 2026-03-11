@@ -3,9 +3,11 @@
  * 사용: 환경변수 ADMIN_USE_SAMPLE_ORDERS=true 설정 시 어드민 주문/통계/정산 API에 샘플이 병합됨.
  * 테스트 후 실제 데이터만 쓰려면 해당 env 제거 또는 false 로 두면 됨.
  *
- * 규칙:
- * - 사용자-1: 2026-01-15부터 매주 월요일 주문, 8일 후 19:00 배송 희망, 첫 매장 첫 메뉴 5개, 배송완료
- * - 사용자-2: 2026-01-15부터 매주 수요일 주문, 8일 후 17:00 배송 희망, 첫 매장 두번째 메뉴 5개, 배송완료
+ * 주문·진행 가정:
+ * - 사용자-1: 2026-01-15부터 매주 월요일 주문, 8일 후 19:00 배송 희망, 첫 매장 첫 메뉴 5개
+ * - 사용자-2: 2026-01-15부터 매주 수요일 주문, 8일 후 17:00 배송 희망, 첫 매장 두번째 메뉴 5개
+ * - 주문 즉시 매장 담당자 주문 승인 → 어드민 주문 30분 뒤 결제 생성 코드 입력 → 주문자 결제 활성화 30분 뒤 결제 완료
+ *   → 배송 희망일 당일 9:00 배송 번호 입력 → 희망 일시에 배송 완료 → 희망일시 1시간 뒤 어드민 배송 완료 코드 입력
  */
 
 const { getStores, getMenus } = require('../_redis');
@@ -43,7 +45,7 @@ async function getAdminSampleOrders() {
   const orders = [];
   const startYmd = '2026-01-15';
 
-  // 사용자-1: 매주 월요일 (1), 8일 후 19:00
+  // 사용자-1: 매주 월요일 (1), 8일 후 19:00 (진행: 즉시 승인 → 30분 뒤 결제코드 → 30분 뒤 결제완료 → 배송일 9시 송장 → 희망일시 배송 → 1시간 뒤 배송완료 처리)
   const firstMonday = nextWeekdayAfter(startYmd, 1);
   for (let i = 0; i < 8; i++) {
     const orderDate = addDays(firstMonday, i * 7);
@@ -64,10 +66,12 @@ async function getAdminSampleOrders() {
       total_amount: totalAmount,
       status: 'delivery_completed',
       created_at: `${orderDate}T10:00:00+09:00`,
+      payment_link: 'https://payment.tosspayments.com/sample/u1-' + (i + 1),
+      tracking_number: 'SAMPLE-U1-' + String(i + 1).padStart(4, '0'),
     });
   }
 
-  // 사용자-2: 매주 수요일 (3), 8일 후 17:00
+  // 사용자-2: 매주 수요일 (3), 8일 후 17:00 (동일 진행 가정)
   const firstWednesday = nextWeekdayAfter(startYmd, 3);
   for (let i = 0; i < 8; i++) {
     const orderDate = addDays(firstWednesday, i * 7);
@@ -88,6 +92,8 @@ async function getAdminSampleOrders() {
       total_amount: totalAmount,
       status: 'delivery_completed',
       created_at: `${orderDate}T10:00:00+09:00`,
+      payment_link: 'https://payment.tosspayments.com/sample/u2-' + (i + 1),
+      tracking_number: 'SAMPLE-U2-' + String(i + 1).padStart(4, '0'),
     });
   }
 
