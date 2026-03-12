@@ -1082,8 +1082,7 @@ function renderSettlementTable(byBrand) {
   let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
   byBrand.forEach((b) => {
     const sales = Number(b.totalAmount) || 0;
-    const feeBase = Math.round(sales * 0.15);
-    const fee = feeBase + Math.round(feeBase * 0.1);
+    const fee = Math.round(sales * 0.18);
     const settlement = sales - fee;
     html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
   });
@@ -1204,15 +1203,13 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     const d = new Date(t);
     const dateKey = getKSTDateStr(t);
     const sales = SAMPLE_AMOUNT_PER_ORDER;
-    const feeBase = Math.round(sales * 0.15);
-    const fee = feeBase + Math.round(feeBase * 0.1);
+    const fee = Math.round(sales * 0.18);
     const settlement = sales - fee;
     days.push({ date: dateKey, orderCount: 1, totalAmount: sales, fee, settlement });
   }
   const totalOrderCount = days.length;
   const totalSales = totalOrderCount * SAMPLE_AMOUNT_PER_ORDER;
-  const totalFeeBase = Math.round(totalSales * 0.15);
-  const totalFee = totalFeeBase + Math.round(totalFeeBase * 0.1);
+  const totalFee = Math.round(totalSales * 0.18);
   const totalSettlement = totalSales - totalFee;
   return {
     brandTitle,
@@ -1290,7 +1287,7 @@ function renderSettlementStatementContent(data) {
   html += '</div>';
 
   html += '<div class="admin-settlement-statement-footer">';
-  html += '<p>* 수수료는 판매금액(부가세포함)의 15%이며, 10% 부가세가 별도로 부과됩니다.</p>';
+  html += '<p>* 수수료는 판매금액의 18%이며, 정산금액 = 판매금액 − 수수료입니다.</p>';
   html += '<p>* 정산서 확인 후, 본사의 지정된 이메일 주소로 전자세금계산서 발행 부탁드립니다.</p>';
   html += '<p>* 정산금액은 귀사의 지정된 입금 계좌로 현금 지급됩니다.</p>';
   html += '</div>';

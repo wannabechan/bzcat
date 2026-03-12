@@ -1,6 +1,6 @@
 /**
  * GET /api/admin/settlement-statement?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&slug=xxx
- * 기간·브랜드별 정산서 데이터 (일별 집계, 수수료 15%, admin 전용)
+ * 기간·브랜드별 정산서 데이터 (일별 집계, 수수료 18%, admin 전용)
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
@@ -72,8 +72,7 @@ module.exports = async (req, res) => {
       .map((d) => {
         const row = byDate[d];
         const sales = row.totalAmount;
-        const feeBase = Math.round(sales * 0.15);
-        const fee = feeBase + Math.round(feeBase * 0.1);
+        const fee = Math.round(sales * 0.18);
         const settlement = sales - fee;
         return { date: d, orderCount: row.orderCount, totalAmount: sales, fee, settlement };
       });
