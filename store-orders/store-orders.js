@@ -401,7 +401,9 @@ function renderList() {
 
   const todayKstStr = getKSTTodayString();
   const todayStart = new Date(todayKstStr + 'T00:00:00+09:00').getTime();
-  const ordersHtml = sorted.map(order => {
+  const ordersHtml = sorted.length === 0
+    ? '<div class="admin-loading">주문 내역이 없습니다.</div>'
+    : sorted.map(order => {
     const deliveryDayStart = new Date((order.delivery_date || '').toString().trim() + 'T00:00:00+09:00').getTime();
     const daysUntilDelivery = Math.floor((deliveryDayStart - todayStart) / 86400000);
     const dDayText = daysUntilDelivery < 0 ? 'D+' + Math.abs(daysUntilDelivery) : (daysUntilDelivery === 0 ? 'D-day' : 'D-' + daysUntilDelivery);
@@ -702,12 +704,6 @@ async function loadStoreOrders() {
     storeOrdersTotal = typeof data.total === 'number' ? data.total : storeOrdersData.length;
     storeOrdersStores = data.stores || [];
     storeOrdersStoreOrder = storeOrdersStores.map(s => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
-
-    if (storeOrdersData.length === 0 && storeOrdersTotal === 0) {
-      content.innerHTML = '<div class="admin-loading">주문 내역이 없습니다.</div>';
-      startStoreOrdersIdleRefresh();
-      return;
-    }
 
     renderList();
     startStoreOrdersIdleRefresh();
