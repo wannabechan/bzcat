@@ -1352,13 +1352,33 @@ body {
 
 .profile-menu-line {
   width: 100%;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
 }
 
 .profile-menu-line-1 {
   text-align: left;
 }
 
+.profile-menu-line-policy-row {
+  margin-top: 1px;
+}
 .profile-menu-line-2 {
+  margin-top: 2px; /* 1번째–2번째 라인 사이 1px 추가 */
+}
+.profile-menu-line-3 {
+  margin-top: -2px; /* 2번째–3번째 라인 사이 3px 축소 */
+}
+
+.profile-menu-line-2 .profile-menu-copy,
+.profile-menu-line-2 p {
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.profile-menu-line-policy-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
