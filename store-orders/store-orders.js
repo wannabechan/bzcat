@@ -768,6 +768,145 @@ function toDateKey(d) {
   return getKSTDateStr(x.getTime());
 }
 
+/** 정산 기준일 목록: 2026-01-01 ~ 오늘(KST), 10일·20일·말일만, 최신순 */
+function getSettlementDatesList() {
+  const todayStr = getKSTTodayString();
+  const [endY, endM] = todayStr.split('-').map(Number);
+  const list = [];
+  for (let y = 2026; y <= endY; y++) {
+    const monthEnd = y === endY ? endM : 12;
+    for (let m = 1; m <= monthEnd; m++) {
+      const pad = (n) => String(n).padStart(2, '0');
+      const d10 = y + '-' + pad(m) + '-10';
+      const d20 = y + '-' + pad(m) + '-20';
+      const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const dLast = y + '-' + pad(m) + '-' + pad(lastDay);
+      if (d10 >= '2026-01-01' && d10 <= todayStr) list.push(d10);
+      if (d20 >= '2026-01-01' && d20 <= todayStr) list.push(d20);
+      if (dLast >= '2026-01-01' && dLast <= todayStr && dLast !== d10 && dLast !== d20) list.push(dLast);
+    }
+  }
+  list.sort((a, b) => b.localeCompare(a));
+  return list;
+}
+
+/** 정산 기준일에 해당하는 지급 기간 반환 (startDate, endDate) */
+function getPeriodForSettlementDate(settlementDateStr) {
+  const parts = settlementDateStr.split('-').map(Number);
+  const y = parts[0], m = parts[1], dayNum = parts[2];
+  const pad = (n) => String(n).padStart(2, '0');
+  if (dayNum === 10) {
+    const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+    const prevLast = new Date(Date.UTC(prev.y, prev.m, 0)).getUTCDate();
+    return { start: prev.y + '-' + pad(prev.m) + '-21', end: prev.y + '-' + pad(prev.m) + '-' + pad(prevLast) };
+  }
+  if (dayNum === 20) {
+    return { start: y + '-' + pad(m) + '-01', end: y + '-' + pad(m) + '-10' };
+  }
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  if (dayNum === lastDay) {
+    return { start: y + '-' + pad(m) + '-11', end: y + '-' + pad(m) + '-20' };
+  }
+  return null;
+}
+
+var _storeSettlementEmptyParagraph = '<p class="admin-settlement-empty">내역이 없습니다.</p>';
+
+function renderStoreSettlementTable(byBrand) {
+  if (!byBrand || byBrand.length === 0) {
+    return _storeSettlementEmptyParagraph;
+  }
+  const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  const tableClass = 'admin-stats-table admin-settlement-equal-cols';
+  let html = '<table class="' + tableClass + '"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
+  byBrand.forEach((b) => {
+    const sales = Number(b.totalAmount) || 0;
+    const fee = Math.round(sales * 0.18);
+    const settlement = sales - fee;
+    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+var _storeSettlementSpinnerHtml = '<div class="admin-settlement-spinner" role="status" aria-label="로딩 중"></div>';
+
+async function loadStoreSettlementPeriod(settlementDateStr) {
+  if (!settlementDateStr) return;
+  const period = getPeriodForSettlementDate(settlementDateStr);
+  if (!period) return;
+  const periodSpinnerEl = document.getElementById('storeSettlementPeriodSpinner');
+  if (periodSpinnerEl) {
+    periodSpinnerEl.style.display = '';
+    periodSpinnerEl.innerHTML = _storeSettlementSpinnerHtml;
+  }
+  const resultEl = document.getElementById('storeSettlementPeriodResult');
+  if (resultEl) resultEl.innerHTML = '';
+
+  const token = getToken();
+  const requestedDate = settlementDateStr;
+  try {
+    const res = await fetch(`${API_BASE}/api/manager/settlement-period?startDate=${encodeURIComponent(period.start)}&endDate=${encodeURIComponent(period.end)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const dateSelect = document.getElementById('storeSettlementDateSelect');
+    if (dateSelect && dateSelect.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '정산 내역을 불러올 수 없습니다.');
+    }
+    const data = await res.json();
+    if (document.getElementById('storeSettlementDateSelect')?.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+    if (resultEl) resultEl.innerHTML = renderStoreSettlementTable(data.byBrand || []);
+  } catch (e) {
+    if (document.getElementById('storeSettlementDateSelect')?.value !== requestedDate) {
+      if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+      return;
+    }
+    if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
+    if (resultEl) resultEl.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '정산 내역을 불러올 수 없습니다.') + '</p>';
+  }
+}
+
+async function loadStoreSettlement() {
+  const container = document.getElementById('storeOrdersSettlementContent');
+  if (!container) return;
+
+  const settlementDates = getSettlementDatesList();
+  const defaultDate = settlementDates[0] || getKSTTodayString();
+  const defaultPeriod = getPeriodForSettlementDate(defaultDate);
+  const periodRangeLabel = defaultPeriod ? '>> 정산구간 : ' + defaultPeriod.start + '~' + defaultPeriod.end : '';
+
+  const comboOptions = settlementDates.map((d) => '<option value="' + escapeHtml(d) + '"' + (d === defaultDate ? ' selected' : '') + '>' + escapeHtml(d) + '</option>').join('');
+
+  container.innerHTML =
+    '<div class="admin-settlement-period-select-wrap">' +
+    '<h3 class="admin-settlement-period-heading">정산 기준일<span id="storeSettlementPeriodSpinner" class="admin-settlement-heading-spinner" style="display:none;"></span></h3>' +
+    '<select id="storeSettlementDateSelect" class="admin-settlement-brand-select" style="min-width:160px;">' + comboOptions + '</select>' +
+    '<p class="admin-settlement-caption" id="storeSettlementPeriodRangeLabel" style="margin-top:8px;">' + escapeHtml(periodRangeLabel) + '</p>' +
+    '</div>' +
+    '<section class="admin-stats-section"><h3>정산 내역</h3><div id="storeSettlementPeriodResult"></div></section>';
+
+  const dateSelect = document.getElementById('storeSettlementDateSelect');
+  const rangeLabelEl = document.getElementById('storeSettlementPeriodRangeLabel');
+  dateSelect?.addEventListener('change', function () {
+    const val = this.value;
+    if (!val) return;
+    const period = getPeriodForSettlementDate(val);
+    if (rangeLabelEl && period) rangeLabelEl.textContent = '>> 정산구간 : ' + period.start + '~' + period.end;
+    loadStoreSettlementPeriod(val);
+  });
+
+  await loadStoreSettlementPeriod(defaultDate);
+}
+
 function setupStoreOrdersTabs() {
   const tabs = document.querySelectorAll('.store-orders-tab[data-store-tab]');
   const listView = document.getElementById('storeOrdersListView');
@@ -794,6 +933,7 @@ function setupStoreOrdersTabs() {
       loadStoreOrdersStats();
     } else if (targetTab === 'settlement') {
       settlementView?.classList.add('active');
+      loadStoreSettlement();
     }
   }
 
