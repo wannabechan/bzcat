@@ -279,9 +279,12 @@ function openOrderDetail(order) {
           return;
         }
         const o = storeOrdersData.find(x => x.id === orderId);
-        if (o) o.status = 'order_accepted';
+        if (o) {
+          o.status = 'payment_link_issued';
+          o.payment_link = 'TEST-AUTO-' + orderId;
+        }
         closeOrderDetail();
-        renderList();
+        await loadStoreOrders();
         alert('주문을 수령했습니다.');
       } catch (e) {
         alert('네트워크 오류가 발생했습니다.');

@@ -4,7 +4,7 @@
  * query: orderId, token (이메일 발송 시 저장한 일회용 토큰)
  */
 
-const { getOrderById, updateOrderStatus, updateOrderAcceptToken } = require('../_redis');
+const { getOrderById, updateOrderStatus, updateOrderAcceptToken, updateOrderPaymentLink } = require('../_redis');
 const { getAppOrigin } = require('../payment/_helpers');
 
 function pickQuery(req, key) {
@@ -43,6 +43,10 @@ module.exports = async (req, res) => {
 
   await updateOrderStatus(orderId, 'order_accepted');
   await updateOrderAcceptToken(orderId, null);
+
+  // [결제 테스트용] 매장 승인 시 결제 생성 코드 자동 입력 → 주문자 결제하기 활성화. 테스트 후 제거.
+  await updateOrderPaymentLink(orderId, 'TEST-AUTO-' + orderId);
+  await updateOrderStatus(orderId, 'payment_link_issued');
 
   return res.redirect(302, `${origin}/?order_accept=success`);
 };
