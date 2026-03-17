@@ -52,12 +52,12 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '이미 처리된 주문입니다.' });
     }
 
-    await updateOrderStatus(id, 'order_accepted');
+    await updateOrderStatus(id, 'order_accepted', user.email);
     await updateOrderAcceptToken(id, null);
 
     // [결제 테스트용] 매장 승인 시 결제 생성 코드 자동 입력 → 주문자 결제하기 활성화. 테스트 후 제거.
     await updateOrderPaymentLink(id, 'TEST-AUTO-' + id);
-    await updateOrderStatus(id, 'payment_link_issued');
+    await updateOrderStatus(id, 'payment_link_issued', user.email);
 
     return apiResponse(res, 200, { success: true });
   } catch (error) {

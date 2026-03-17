@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
     const trimmed = (paymentLink || '').trim();
     if (trimmed) {
       if (order.status === 'submitted' || order.status === 'order_accepted') {
-        await updateOrderStatus(orderId, 'payment_link_issued');
+        await updateOrderStatus(orderId, 'payment_link_issued', user.email);
         // 결제 링크 발급 시 주문자에게 결제 요청 알림톡
         const userPayaskCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_USER_PAYASK_ORDER || '').trim();
         const orderContact = (order.contact || '').trim();
@@ -80,7 +80,7 @@ module.exports = async (req, res) => {
       }
     } else {
       if (order.status === 'payment_link_issued') {
-        await updateOrderStatus(orderId, 'order_accepted');
+        await updateOrderStatus(orderId, 'order_accepted', user.email);
       }
     }
 

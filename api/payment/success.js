@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
     }
 
     await updateOrderTossPaymentKey(orderIdStr, String(paymentKey).trim());
-    await updateOrderStatus(orderIdStr, 'payment_completed');
+    await updateOrderStatus(orderIdStr, 'payment_completed', 'payment_system');
 
     // 결제 완료 시 매장 담당자 알림톡: storeName, orderId, totalAmount, deliveryDate, deliveryTime
     const templateCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_STORE_PAY_ORDER || '').trim();

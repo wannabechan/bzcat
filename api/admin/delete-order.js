@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 404, { error: '주문을 찾을 수 없습니다.' });
     }
 
-    await deleteOrder(orderIdStr);
+    await deleteOrder(orderIdStr, user.email);
     return apiResponse(res, 200, { success: true });
   } catch (error) {
     console.error('Admin delete order error:', error);

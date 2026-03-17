@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '배송 완료 승인 코드 오류' });
     }
 
-    await updateOrderStatus(orderId, 'delivery_completed');
+    await updateOrderStatus(orderId, 'delivery_completed', user.email);
     return apiResponse(res, 200, { success: true });
   } catch (err) {
     console.error('Admin delivery-complete error:', err);

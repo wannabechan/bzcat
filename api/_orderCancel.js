@@ -38,11 +38,11 @@ function isPastPaymentDeadline(order) {
   return Date.now() > deadline.getTime();
 }
 
-/** 주문 취소 처리 + 취소 주문서 PDF 재생성 및 URL 갱신. cancelReason: 고객취소 | 관리자취소 | 결제기한만료 | 결제실패 */
-async function cancelOrderAndRegeneratePdf(orderId, cancelReason) {
+/** 주문 취소 처리 + 취소 주문서 PDF 재생성 및 URL 갱신. cancelReason: 고객취소 | 관리자취소 | 결제기한만료 | 결제실패. actor: 로그 행위자(이메일 등). */
+async function cancelOrderAndRegeneratePdf(orderId, cancelReason, actor) {
   const order = await getOrderById(orderId);
   if (!order) return null;
-  await updateOrderStatus(orderId, 'cancelled');
+  await updateOrderStatus(orderId, 'cancelled', actor === undefined || actor === null ? 'system' : actor);
   await updateOrderCancelReason(orderId, cancelReason || null);
   order.status = 'cancelled';
   order.cancel_reason = cancelReason || null;

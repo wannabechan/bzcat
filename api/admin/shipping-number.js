@@ -60,7 +60,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '결제 완료된 주문만 배송 번호를 등록할 수 있습니다.' });
     }
 
-    const updatedOrder = await updateOrderShippingNumber(orderId.trim(), String(trackingNumber).replace(/\D/g, '').trim());
+    const updatedOrder = await updateOrderShippingNumber(orderId.trim(), String(trackingNumber).replace(/\D/g, '').trim(), user.email);
     if (updatedOrder) {
       const userGoingCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_USER_GOING_ORDER || '').trim();
       const orderContact = (updatedOrder.contact || '').trim();

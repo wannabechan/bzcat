@@ -41,12 +41,12 @@ module.exports = async (req, res) => {
     return res.redirect(302, `${origin}/?order_accept=error`);
   }
 
-  await updateOrderStatus(orderId, 'order_accepted');
+  await updateOrderStatus(orderId, 'order_accepted', 'store_accept_link');
   await updateOrderAcceptToken(orderId, null);
 
   // [결제 테스트용] 매장 승인 시 결제 생성 코드 자동 입력 → 주문자 결제하기 활성화. 테스트 후 제거.
   await updateOrderPaymentLink(orderId, 'TEST-AUTO-' + orderId);
-  await updateOrderStatus(orderId, 'payment_link_issued');
+  await updateOrderStatus(orderId, 'payment_link_issued', 'store_accept_link');
 
   return res.redirect(302, `${origin}/?order_accept=success`);
 };

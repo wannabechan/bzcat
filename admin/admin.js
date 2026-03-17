@@ -392,6 +392,9 @@ function setupTabs() {
     } else if (targetTab === 'settlement') {
       document.getElementById('settlementView').classList.add('active');
       loadSettlement();
+    } else if (targetTab === 'logs') {
+      document.getElementById('logsView').classList.add('active');
+      loadLogs();
     }
   }
 
@@ -407,7 +410,7 @@ function setupTabs() {
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement'].includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement', 'logs'].includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
   if (isReload && saved) {
     activateTab(tabToActivate);
   }
@@ -1538,6 +1541,105 @@ async function loadSettlement() {
   } catch (_) {}
 
   await loadSettlementPeriod(defaultDate);
+}
+
+/** 로그관리 탭: blob(bzcat-blob-log) 목록 조회 후 테이블 렌더, 체크박스 shift/command 선택, 다운로드 */
+let adminLogsList = []; // { pathname, dateLabel }[]
+
+async function loadLogs() {
+  const container = document.getElementById('adminLogsContent');
+  if (!container) return;
+
+  container.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  const token = getToken();
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/logs/list`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '로그 목록을 불러올 수 없습니다.');
+    }
+    const data = await res.json();
+    const blobs = data.blobs || [];
+    adminLogsList = (blobs || []).map((b) => {
+      const pathname = (b.pathname || b.name || '').toString();
+      const url = (b.url || '').toString();
+      const base = pathname.split('/').pop() || pathname;
+      const dateLabel = base.replace(/\.csv$/i, '') || pathname;
+      return { pathname, url, dateLabel };
+    }).sort((a, b) => b.dateLabel.localeCompare(a.dateLabel));
+
+    let tableRows = adminLogsList.map((item, idx) =>
+      '<tr data-index="' + idx + '"><td class="admin-logs-col-check"><input type="checkbox" class="admin-logs-cb" data-pathname="' + escapeHtml(item.pathname) + '" data-url="' + escapeHtml(item.url) + '" data-index="' + idx + '" aria-label="' + escapeHtml(item.dateLabel) + ' 선택"></td><td>' + escapeHtml(item.dateLabel) + '</td></tr>'
+    ).join('');
+    if (tableRows === '') tableRows = '<tr><td colspan="2">등록된 로그가 없습니다.</td></tr>';
+
+    container.innerHTML =
+      '<h2 class="admin-logs-title">*logs</h2>' +
+      '<div class="admin-logs-table-wrap">' +
+      '<table class="admin-logs-table"><thead><tr><th class="admin-logs-col-check"></th><th>날짜</th></tr></thead><tbody>' + tableRows + '</tbody></table>' +
+      '</div>' +
+      '<div class="admin-logs-download-wrap"><button type="button" class="admin-logs-download-btn" id="adminLogsDownloadBtn">download</button></div>';
+
+    const tbody = container.querySelector('.admin-logs-table tbody');
+    const downloadBtn = document.getElementById('adminLogsDownloadBtn');
+    if (!tbody || !downloadBtn) return;
+
+    let lastClickedIndex = null;
+    tbody.addEventListener('click', function (e) {
+      const row = e.target.closest('tr[data-index]');
+      const cb = e.target.closest('input.admin-logs-cb');
+      if (!row || !cb) return;
+      const idx = parseInt(row.dataset.index, 10);
+      if (e.shiftKey) {
+        if (lastClickedIndex == null) lastClickedIndex = idx;
+        const from = Math.min(lastClickedIndex, idx);
+        const to = Math.max(lastClickedIndex, idx);
+        tbody.querySelectorAll('input.admin-logs-cb').forEach((input, i) => {
+          input.checked = i >= from && i <= to;
+        });
+        e.preventDefault();
+        return;
+      }
+      if (e.metaKey || e.ctrlKey) {
+        e.preventDefault();
+        cb.checked = !cb.checked;
+        lastClickedIndex = idx;
+        return;
+      }
+      lastClickedIndex = idx;
+    });
+
+    function updateDownloadButtonState() {
+      const any = container.querySelectorAll('input.admin-logs-cb:checked').length > 0;
+      downloadBtn.disabled = !any;
+    }
+    tbody.querySelectorAll('input.admin-logs-cb').forEach((input) => {
+      input.addEventListener('change', updateDownloadButtonState);
+    });
+    updateDownloadButtonState();
+
+    downloadBtn.addEventListener('click', async function () {
+      if (this.disabled) return;
+      const checked = Array.from(container.querySelectorAll('input.admin-logs-cb:checked')).map((el) => ({ pathname: el.dataset.pathname || '', url: el.dataset.url || '' })).filter((x) => x.pathname || x.url);
+      if (checked.length === 0) return;
+      for (const { pathname, url } of checked) {
+        try {
+          const q = url ? `url=${encodeURIComponent(url)}` : `pathname=${encodeURIComponent(pathname)}`;
+          const r = await fetchWithTimeout(`${API_BASE}/api/admin/logs/download?${q}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!r.ok) continue;
+          const blob = await r.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = objectUrl;
+          a.download = (pathname.split('/').pop() || pathname) || 'log.csv';
+          a.click();
+          URL.revokeObjectURL(objectUrl);
+        } catch (_) {}
+      }
+    });
+  } catch (e) {
+    container.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '로그 목록을 불러올 수 없습니다.') + '</p>';
+  }
 }
 
 function renderStats(container, data) {

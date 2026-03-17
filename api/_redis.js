@@ -92,11 +92,13 @@ async function getNextOrderId() {
 async function createOrder(orderData) {
   const redis = getRedis();
   const id = await getNextOrderId();
+  const created_at = new Date().toISOString();
   const order = {
     id,
     ...orderData,
     status: 'submitted',
-    created_at: new Date().toISOString(),
+    created_at,
+    status_history: [{ s: 'submitted', at: created_at, by: orderData.user_email || 'system' }],
   };
   const key = `order:${id}`;
   await redis.set(key, JSON.stringify(order));
@@ -129,19 +131,60 @@ async function getOrderById(orderId) {
   return typeof raw === 'string' ? JSON.parse(raw) : raw;
 }
 
-async function deleteOrder(orderId) {
+const ORDER_DELETIONS_KEY = 'order:deletions';
+
+async function saveDeletionRecord(orderSnapshot, deletedBy) {
+  const redis = getRedis();
+  const record = {
+    order_id: orderSnapshot.id,
+    deleted_at: new Date().toISOString(),
+    deleted_by: deletedBy || 'system',
+    order_snapshot: orderSnapshot,
+  };
+  await redis.rpush(ORDER_DELETIONS_KEY, JSON.stringify(record));
+}
+
+async function getDeletionRecordsForDate(dateStr) {
+  const redis = getRedis();
+  const raw = await redis.lrange(ORDER_DELETIONS_KEY, 0, -1);
+  if (!raw || raw.length === 0) return [];
+  const list = [];
+  for (let i = 0; i < raw.length; i++) {
+    try {
+      const rec = typeof raw[i] === 'string' ? JSON.parse(raw[i]) : raw[i];
+      const deletedAt = rec.deleted_at || '';
+      const deletedDate = deletedAt.slice(0, 10);
+      if (deletedDate === dateStr) list.push(rec);
+    } catch (_) {}
+  }
+  return list;
+}
+
+async function deleteOrder(orderId, deletedBy) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
   if (!order) return false;
+  await saveDeletionRecord(order, deletedBy);
   await redis.del(`order:${orderId}`);
   await redis.zrem(`orders:by_user:${order.user_email}`, orderId);
   return true;
 }
 
-async function updateOrderStatus(orderId, status) {
+function appendStatusHistory(order, status, actor) {
+  if (!order.status_history) order.status_history = [];
+  order.status_history.push({
+    s: status,
+    at: new Date().toISOString(),
+    by: actor || 'system',
+  });
+}
+
+async function updateOrderStatus(orderId, status, actor) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
   if (!order) return null;
+  const by = actor === undefined || actor === null ? 'system' : String(actor);
+  appendStatusHistory(order, status, by);
   order.status = status;
   await redis.set(`order:${orderId}`, JSON.stringify(order));
   return order;
@@ -177,12 +220,13 @@ async function updateOrderPaymentLink(orderId, paymentLink) {
   return order;
 }
 
-async function updateOrderShippingNumber(orderId, trackingNumber) {
+async function updateOrderShippingNumber(orderId, trackingNumber, actor) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
   if (!order) return null;
   order.tracking_number = (trackingNumber || '').trim();
   if (order.status === 'payment_completed') {
+    appendStatusHistory(order, 'shipping', actor === undefined || actor === null ? 'system' : String(actor));
     order.status = 'shipping';
   }
   await redis.set(`order:${orderId}`, JSON.stringify(order));
@@ -358,6 +402,8 @@ module.exports = {
   getOrdersByUser,
   getOrderById,
   deleteOrder,
+  saveDeletionRecord,
+  getDeletionRecordsForDate,
   updateOrderStatus,
   updateOrderCancelReason,
   updateOrderPdfUrl,

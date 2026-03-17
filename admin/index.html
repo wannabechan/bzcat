@@ -282,11 +282,24 @@
     .admin-settlement-statement-issuer p { margin: 2px 0; }
     .admin-settlement-pdf-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
     .admin-settlement-pdf-btn:hover { opacity: 0.9; }
+    .admin-logs-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 16px; }
+    .admin-logs-table-wrap { margin-bottom: 12px; }
+    .admin-logs-table { width: 100%; border-collapse: collapse; }
+    .admin-logs-table th, .admin-logs-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+    .admin-logs-table th { font-weight: 600; font-size: 0.875rem; }
+    .admin-logs-table td { font-size: 0.875rem; }
+    .admin-logs-table .admin-logs-col-check { width: 44px; }
+    .admin-logs-download-wrap { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .admin-logs-download-btn { background: none; border: none; padding: 0; font-size: 0.875rem; color: var(--color-primary); cursor: pointer; text-decoration: underline; }
+    .admin-logs-download-btn:hover { color: var(--color-primary); opacity: 0.9; }
+    .admin-logs-download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     @media (max-width: 768px) {
       .admin-tab[data-tab="stores"] { display: none; }
       .admin-tab[data-tab="settlement"] { display: none; }
+      .admin-tab[data-tab="logs"] { display: none; }
       #storesView { display: none !important; }
       #settlementView { display: none !important; }
+      #logsView { display: none !important; }
       .admin-tabs { display: flex; gap: 0; }
       .admin-tabs .admin-tab { flex: 1; min-width: 0; padding: 12px 6px; font-size: 0.8125rem; text-align: center; }
       .admin-stats-table-menu tbody tr { height: 5em; }
@@ -314,6 +327,7 @@
       <button class="admin-tab active" data-tab="payments">주문관리</button>
       <button class="admin-tab" data-tab="stats">통계관리</button>
       <button class="admin-tab" data-tab="settlement">정산관리</button>
+      <button class="admin-tab admin-tab-logs" data-tab="logs">로그관리</button>
     </div>
 
     <div id="adminError" class="admin-error" style="display: none;"></div>
@@ -338,6 +352,10 @@
 
     <div id="settlementView" class="admin-view">
       <div id="adminSettlementContent"></div>
+    </div>
+
+    <div id="logsView" class="admin-view">
+      <div id="adminLogsContent"></div>
     </div>
 
     <div class="admin-order-detail-overlay" id="adminOrderDetailOverlay" aria-hidden="true">
