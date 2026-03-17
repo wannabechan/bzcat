@@ -668,15 +668,7 @@ body {
 }
 
 .menu-info-desc-view {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0;
   width: 100%;
-}
-
-.menu-info-desc-view p {
-  flex: 0 1 auto;
 }
 
 .menu-origin-link {

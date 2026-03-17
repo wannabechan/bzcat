@@ -420,8 +420,7 @@ function renderMenuCards() {
             ${imgContent}
             <div class="menu-info-overlay" data-id="${idEsc}">
               <div class="menu-info-desc-view">
-                <p>${descEsc}</p>
-                <span class="menu-origin-link" role="button" tabindex="0"> | *원산지</span>
+                <p>${descEsc}&nbsp;<span class="menu-origin-link" role="button" tabindex="0"> | *원산지</span></p>
               </div>
               <div class="menu-info-origin-view">
                 <p class="menu-origin-text">${originEsc}</p>
