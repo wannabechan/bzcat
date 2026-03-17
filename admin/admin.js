@@ -1574,9 +1574,9 @@ async function loadLogs() {
     if (tableRows === '') tableRows = '<tr><td colspan="2">등록된 로그가 없습니다.</td></tr>';
 
     container.innerHTML =
-      '<h2 class="admin-logs-title">*logs</h2>' +
+      '<h2 class="admin-logs-title">logs</h2>' +
       '<div class="admin-logs-table-wrap">' +
-      '<table class="admin-logs-table"><thead><tr><th class="admin-logs-col-check"></th><th>날짜</th></tr></thead><tbody>' + tableRows + '</tbody></table>' +
+      '<table class="admin-logs-table"><thead><tr><th class="admin-logs-col-check">선택</th><th class="admin-logs-col-date">날짜</th></tr></thead><tbody>' + tableRows + '</tbody></table>' +
       '</div>' +
       '<div class="admin-logs-download-wrap"><button type="button" class="admin-logs-download-btn" id="adminLogsDownloadBtn">download</button></div>';
 
