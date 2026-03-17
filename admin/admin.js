@@ -278,6 +278,10 @@ function renderMenuItem(storeId, item, index) {
           <label>설명</label>
           <textarea data-field="description" placeholder="메뉴 설명">${escapeHtml(item.description || '')}</textarea>
         </div>
+        <div class="admin-form-field">
+          <label>원산지</label>
+          <input type="text" data-field="origin" value="${escapeHtml(item.origin || '')}" placeholder="예: 국내산(쌀)">
+        </div>
       </div>
       <div class="admin-menu-actions">
         <button type="button" class="admin-btn admin-btn-danger" data-remove-menu data-store-id="${escapeHtml(storeId)}" data-index="${index}">삭제</button>
@@ -332,6 +336,7 @@ function collectData() {
       const nameInput = itemEl.querySelector('input[data-field="name"]');
       const priceInput = itemEl.querySelector('input[data-field="price"]');
       const descInput = itemEl.querySelector('textarea[data-field="description"]');
+      const originInput = itemEl.querySelector('input[data-field="origin"]');
       const imageInput = itemEl.querySelector('input[data-field="imageUrl"]');
       const name = nameInput?.value?.trim();
       if (!name) return;
@@ -340,6 +345,7 @@ function collectData() {
         name,
         price: parseInt(priceInput?.value || '0', 10) || 0,
         description: descInput?.value?.trim() || '',
+        origin: originInput?.value?.trim() || '',
         imageUrl: imageInput?.value?.trim() || '',
       });
     });
@@ -2071,7 +2077,7 @@ async function init() {
       if (e.target.closest('[data-add-menu]')) {
         const storeId = e.target.closest('[data-add-menu]').dataset.addMenu;
         const list = content.querySelector(`.admin-menu-list[data-store-id="${storeId}"]`);
-        const newItem = { id: generateId(storeId), name: '', price: 0, description: '', imageUrl: '' };
+        const newItem = { id: generateId(storeId), name: '', price: 0, description: '', origin: '', imageUrl: '' };
         const div = document.createElement('div');
         div.innerHTML = renderMenuItem(storeId, newItem, list.children.length);
         const itemEl = div.firstElementChild;

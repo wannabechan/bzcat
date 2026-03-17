@@ -409,6 +409,7 @@ function renderMenuCards() {
       const idEsc = escapeHtml(item.id);
       const nameEsc = escapeHtml(item.name);
       const descEsc = escapeHtml(item.description || '상세 설명이 없습니다.');
+      const originEsc = escapeHtml(item.origin || '원산지 정보가 없습니다.');
       const imgSrc = safeImageUrl(item.imageUrl);
       const imgContent = imgSrc
         ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
@@ -418,7 +419,13 @@ function renderMenuCards() {
           <div class="menu-card-image-wrapper" role="button" tabindex="0" aria-label="상세 정보 보기">
             ${imgContent}
             <div class="menu-info-overlay" data-id="${idEsc}">
-              <p>${descEsc}</p>
+              <div class="menu-info-desc-view">
+                <p>${descEsc}</p>
+                <span class="menu-origin-link" role="button" tabindex="0"> | *원산지</span>
+              </div>
+              <div class="menu-info-origin-view">
+                <p class="menu-origin-text">${originEsc}</p>
+              </div>
             </div>
           </div>
           <div class="menu-card-body">
@@ -1175,12 +1182,16 @@ function handleMenuGridClick(e) {
   if (wrapper) {
     e.stopPropagation();
     const overlay = wrapper.querySelector('.menu-info-overlay');
+    if (e.target.closest('.menu-origin-link')) {
+      overlay?.classList.add('menu-info-show-origin');
+      return;
+    }
     if (e.target.closest('.menu-info-overlay')) {
-      overlay?.classList.remove('active');
+      overlay?.classList.remove('active', 'menu-info-show-origin');
       return;
     }
     if (e.target.closest('.menu-card-image')) {
-      menuGrid.querySelectorAll('.menu-info-overlay').forEach((o) => o.classList.remove('active'));
+      menuGrid.querySelectorAll('.menu-info-overlay').forEach((o) => o.classList.remove('active', 'menu-info-show-origin'));
       overlay?.classList.add('active');
     }
     return;

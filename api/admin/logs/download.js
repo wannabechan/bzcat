@@ -39,6 +39,15 @@ module.exports = async (req, res) => {
     if (!blobUrl || !/^https:\/\//.test(blobUrl)) {
       return apiResponse(res, 400, { error: '유효한 로그 URL이 필요합니다.' });
     }
+    // SSRF·토큰 유출 방지: Vercel Blob 스토어 URL만 허용
+    try {
+      const u = new URL(blobUrl);
+      if (!u.hostname.endsWith('.blob.vercel-storage.com')) {
+        return apiResponse(res, 400, { error: '유효한 로그 URL이 필요합니다.' });
+      }
+    } catch (_) {
+      return apiResponse(res, 400, { error: '유효한 로그 URL이 필요합니다.' });
+    }
 
     const r = await fetch(blobUrl, {
       method: 'GET',
@@ -49,7 +58,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, r.status === 404 ? 404 : 502, { error: '로그 파일을 불러올 수 없습니다.' });
     }
 
-    const filename = blobUrl.split('/').pop()?.replace(/\?.*$/, '') || 'log.csv';
+    let filename = blobUrl.split('/').pop()?.replace(/\?.*$/, '') || 'log.csv';
+    filename = filename.replace(/["\\\r\n\x00-\x1f]/g, '').slice(0, 200) || 'log.csv';
     res.setHeader('Content-Type', r.headers.get('content-type') || 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.status(200);

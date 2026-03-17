@@ -667,6 +667,55 @@ body {
   width: 100%;
 }
 
+.menu-info-desc-view {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  width: 100%;
+}
+
+.menu-info-desc-view p {
+  flex: 0 1 auto;
+}
+
+.menu-origin-link {
+  font-size: 0.74375rem;
+  line-height: 1.5;
+  color: #888;
+  text-decoration: underline;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.menu-origin-link:hover {
+  color: #666;
+}
+
+.menu-info-origin-view {
+  display: none;
+  width: 100%;
+}
+
+.menu-info-origin-view .menu-origin-text {
+  font-size: 0.74375rem;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--color-text);
+  width: 100%;
+  cursor: pointer;
+}
+
+.menu-info-overlay.menu-info-show-origin .menu-info-desc-view {
+  display: none;
+}
+
+.menu-info-overlay.menu-info-show-origin .menu-info-origin-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .menu-card-body {
   padding: 12px;
   flex: 1;
