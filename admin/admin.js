@@ -479,6 +479,7 @@ function renderPaymentList() {
   const allOrders = adminPaymentOrders;
   const cancelled = (o) => o.status === 'cancelled';
 
+  const totalCount = allOrders.length;
   const newCount = allOrders.filter(o => !cancelled(o) && (o.status === 'submitted' || o.status === 'order_accepted')).length;
   const paymentWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_link_issued').length;
   const deliveryWaitCount = allOrders.filter(o => !cancelled(o) && o.status === 'payment_completed').length;
@@ -523,7 +524,7 @@ function renderPaymentList() {
     </div>
     <div class="admin-payment-subfilter">
       <div class="admin-payment-subfilter-row">
-        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'all' ? 'active' : ''}" data-subfilter="all" role="button" tabindex="0">전체보기 ${totalCount}개</span>
         <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'new' ? 'active' : ''}" data-subfilter="new" role="button" tabindex="0">신규주문 ${newCount}개</span>
         <span class="admin-payment-subfilter-item ${adminPaymentSubFilter === 'payment_wait' ? 'active' : ''}" data-subfilter="payment_wait" role="button" tabindex="0">결제대기 ${paymentWaitCount}개</span>
       </div>
