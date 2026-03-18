@@ -20,8 +20,9 @@ function toDateKey(isoStr) {
 
 function getStoreSlugFromOrder(order) {
   const items = order.order_items || order.orderItems || [];
-  const firstId = items[0]?.id || '';
-  const slug = (firstId.split('-')[0] || '').toLowerCase();
+  const firstId = (items[0]?.id || '').toString();
+  const parts = firstId.split('-');
+  const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '')).toLowerCase();
   return slug || 'unknown';
 }
 
@@ -140,7 +141,8 @@ module.exports = async (req, res) => {
         const name = item.name || id;
         const qty = Number(item.quantity) || 0;
         const price = Number(item.price) || 0;
-        const slugFromItem = (id.split('-')[0] || '').toLowerCase();
+        const idParts = String(id).split('-');
+        const slugFromItem = (idParts.length > 1 ? idParts.slice(0, -1).join('-') : (idParts[0] || '')).toLowerCase();
         const key = slugFromItem + ':' + id;
         if (!isCancelled) menuOrderCount[key] = (menuOrderCount[key] || 0) + qty;
         if (isPaid) menuRevenue[key] = (menuRevenue[key] || 0) + price * qty;

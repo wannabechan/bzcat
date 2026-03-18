@@ -96,8 +96,10 @@ async function checkAdmin() {
 
 async function fetchStores() {
   const token = getToken();
+  const debug = /[?&]debug=1(?:&|$)/i.test(window.location.search || '');
+  const url = `${API_BASE}/api/admin/stores` + (debug ? '?debug=1' : '');
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -1831,7 +1833,8 @@ function renderAdminOrderDetailHtml(order, slugToDisplayName) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = (oi.id || '').toString();
-    const slug = (itemId.split('-')[0] || 'default').toLowerCase();
+    const parts = itemId.split('-');
+    const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default')).toLowerCase();
     const item = { name: oi.name || '', price: Number(oi.price) || 0 };
     const qty = Number(oi.quantity) || 0;
     if (qty <= 0) continue;

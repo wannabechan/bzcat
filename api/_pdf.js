@@ -46,7 +46,8 @@ async function generateOrderPdf(order, stores = [], options = {}) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = oi.id || '';
-    const slug = (itemId.split('-')[0] || 'default').toLowerCase();
+    const parts = String(itemId).split('-');
+    const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default')).toLowerCase();
     const item = { name: oi.name || '', price: oi.price || 0, qty: oi.quantity || 0 };
     if (!byCategory[slug]) byCategory[slug] = [];
     byCategory[slug].push(item);

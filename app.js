@@ -209,7 +209,8 @@ function getCategoryForItem(itemId) {
   for (const [slug, data] of Object.entries(MENU_DATA)) {
     if (data.items?.some((i) => i.id === itemId)) return slug;
   }
-  return itemId.split('-')[0];
+  const parts = itemId.split('-');
+  return parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
 }
 
 // 장바구니에 담긴 카테고리 (1가지만 허용)
@@ -309,7 +310,8 @@ function getPaymentForCart() {
   const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
   const firstId = itemIds[0];
   if (!firstId) return MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
-  const storeSlug = firstId.split('-')[0];
+  const parts = firstId.split('-');
+  const storeSlug = parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
   const storeData = MENU_DATA[storeSlug];
   return storeData?.payment || MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
 }

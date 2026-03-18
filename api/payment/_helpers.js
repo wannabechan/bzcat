@@ -10,12 +10,14 @@ function getAppOrigin(req) {
   return `${proto}://${host}`;
 }
 
+/** itemId 형식: {slug}-{menuId}. slug에 하이픈 포함 가능(예: store-mma43xv8-1 → store-mma43xv8) */
 function getStoreSlugFromOrder(order) {
   const items = order.order_items;
   if (!Array.isArray(items) || items.length === 0) return null;
   const firstId = items[0]?.id;
   if (!firstId || typeof firstId !== 'string') return null;
-  const slug = firstId.split('-')[0];
+  const parts = firstId.split('-');
+  const slug = parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
   return slug || null;
 }
 
