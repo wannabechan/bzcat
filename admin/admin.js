@@ -1826,14 +1826,18 @@ function renderAdminOrderDetailHtml(order) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = (oi.id || '').toString();
-    const slug = (itemId.split('-')[0] || 'default');
+    const slug = (itemId.split('-')[0] || 'default').toLowerCase();
     const item = { name: oi.name || '', price: Number(oi.price) || 0 };
     const qty = Number(oi.quantity) || 0;
     if (qty <= 0) continue;
     if (!byCategory[slug]) byCategory[slug] = [];
     byCategory[slug].push({ item, qty });
   }
-  const categoryOrder = adminStoreOrder.length ? adminStoreOrder : Object.keys(byCategory).sort();
+  const slugsInOrder = Object.keys(byCategory);
+  const slugMatches = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+  const categoryOrder = adminStoreOrder.length
+    ? adminStoreOrder.filter((s) => slugsInOrder.some((k) => slugMatches(k, s))).concat(slugsInOrder.filter((s) => !adminStoreOrder.some((a) => slugMatches(a, s))).sort())
+    : slugsInOrder.sort();
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
