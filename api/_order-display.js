@@ -6,10 +6,27 @@
 
 /**
  * 상품 id에서 매장 slug 추출
- * 형식: {storeSlug}-{menuId}. storeSlug에 하이픈 포함 가능 (예: store-mma43xv8-1 → store-mma43xv8)
+ * 형식: {storeSlug}-{menuId}. menuId에 하이픈 포함 가능 (generateId가 storeId-timestamp-random 생성)
+ * @param {string} itemId - 상품 id (예: store-mma43xv8-lz3k2m-abc1)
+ * @param {object[]|string[]} [storesOrSlugs] - 매장 배열 또는 slug 문자열 배열. 있으면 longest-prefix 매칭으로 정확한 slug 반환
  */
-function getSlugFromItemId(itemId) {
-  const parts = String(itemId || '').split('-');
+function getSlugFromItemId(itemId, storesOrSlugs) {
+  const id = String(itemId || '').trim();
+  if (!id) return 'default';
+
+  if (storesOrSlugs && (Array.isArray(storesOrSlugs) && storesOrSlugs.length > 0)) {
+    const slugs = storesOrSlugs.every((x) => typeof x === 'string')
+      ? [...new Set(storesOrSlugs)].filter(Boolean)
+      : [...new Set((storesOrSlugs || []).map((s) => (s.slug || s.id || '').toString()).filter(Boolean))];
+    slugs.sort((a, b) => b.length - a.length);
+    const idLower = id.toLowerCase();
+    for (const slug of slugs) {
+      const s = slug.toLowerCase();
+      if (idLower === s || idLower.startsWith(s + '-')) return s;
+    }
+  }
+
+  const parts = id.split('-');
   if (parts.length <= 1) return (parts[0] || 'default').toLowerCase();
   return parts.slice(0, -1).join('-').toLowerCase();
 }

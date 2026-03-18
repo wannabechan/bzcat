@@ -87,7 +87,7 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = (oi.id || '').toString();
-    const slug = getSlugFromItemId(itemId);
+    const slug = getSlugFromItemId(itemId, stores);
     const name = oi.name || '';
     const price = Number(oi.price) || 0;
     const qty = Number(oi.quantity) || 0;

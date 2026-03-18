@@ -33,8 +33,9 @@ module.exports = async (req, res) => {
 
     const stores = await getStores();
     const slugToDisplayName = buildSlugToBrandName(stores);
+    const storeSlugs = (stores || []).map((s) => (s.slug || s.id || '').toString()).filter(Boolean);
 
-    return apiResponse(res, 200, { order, slugToDisplayName });
+    return apiResponse(res, 200, { order, slugToDisplayName, storeSlugs });
   } catch (error) {
     console.error('Admin get order error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });

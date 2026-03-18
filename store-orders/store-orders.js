@@ -186,8 +186,22 @@ function sortPaymentOrders(orders, sortBy, dir) {
   return copy;
 }
 
+function getSlugFromItemIdStoreOrders(itemId, storeSlugs) {
+  const id = String(itemId || '').trim().toLowerCase();
+  if (!id) return 'default';
+  if (Array.isArray(storeSlugs) && storeSlugs.length > 0) {
+    const sorted = [...new Set(storeSlugs)].map((s) => String(s || '').toLowerCase()).filter(Boolean).sort((a, b) => b.length - a.length);
+    for (const s of sorted) {
+      if (id === s || id.startsWith(s + '-')) return s;
+    }
+  }
+  const parts = id.split('-');
+  return parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default');
+}
+
 function renderOrderDetailHtml(order) {
   const stores = storeOrdersStores || [];
+  const storeSlugs = stores.map((s) => (s.slug || s.id || '').toString()).filter(Boolean);
   const slugToBrandName = {};
   for (const s of stores) {
     const slug = (s.slug || s.id || '').toString();
@@ -202,8 +216,7 @@ function renderOrderDetailHtml(order) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = oi.id || '';
-    const parts = String(itemId).split('-');
-    const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default')).toLowerCase();
+    const slug = getSlugFromItemIdStoreOrders(itemId, storeSlugs);
     const item = { name: oi.name || '', price: Number(oi.price) || 0 };
     const qty = Number(oi.quantity) || 0;
     if (qty <= 0) continue;

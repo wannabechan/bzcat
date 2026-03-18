@@ -31,7 +31,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = oi.id || '';
-    const slug = getSlugFromItemId(itemId);
+    const slug = getSlugFromItemId(itemId, stores);
     const item = { name: oi.name || '', price: oi.price || 0, qty: oi.quantity || 0 };
     if (!byCategory[slug]) byCategory[slug] = [];
     byCategory[slug].push(item);
