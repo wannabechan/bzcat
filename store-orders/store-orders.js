@@ -188,14 +188,16 @@ function sortPaymentOrders(orders, sortBy, dir) {
 
 function renderOrderDetailHtml(order) {
   const stores = storeOrdersStores || [];
-  const slugToTitle = {};
+  const slugToBrandName = {};
   for (const s of stores) {
-    const id = (s.id || s.slug || '').toString().toLowerCase();
-    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || id).toString().trim() || id;
-    if (id) slugToTitle[id] = displayName;
-    const suburl = (s.suburl || '').toString().trim().toLowerCase();
-    if (suburl) slugToTitle[suburl] = displayName;
+    const slug = (s.slug || s.id || '').toString();
+    const name = (s.brand || s.title || s.id || s.slug || '').toString().trim() || slug;
+    if (slug) {
+      slugToBrandName[slug] = name;
+      slugToBrandName[slug.toLowerCase()] = name;
+    }
   }
+  const getBrandName = (slug) => slugToBrandName[slug] || slugToBrandName[String(slug || '').toLowerCase()] || slug;
   const orderItems = order.order_items || [];
   const byCategory = {};
   for (const oi of orderItems) {
@@ -231,7 +233,7 @@ function renderOrderDetailHtml(order) {
   return categoryOrder
     .filter(slug => byCategory[slug]?.length)
     .map(slug => {
-      const title = slugToTitle[slug] || slug;
+      const title = getBrandName(slug);
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderItem).join('');
       return `

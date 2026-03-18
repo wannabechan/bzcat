@@ -1,31 +1,12 @@
 /**
  * GET /api/admin/order?orderId=xxx
  * 단일 주문 전체 조회 (admin/operator - 주문 상세 팝업용)
- * slugToDisplayName: 주문에 등장하는 slug별 브랜드/표시명 (서버 getStores 기준, 팝업에서 브랜드명 표시용)
- *
- * 디버깅: ?debug=1 또는 ?debug=true 붙이면 응답에 _debug 가 붙음
- * - storesForDisplay: 서버가 사용한 매장 목록(id, slug, brand, title, suburl)
- * - slugToDisplayName: slug → 표시명 맵
- * - firstOrderItemId: 주문 첫 상품 id (앞부분이 slug)
+ * slugToDisplayName: slug별 브랜드명 (주문 상세에서 매장명으로 표시)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
-
-function buildSlugToDisplayName(stores) {
-  const map = {};
-  for (const s of stores || []) {
-    const slug = (s.slug || s.id || '').toString();
-    // brand/title이 비어 있으면 id/slug만 쓰이면 "store"처럼 나올 수 있음 → suburl을 보조로 사용
-    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || slug).toString().trim() || slug;
-    if (slug) map[slug] = displayName;
-    const lower = slug.toLowerCase();
-    if (lower) map[lower] = displayName;
-    const suburl = (s.suburl || '').toString().trim().toLowerCase();
-    if (suburl) map[suburl] = displayName;
-  }
-  return map;
-}
+const { buildSlugToBrandName } = require('../_order-display');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
@@ -51,18 +32,9 @@ module.exports = async (req, res) => {
     if (!order) return apiResponse(res, 404, { error: '주문을 찾을 수 없습니다.' });
 
     const stores = await getStores();
-    const slugToDisplayName = buildSlugToDisplayName(stores);
+    const slugToDisplayName = buildSlugToBrandName(stores);
 
-    const payload = { order, slugToDisplayName };
-    const debug = (req.query.debug || '').toString().toLowerCase() === '1' || (req.query.debug || '').toString().toLowerCase() === 'true';
-    if (debug) {
-      payload._debug = {
-        storesForDisplay: (stores || []).map((s) => ({ id: s.id, slug: s.slug, brand: s.brand, title: s.title, suburl: s.suburl })),
-        slugToDisplayName,
-        firstOrderItemId: (order.order_items || order.orderItems || [])[0]?.id,
-      };
-    }
-    return apiResponse(res, 200, payload);
+    return apiResponse(res, 200, { order, slugToDisplayName });
   } catch (error) {
     console.error('Admin get order error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });

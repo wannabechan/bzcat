@@ -953,11 +953,9 @@ async function loadPaymentManagement() {
         adminStoreOrder = [];
         (stores || []).forEach(s => {
           const slug = (s.slug || s.id || '').toString();
-          const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || slug).toString().trim() || slug;
+          const displayName = (s.brand || s.title || s.id || s.slug || slug).toString().trim() || slug;
           adminStoresMap[slug] = displayName;
           adminStoresMap[(slug || '').toLowerCase()] = displayName;
-          const suburl = (s.suburl || '').toString().trim().toLowerCase();
-          if (suburl) adminStoresMap[suburl] = displayName;
           adminStoreOrder.push(slug);
         });
       }

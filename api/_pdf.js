@@ -8,14 +8,7 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 const { formatDateKST } = require('./_kst');
-
-const DEFAULT_CATEGORY_TITLES = {
-  bento: '도시락',
-  side: '반찬',
-  salad: '샐러드',
-  beverage: '음료',
-  dessert: '디저트',
-};
+const { getSlugFromItemId, buildSlugToBrandName } = require('./_order-display');
 
 const MARGIN = 50;
 const PAGE_WIDTH = 595;
@@ -30,24 +23,15 @@ function formatPrice(price) {
 
 async function generateOrderPdf(order, stores = [], options = {}) {
   const isCancelled = options.isCancelled === true;
-  const slugToTitle = {};
-  for (const s of stores) {
-    const key = s.slug || s.id;
-    const keyLower = key ? String(key).toLowerCase() : '';
-    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || '').toString().trim() || key || '';
-    if (key) slugToTitle[key] = displayName;
-    if (keyLower) slugToTitle[keyLower] = displayName;
-    const suburl = (s.suburl || '').toString().trim().toLowerCase();
-    if (suburl) slugToTitle[suburl] = displayName;
-  }
-  const getCategoryTitle = (slug) => slugToTitle[slug] || slugToTitle[String(slug || '').toLowerCase()] || DEFAULT_CATEGORY_TITLES[slug] || slug;
+
+  const slugToBrandName = buildSlugToBrandName(stores);
+  const getCategoryTitle = (slug) => slugToBrandName[slug] || slugToBrandName[String(slug || '').toLowerCase()] || slug;
 
   const orderItems = order.order_items || [];
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = oi.id || '';
-    const parts = String(itemId).split('-');
-    const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default')).toLowerCase();
+    const slug = getSlugFromItemId(itemId);
     const item = { name: oi.name || '', price: oi.price || 0, qty: oi.quantity || 0 };
     if (!byCategory[slug]) byCategory[slug] = [];
     byCategory[slug].push(item);
@@ -56,10 +40,11 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     byCategory[slug].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
   }
 
-  const categoryOrder = ['bento', 'side', 'salad', 'beverage', 'dessert'];
-  const knownSlugs = categoryOrder.filter((s) => byCategory[s]?.length);
-  const otherSlugs = Object.keys(byCategory).filter((s) => !categoryOrder.includes(s));
-  const orderedSlugs = [...knownSlugs, ...otherSlugs];
+  const storeSlugOrder = (stores || []).map((s) => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
+  const slugsInOrder = Object.keys(byCategory);
+  const orderedSlugs = storeSlugOrder.filter((s) => slugsInOrder.includes(s));
+  const restSlugs = slugsInOrder.filter((s) => !orderedSlugs.includes(s)).sort();
+  const orderedSlugsFinal = [...orderedSlugs, ...restSlugs];
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
@@ -216,7 +201,7 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     drawTableHeader();
 
     let rowNum = 0;
-    for (const slug of orderedSlugs) {
+    for (const slug of orderedSlugsFinal) {
       const title = getCategoryTitle(slug);
       ensureSpace(20);
       drawHLine(y, '#ddd');

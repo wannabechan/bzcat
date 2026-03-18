@@ -1,9 +1,10 @@
 /**
  * 신규 주문 접수 시 매장 담당자 이메일로 발송할 주문 내역 메일 본문 생성
- * (내 주문 보기 페이지의 주문 내역과 동일한 수준으로 구성)
+ * 주문 내역: 매장 브랜드명 + 해당 주문 메뉴 리스트
  */
 
 const { formatDateKST } = require('../_kst');
+const { getSlugFromItemId, buildSlugToBrandName } = require('../_order-display');
 
 function escapeHtml(str) {
   if (str == null || str === '') return '';
@@ -49,11 +50,12 @@ function getStoreForOrder(order, stores) {
 }
 
 /**
- * 매장 표시명 반환 (알림톡·메일 등에서 사용)
+ * 매장 표시명 반환 (알림톡·메일 등에서 사용, 브랜드명 우선)
  */
-function getStoreDisplayName(store) {
+function getStoreDisplayNameForOrder(store) {
   if (!store) return '주문';
-  return (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+  const { getStoreDisplayName } = require('../_order-display');
+  return getStoreDisplayName(store) || '주문';
 }
 
 /**
@@ -66,7 +68,8 @@ function getStoreEmailForOrder(order, stores) {
 }
 
 /**
- * 주문 내역 메일 HTML 생성 (내 주문 보기와 동일한 정보 수준)
+ * 주문 내역 메일 HTML 생성
+ * 주문 내역: 매장 브랜드명 + 해당 주문 메뉴 리스트
  * @param {object} order - 주문 객체
  * @param {object[]} stores - 매장 목록
  * @param {object} [options] - { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther }
@@ -76,19 +79,15 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
   const rejectUrlSchedule = (options.rejectUrlSchedule || '').trim() || '#';
   const rejectUrlCooking = (options.rejectUrlCooking || '').trim() || '#';
   const rejectUrlOther = (options.rejectUrlOther || '').trim() || '#';
-  const slugToTitle = {};
-  for (const s of stores || []) {
-    const id = (s.id || s.slug || '').toString();
-    slugToTitle[id.toLowerCase()] = s.title || s.id || s.slug || id;
-  }
-  const getCategoryTitle = (slug) => slugToTitle[slug] || slug || '기타';
+
+  const slugToBrandName = buildSlugToBrandName(stores);
+  const getBrandName = (slug) => slugToBrandName[slug] || slugToBrandName[String(slug || '').toLowerCase()] || slug || '기타';
 
   const orderItems = order.order_items || order.orderItems || [];
   const byCategory = {};
   for (const oi of orderItems) {
     const itemId = (oi.id || '').toString();
-    const parts = itemId.split('-');
-    const slug = (parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || 'default')).toLowerCase();
+    const slug = getSlugFromItemId(itemId);
     const name = oi.name || '';
     const price = Number(oi.price) || 0;
     const qty = Number(oi.quantity) || 0;
@@ -100,9 +99,11 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
     byCategory[slug].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
   }
 
-  const categoryOrder = ['bento', 'side', 'salad', 'beverage', 'dessert'];
-  const otherSlugs = Object.keys(byCategory).filter((s) => !categoryOrder.includes(s));
-  const orderedSlugs = [...categoryOrder.filter((s) => byCategory[s]?.length), ...otherSlugs];
+  const storeSlugOrder = (stores || []).map((s) => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
+  const slugsInOrder = Object.keys(byCategory);
+  const orderedSlugs = storeSlugOrder.filter((s) => slugsInOrder.includes(s));
+  const restSlugs = slugsInOrder.filter((s) => !orderedSlugs.includes(s)).sort();
+  const categoryOrder = [...orderedSlugs, ...restSlugs];
 
   const totalAmount = Number(order.total_amount ?? order.totalAmount) || 0;
   const depositor = escapeHtml(order.depositor || '—');
@@ -115,10 +116,10 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
   const createdAt = formatOrderDate(order.created_at || order.createdAt);
 
   let rowsHtml = '';
-  for (const slug of orderedSlugs) {
+  for (const slug of categoryOrder) {
     const items = byCategory[slug] || [];
     const catTotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-    const catTitle = escapeHtml(getCategoryTitle(slug));
+    const catTitle = escapeHtml(getBrandName(slug));
     rowsHtml += `
       <tr><td colspan="3" style="border-bottom:1px solid #eee; padding:10px 12px; font-weight:600; background:#f8f9fa;">${catTitle}</td></tr>
       ${items
@@ -188,7 +189,7 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
 
 module.exports = {
   getStoreForOrder,
-  getStoreDisplayName,
+  getStoreDisplayName: getStoreDisplayNameForOrder,
   getStoreEmailForOrder,
   buildOrderNotificationHtml,
 };
