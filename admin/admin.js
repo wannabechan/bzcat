@@ -685,8 +685,7 @@ function renderPaymentList() {
   content.querySelectorAll('[data-order-detail]').forEach(el => {
     el.addEventListener('click', () => {
       const orderId = el.dataset.orderDetail;
-      const order = adminPaymentOrders.find(o => o.id === orderId);
-      if (order) openAdminOrderDetail(order);
+      if (orderId) openAdminOrderDetailById(orderId);
     });
   });
 
@@ -1867,6 +1866,36 @@ function renderAdminOrderDetailHtml(order) {
       `;
     })
     .join('');
+}
+
+/** 주문 번호로 서버에서 전체 주문 조회 후 팝업 오픈 (목록 응답의 order는 order_items 누락 가능성 있어 항상 단건 API 사용) */
+async function openAdminOrderDetailById(orderId) {
+  const content = document.getElementById('adminOrderDetailContent');
+  const overlay = document.getElementById('adminOrderDetailOverlay');
+  if (!content || !overlay) return;
+  overlay.classList.add('visible');
+  overlay.setAttribute('aria-hidden', 'false');
+  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  const token = getToken();
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/order?orderId=${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      content.innerHTML = '<p class="admin-stats-error">' + escapeHtml(err.error || '주문을 불러올 수 없습니다.') + '</p>';
+      return;
+    }
+    const data = await res.json();
+    const order = data.order;
+    if (!order) {
+      content.innerHTML = '<p class="admin-stats-error">주문을 찾을 수 없습니다.</p>';
+      return;
+    }
+    openAdminOrderDetail(order);
+  } catch (e) {
+    content.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '주문을 불러올 수 없습니다.') + '</p>';
+  }
 }
 
 function openAdminOrderDetail(order) {
