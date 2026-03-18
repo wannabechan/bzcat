@@ -1,6 +1,9 @@
 /**
  * GET /api/admin/stores - 매장·메뉴 데이터 조회 (admin 전용)
  * PUT /api/admin/stores - 매장·메뉴 데이터 저장 (admin 전용)
+ *
+ * 디버깅: GET 시 ?debug=1 또는 ?debug=true 붙이면 응답에 _debug.storeSummary 가 붙음
+ * (각 매장의 id, slug, brand, title, suburl만 요약)
  */
 
 const { getStores, getMenus, saveStoresAndMenus } = require('../_redis');
@@ -41,7 +44,14 @@ module.exports = async (req, res) => {
       for (const store of stores) {
         menusByStore[store.id] = await getMenus(store.id);
       }
-      return apiResponse(res, 200, { stores, menus: menusByStore });
+      const payload = { stores, menus: menusByStore };
+      const debug = (req.query.debug || '').toString().toLowerCase() === '1' || (req.query.debug || '').toString().toLowerCase() === 'true';
+      if (debug) {
+        payload._debug = {
+          storeSummary: (stores || []).map((s) => ({ id: s.id, slug: s.slug, brand: s.brand, title: s.title, suburl: s.suburl })),
+        };
+      }
+      return apiResponse(res, 200, payload);
     }
 
     if (req.method === 'PUT') {

@@ -2,6 +2,11 @@
  * GET /api/admin/order?orderId=xxx
  * 단일 주문 전체 조회 (admin/operator - 주문 상세 팝업용)
  * slugToDisplayName: 주문에 등장하는 slug별 브랜드/표시명 (서버 getStores 기준, 팝업에서 브랜드명 표시용)
+ *
+ * 디버깅: ?debug=1 또는 ?debug=true 붙이면 응답에 _debug 가 붙음
+ * - storesForDisplay: 서버가 사용한 매장 목록(id, slug, brand, title, suburl)
+ * - slugToDisplayName: slug → 표시명 맵
+ * - firstOrderItemId: 주문 첫 상품 id (앞부분이 slug)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
@@ -48,7 +53,16 @@ module.exports = async (req, res) => {
     const stores = await getStores();
     const slugToDisplayName = buildSlugToDisplayName(stores);
 
-    return apiResponse(res, 200, { order, slugToDisplayName });
+    const payload = { order, slugToDisplayName };
+    const debug = (req.query.debug || '').toString().toLowerCase() === '1' || (req.query.debug || '').toString().toLowerCase() === 'true';
+    if (debug) {
+      payload._debug = {
+        storesForDisplay: (stores || []).map((s) => ({ id: s.id, slug: s.slug, brand: s.brand, title: s.title, suburl: s.suburl })),
+        slugToDisplayName,
+        firstOrderItemId: (order.order_items || order.orderItems || [])[0]?.id,
+      };
+    }
+    return apiResponse(res, 200, payload);
   } catch (error) {
     console.error('Admin get order error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });
