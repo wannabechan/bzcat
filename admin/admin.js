@@ -1823,10 +1823,10 @@ function formatAdminPrice(price) {
 }
 
 function renderAdminOrderDetailHtml(order) {
-  const orderItems = order.order_items || [];
+  const orderItems = order.order_items || order.orderItems || [];
   const byCategory = {};
   for (const oi of orderItems) {
-    const itemId = oi.id || '';
+    const itemId = (oi.id || '').toString();
     const slug = (itemId.split('-')[0] || 'default');
     const item = { name: oi.name || '', price: Number(oi.price) || 0 };
     const qty = Number(oi.quantity) || 0;
@@ -1876,7 +1876,10 @@ function openAdminOrderDetail(order) {
   const overlay = document.getElementById('adminOrderDetailOverlay');
   const panel = overlay?.querySelector('.admin-order-detail-panel');
   if (!content || !overlay) return;
-  const html = renderAdminOrderDetailHtml(order);
+  let html = renderAdminOrderDetailHtml(order);
+  if (!html || !html.trim()) {
+    html = '<p class="admin-settlement-empty">주문 메뉴 내역이 없습니다.</p>';
+  }
   content.innerHTML = `<div class="order-detail-list order-detail-cart-style">${html}</div>`;
   if (totalEl) totalEl.textContent = formatAdminPrice(order.total_amount || 0);
   if (panel) panel.classList.toggle('admin-order-detail-cancelled', order.status === 'cancelled');

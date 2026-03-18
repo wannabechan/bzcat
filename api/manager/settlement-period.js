@@ -45,7 +45,8 @@ module.exports = async (req, res) => {
     const orders = await getAllOrders() || [];
     const stores = await getStores() || [];
 
-    const filtered = orders.filter((o) => {
+    // 정산 집행: 기간 내 배송완료(delivery_completed) 처리된 주문, 담당 매장만
+    const executedOrders = orders.filter((o) => {
       if ((o.status || '') !== 'delivery_completed') return false;
       const d = normalizeDeliveryDate(o.delivery_date);
       if (d < startStr || d > endStr) return false;
@@ -53,30 +54,59 @@ module.exports = async (req, res) => {
       return storeEmail && storeEmail.trim().toLowerCase() === managerEmail;
     });
 
-    const bySlug = {};
-    filtered.forEach((o) => {
+    const executedBySlug = {};
+    executedOrders.forEach((o) => {
       const store = getStoreForOrder(o, stores);
       const slug = (store?.slug || store?.id || 'unknown').toString().toLowerCase();
-      if (!bySlug[slug]) {
-        bySlug[slug] = {
+      if (!executedBySlug[slug]) {
+        executedBySlug[slug] = {
           slug,
           brandTitle: (store?.brand || store?.title || store?.id || slug).toString().trim() || slug,
           orderCount: 0,
           totalAmount: 0,
         };
       }
-      bySlug[slug].orderCount += 1;
-      bySlug[slug].totalAmount += Number(o.total_amount) || 0;
+      executedBySlug[slug].orderCount += 1;
+      executedBySlug[slug].totalAmount += Number(o.total_amount) || 0;
+    });
+    const executed = Object.values(executedBySlug).sort((a, b) =>
+      (a.brandTitle || '').localeCompare(b.brandTitle || '', 'ko')
+    );
+
+    // 정산 미집행: 기간 내 배송희망일이지만 아직 배송 완료 미처리 주문, 담당 매장만 (취소 제외)
+    const notExecutedOrders = orders.filter((o) => {
+      if ((o.status || '') === 'cancelled') return false;
+      if ((o.status || '') === 'delivery_completed') return false;
+      const d = normalizeDeliveryDate(o.delivery_date);
+      if (d < startStr || d > endStr) return false;
+      const storeEmail = getStoreEmailForOrder(o, stores);
+      return storeEmail && storeEmail.trim().toLowerCase() === managerEmail;
     });
 
-    const byBrand = Object.values(bySlug).sort((a, b) =>
+    const notExecutedBySlug = {};
+    notExecutedOrders.forEach((o) => {
+      const store = getStoreForOrder(o, stores);
+      const slug = (store?.slug || store?.id || 'unknown').toString().toLowerCase();
+      if (!notExecutedBySlug[slug]) {
+        notExecutedBySlug[slug] = {
+          slug,
+          brandTitle: (store?.brand || store?.title || store?.id || slug).toString().trim() || slug,
+          orderCount: 0,
+          totalAmount: 0,
+        };
+      }
+      notExecutedBySlug[slug].orderCount += 1;
+      notExecutedBySlug[slug].totalAmount += Number(o.total_amount) || 0;
+    });
+    const notExecuted = Object.values(notExecutedBySlug).sort((a, b) =>
       (a.brandTitle || '').localeCompare(b.brandTitle || '', 'ko')
     );
 
     return apiResponse(res, 200, {
       startDate: startStr,
       endDate: endStr,
-      byBrand,
+      executed,
+      notExecuted,
     });
   } catch (error) {
     console.error('Manager settlement-period error:', error);

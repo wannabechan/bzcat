@@ -4,11 +4,7 @@
  */
 
 const { getStores, getMenus, saveStoresAndMenus } = require('../_redis');
-const { verifyToken, apiResponse } = require('../_utils');
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -25,9 +21,18 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(authHeader.substring(7));
-    if (!user || !isAdmin(user)) {
-      return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
+    const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
+    if (!user) {
+      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
+    }
+    if (req.method === 'GET') {
+      if (!isAdminOrOperator(user)) {
+        return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
+      }
+    } else {
+      if (user.level !== 'admin') {
+        return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
+      }
     }
 
     if (req.method === 'GET') {

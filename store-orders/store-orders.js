@@ -847,6 +847,21 @@ function renderStoreSettlementTable(byBrand) {
   return html;
 }
 
+/** 어드민 정산관리와 동일: 정산 집행 / 정산 미집행 두 섹션으로 렌더 */
+function renderStoreSettlementTwoLists(executed, notExecuted) {
+  const tableClass = 'admin-stats-table admin-settlement-equal-cols';
+  const table1 = renderStoreSettlementTable(executed || []).replace('<table class="admin-stats-table admin-settlement-equal-cols">', '<table class="' + tableClass + '">');
+  const table2 = renderStoreSettlementTable(notExecuted || []).replace('<table class="admin-stats-table admin-settlement-equal-cols">', '<table class="' + tableClass + '">');
+  return (
+    '<div class="admin-settlement-mock-lists">' +
+    '<br><h4 class="admin-settlement-subheading">정산 집행 (배송 완료 처리)</h4>' +
+    '<div class="admin-settlement-mock-table-wrap">' + table1 + '</div>' +
+    '<br><h4 class="admin-settlement-subheading">정산 미집행 (배송 완료 미처리)</h4>' +
+    '<div class="admin-settlement-mock-table-wrap">' + table2 + '</div>' +
+    '</div>'
+  );
+}
+
 var _storeSettlementSpinnerHtml = '<div class="admin-settlement-spinner" role="status" aria-label="로딩 중"></div>';
 
 async function loadStoreSettlementPeriod(settlementDateStr) {
@@ -882,7 +897,7 @@ async function loadStoreSettlementPeriod(settlementDateStr) {
       return;
     }
     if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
-    if (resultEl) resultEl.innerHTML = renderStoreSettlementTable(data.byBrand || []);
+    if (resultEl) resultEl.innerHTML = renderStoreSettlementTwoLists(data.executed || [], data.notExecuted || []);
   } catch (e) {
     if (document.getElementById('storeSettlementDateSelect')?.value !== requestedDate) {
       if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
