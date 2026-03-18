@@ -4,7 +4,7 @@
  * user.isStoreManager: 매장 담당자 이메일로 등록된 매장이 있을 때 true
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel } = require('../_utils');
 const { getStores } = require('../_redis');
 
 function isStoreManagerEmail(email, stores) {
@@ -38,12 +38,14 @@ module.exports = async (req, res) => {
 
     const stores = await getStores();
     const isStoreManager = isStoreManagerEmail(decoded.email, stores || []);
+    // 레벨은 환경변수(EMAIL_ADMIN, EMAIL_OPERATOR) 기준으로 매 요청 시 계산 (토큰 발급 시점이 아닌 현재 설정 반영)
+    const level = getUserLevel(decoded.email);
 
     return apiResponse(res, 200, {
       success: true,
       user: {
         email: decoded.email,
-        level: decoded.level,
+        level,
         isStoreManager: !!isStoreManager,
       },
     });

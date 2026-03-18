@@ -51,6 +51,12 @@ function isAdminOrOperator(user) {
   return user && (user.level === 'admin' || user.level === 'operator');
 }
 
+/** JWT decoded에 환경변수 기준 현재 레벨 반영 (세션/API에서 사용) */
+function withResolvedLevel(decoded) {
+  if (!decoded || !decoded.email) return null;
+  return { ...decoded, level: getUserLevel(decoded.email) };
+}
+
 /**
  * 6자리 랜덤 코드 생성
  */
@@ -85,6 +91,7 @@ module.exports = {
   verifyToken,
   getUserLevel,
   isAdminOrOperator,
+  withResolvedLevel,
   generateCode,
   setCorsHeaders,
   apiResponse,

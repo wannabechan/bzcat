@@ -3,7 +3,7 @@
  * 주문을 배송 완료로 변경 (admin 전용, 코드 검증)
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
 const { getOrderById, updateOrderStatus } = require('../_redis');
 
 module.exports = async (req, res) => {
@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(authHeader.substring(7));
+    const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
     if (!user || !isAdminOrOperator(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
