@@ -515,7 +515,7 @@ function renderCartItems() {
   cartItems.innerHTML = categoryOrder
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
-      const categoryTitle = escapeHtml(MENU_DATA[slug]?.title || slug);
+      const categoryTitle = escapeHtml(MENU_DATA[slug]?.brand || MENU_DATA[slug]?.title || slug);
       const catTotal = categoryTotals[slug] || 0;
       const meetMin = catTotal >= TOTAL_MIN;
       const totalClass = meetMin ? 'cart-category-total met' : 'cart-category-total below';
@@ -607,10 +607,12 @@ function renderOrderDetailByCategory(byCategory, categoryOrder) {
       </div>
     </div>
   `;
-  return categoryOrder
-    .filter((slug) => byCategory[slug]?.length)
+  const slugsToShow = categoryOrder.filter((slug) => byCategory[slug]?.length).length
+    ? categoryOrder.filter((slug) => byCategory[slug]?.length)
+    : Object.keys(byCategory);
+  return slugsToShow
     .map((slug) => {
-      const categoryTitle = escapeHtml(MENU_DATA[slug]?.title || slug);
+      const categoryTitle = escapeHtml(MENU_DATA[slug]?.brand || MENU_DATA[slug]?.title || slug);
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderDetailItem).join('');
       return `
