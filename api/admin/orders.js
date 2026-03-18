@@ -34,7 +34,9 @@ module.exports = async (req, res) => {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 25), 100);
+    const startDate = (req.query.startDate || '').toString().trim();
+    const endDate = (req.query.endDate || '').toString().trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 25), 5000);
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
 
     let allOrders = await getAllOrders() || [];
@@ -42,9 +44,20 @@ module.exports = async (req, res) => {
       const sample = await getAdminSampleOrders();
       allOrders = [...sample, ...allOrders];
     }
+
+    if (startDate && endDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      const startMs = new Date(startDate + 'T00:00:00+09:00').getTime();
+      const endMs = new Date(endDate + 'T23:59:59.999+09:00').getTime();
+      allOrders = allOrders.filter((o) => {
+        const t = new Date(o.created_at || 0).getTime();
+        return t >= startMs && t <= endMs;
+      });
+    }
+
     const sorted = allOrders.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const total = sorted.length;
-    const orders = sorted.slice(offset, offset + limit);
+    const usePeriod = startDate && endDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+    const orders = usePeriod ? sorted : sorted.slice(offset, offset + limit);
 
     return apiResponse(res, 200, { orders, total });
   } catch (error) {

@@ -13,6 +13,7 @@ let storeOrdersStoreOrder = [];
 let storeOrdersSortBy = 'created_at';
 let storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
 let storeOrdersSubFilter = 'new';
+let storeOrdersPeriod = '45days'; // 'thisMonth' | '45days' | '90days' (주문시간 기준 조회 기간, 기본 45일)
 let storeOrdersFlashIntervals = [];
 
 const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
@@ -112,6 +113,26 @@ function getPresetStatsRange(preset) {
   }
   return null;
 }
+function getStoreOrdersPeriodRange(period) {
+  const now = Date.now();
+  const today = getKSTTodayString();
+  const endDate = today;
+  let startDate;
+  if (period === 'thisMonth') {
+    const d = new Date(now + KST_OFFSET_MS);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    startDate = `${y}-${m}-01`;
+  } else if (period === '90days') {
+    const start = new Date(now - 90 * 86400000);
+    startDate = getKSTDateStr(start.getTime());
+  } else {
+    const start = new Date(now - 45 * 86400000);
+    startDate = getKSTDateStr(start.getTime());
+  }
+  return { startDate, endDate };
+}
+
 function getActiveStatsPreset(startVal, endVal) {
   const presets = ['today', 'this_week', 'last_week', 'this_month', 'last_month'];
   for (const p of presets) {
@@ -381,6 +402,15 @@ function renderList() {
   const sorted = sortPaymentOrders(filtered, sortBy, dir);
 
   const arrow = (key) => (storeOrdersSortDir[key] === 'asc' ? ' ↑' : ' ↓');
+  const periodBar = `
+    <div class="admin-payment-subfilter admin-payment-period-row">
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${storeOrdersPeriod === 'thisMonth' ? 'active' : ''}" data-period="thisMonth" role="button" tabindex="0">이번달</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersPeriod === '45days' ? 'active' : ''}" data-period="45days" role="button" tabindex="0">45일전부터</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersPeriod === '90days' ? 'active' : ''}" data-period="90days" role="button" tabindex="0">90일전부터</span>
+      </div>
+    </div>
+  `;
   const sortBar = `
     <div class="admin-payment-sort">
       <div class="admin-payment-sort-btns">
@@ -459,11 +489,7 @@ function renderList() {
     `;
   }).join('');
 
-  const showLoadMore = storeOrdersSubFilter === 'all' && storeOrdersData.length < storeOrdersTotal;
-  const loadMoreHtml = showLoadMore
-    ? `<div class="store-orders-load-more-wrap"><button type="button" class="store-orders-load-more-btn" data-store-orders-load-more>더 보기</button></div>`
-    : '';
-  content.innerHTML = sortBar + ordersHtml + loadMoreHtml;
+  content.innerHTML = periodBar + sortBar + ordersHtml;
 
   storeOrdersFlashIntervals.forEach(id => clearInterval(id));
   storeOrdersFlashIntervals = [];
@@ -478,6 +504,20 @@ function renderList() {
       el.classList.toggle('store-orders-prepare-show-msg');
     }, 1500);
     storeOrdersFlashIntervals.push(id);
+  });
+
+  content.querySelectorAll('[data-period]').forEach(el => {
+    const handler = () => {
+      storeOrdersPeriod = el.dataset.period;
+      loadStoreOrders();
+    };
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handler();
+      }
+    });
   });
 
   content.querySelectorAll('[data-sort]').forEach(btn => {
@@ -505,8 +545,6 @@ function renderList() {
       }
     });
   });
-
-  content.querySelector('[data-store-orders-load-more]')?.addEventListener('click', () => loadMoreStoreOrders());
 
   content.querySelectorAll('[data-order-detail]').forEach(el => {
     el.addEventListener('click', () => {
@@ -690,7 +728,9 @@ async function loadStoreOrders() {
       return;
     }
 
-    const res = await fetch(`${API_BASE}/api/manager/orders?limit=${STORE_ORDERS_PAGE_SIZE}&offset=0`, {
+    const { startDate, endDate } = getStoreOrdersPeriodRange(storeOrdersPeriod);
+    const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
+    const res = await fetch(`${API_BASE}/api/manager/orders?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -713,27 +753,6 @@ async function loadStoreOrders() {
   } catch (e) {
     content.innerHTML = '<div class="admin-loading admin-error">오류가 발생했습니다. 네트워크를 확인해 주세요.</div>';
   }
-}
-
-async function loadMoreStoreOrders() {
-  const btn = document.querySelector('[data-store-orders-load-more]');
-  if (btn) btn.disabled = true;
-  try {
-    const token = getToken();
-    if (!token) return;
-    const offset = storeOrdersData.length;
-    const res = await fetch(`${API_BASE}/api/manager/orders?limit=${STORE_ORDERS_PAGE_SIZE}&offset=${offset}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    const orders = data.orders || [];
-    if (orders.length) {
-      storeOrdersData = storeOrdersData.concat(orders);
-      renderList();
-    }
-  } catch (_) {}
-  if (btn) btn.disabled = false;
 }
 
 function resetStoreOrdersIdleTimer() {

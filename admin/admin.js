@@ -12,6 +12,7 @@ let adminPaymentTotal = 0;
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
 let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc' = 오래된순(↑), 'desc' = 최신순(↓)
 let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait' | 'shipping' | 'delivery_completed'
+let adminPaymentPeriod = '45days'; // 'thisMonth' | '45days' | '90days' (주문시간 기준 조회 기간, 기본 45일)
 let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
 let adminStatsLastData = null;
@@ -479,6 +480,15 @@ function renderPaymentList() {
   const sorted = sortPaymentOrders(filtered, sortBy, dir);
 
   const arrow = (key) => (adminPaymentSortDir[key] === 'asc' ? ' ↑' : ' ↓');
+  const periodBar = `
+    <div class="admin-payment-subfilter admin-payment-period-row">
+      <div class="admin-payment-subfilter-row">
+        <span class="admin-payment-subfilter-item ${adminPaymentPeriod === 'thisMonth' ? 'active' : ''}" data-period="thisMonth" role="button" tabindex="0">이번달</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentPeriod === '45days' ? 'active' : ''}" data-period="45days" role="button" tabindex="0">45일전부터</span>
+        <span class="admin-payment-subfilter-item ${adminPaymentPeriod === '90days' ? 'active' : ''}" data-period="90days" role="button" tabindex="0">90일전부터</span>
+      </div>
+    </div>
+  `;
   const sortBar = `
     <div class="admin-payment-sort">
       <div class="admin-payment-sort-btns">
@@ -598,11 +608,7 @@ function renderPaymentList() {
     `;
   }).join('');
 
-  const showLoadMore = adminPaymentSubFilter === 'all' && adminPaymentOrders.length < adminPaymentTotal;
-  const loadMoreHtml = showLoadMore
-    ? `<div class="admin-payment-load-more-wrap"><button type="button" class="admin-btn admin-payment-load-more-btn" data-payment-load-more>더 보기</button></div>`
-    : '';
-  content.innerHTML = sortBar + ordersHtml + loadMoreHtml;
+  content.innerHTML = periodBar + sortBar + ordersHtml;
 
   adminPaymentFlashIntervals.forEach(id => clearInterval(id));
   adminPaymentFlashIntervals = [];
@@ -611,6 +617,20 @@ function renderPaymentList() {
       el.classList.toggle('admin-overdue-show-msg');
     }, 1500);
     adminPaymentFlashIntervals.push(id);
+  });
+
+  content.querySelectorAll('[data-period]').forEach(el => {
+    const handler = () => {
+      adminPaymentPeriod = el.dataset.period;
+      loadPaymentManagement();
+    };
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handler();
+      }
+    });
   });
 
   content.querySelectorAll('[data-sort]').forEach(btn => {
@@ -646,8 +666,6 @@ function renderPaymentList() {
       if (order) openAdminOrderDetail(order);
     });
   });
-
-  content.querySelector('[data-payment-load-more]')?.addEventListener('click', () => loadMorePaymentOrders());
 
   content.querySelectorAll('[data-save-link]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -859,7 +877,26 @@ function renderPaymentList() {
   });
 }
 
-const PAYMENT_PAGE_SIZE = 25;
+function getPaymentPeriodRange(period) {
+  const now = Date.now();
+  const today = getKSTTodayString();
+  const endDate = today;
+  let startDate;
+  if (period === 'thisMonth') {
+    const d = new Date(now + KST_OFFSET_MS);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    startDate = `${y}-${m}-01`;
+  } else if (period === '90days') {
+    const start = new Date(now - 90 * 86400000);
+    startDate = getKSTDateStr(start.getTime());
+  } else {
+    // '45days' default
+    const start = new Date(now - 45 * 86400000);
+    startDate = getKSTDateStr(start.getTime());
+  }
+  return { startDate, endDate };
+}
 
 async function loadPaymentManagement() {
   const content = document.getElementById('adminPaymentContent');
@@ -867,7 +904,9 @@ async function loadPaymentManagement() {
 
   try {
     const token = getToken();
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=0`, {
+    const { startDate, endDate } = getPaymentPeriodRange(adminPaymentPeriod);
+    const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
 
@@ -907,32 +946,13 @@ async function loadPaymentManagement() {
   }
 }
 
-async function loadMorePaymentOrders() {
-  const btn = document.querySelector('[data-payment-load-more]');
-  if (btn) btn.disabled = true;
-  try {
-    const token = getToken();
-    const offset = adminPaymentOrders.length;
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${PAYMENT_PAGE_SIZE}&offset=${offset}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const { orders } = await res.json();
-    if (Array.isArray(orders) && orders.length) {
-      adminPaymentOrders = adminPaymentOrders.concat(orders);
-      renderPaymentList();
-    }
-  } catch (_) {}
-  if (btn) btn.disabled = false;
-}
-
 async function refetchPaymentOrdersAndRender() {
   const content = document.getElementById('adminPaymentContent');
   try {
     const token = getToken();
-    const currentLen = adminPaymentOrders.length;
-    const limit = Math.max(PAYMENT_PAGE_SIZE, currentLen);
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?limit=${limit}&offset=0`, {
+    const { startDate, endDate } = getPaymentPeriodRange(adminPaymentPeriod);
+    const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) return;
