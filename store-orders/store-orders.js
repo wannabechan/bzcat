@@ -191,7 +191,8 @@ function renderOrderDetailHtml(order) {
   const slugToTitle = {};
   for (const s of stores) {
     const id = (s.id || s.slug || '').toString().toLowerCase();
-    if (id) slugToTitle[id] = s.title || s.id || s.slug || id;
+    const displayName = (s.brand || s.title || s.id || s.slug || id).toString().trim() || id;
+    if (id) slugToTitle[id] = displayName;
   }
   const orderItems = order.order_items || [];
   const byCategory = {};

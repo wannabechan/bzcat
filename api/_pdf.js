@@ -32,9 +32,13 @@ async function generateOrderPdf(order, stores = [], options = {}) {
   const isCancelled = options.isCancelled === true;
   const slugToTitle = {};
   for (const s of stores) {
-    slugToTitle[s.slug || s.id] = s.title || s.id;
+    const key = s.slug || s.id;
+    const keyLower = key ? String(key).toLowerCase() : '';
+    const displayName = (s.brand || s.title || s.id || s.slug || '').toString().trim() || key || '';
+    if (key) slugToTitle[key] = displayName;
+    if (keyLower) slugToTitle[keyLower] = displayName;
   }
-  const getCategoryTitle = (slug) => slugToTitle[slug] || DEFAULT_CATEGORY_TITLES[slug] || slug;
+  const getCategoryTitle = (slug) => slugToTitle[slug] || slugToTitle[String(slug || '').toLowerCase()] || DEFAULT_CATEGORY_TITLES[slug] || slug;
 
   const orderItems = order.order_items || [];
   const byCategory = {};

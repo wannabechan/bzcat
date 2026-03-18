@@ -950,8 +950,10 @@ async function loadPaymentManagement() {
         adminStoresMap = {};
         adminStoreOrder = [];
         (stores || []).forEach(s => {
-          const slug = s.slug || s.id;
-          adminStoresMap[slug] = s.title || slug;
+          const slug = (s.slug || s.id || '').toString();
+          const displayName = (s.brand || s.title || s.id || slug).toString().trim() || slug;
+          adminStoresMap[slug] = displayName;
+          adminStoresMap[(slug || '').toLowerCase()] = displayName;
           adminStoreOrder.push(slug);
         });
       }
