@@ -3,7 +3,7 @@
  * 전체 주문 목록 조회 (admin 전용)
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator } = require('../_utils');
 const { getAllOrders } = require('../_redis');
 const { getAdminSampleOrders } = require('./_sample-orders');
 
@@ -29,8 +29,7 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const isAdmin = user.level === 'admin';
-    if (!isAdmin) {
+    if (!isAdminOrOperator(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

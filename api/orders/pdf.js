@@ -4,7 +4,7 @@
  * 본인 주문 또는 관리자만 접근
  */
 
-const { verifyToken, setCorsHeaders } = require('../_utils');
+const { verifyToken, setCorsHeaders, isAdminOrOperator } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 
@@ -48,8 +48,7 @@ module.exports = async (req, res) => {
     return res.status(404).json({ error: '주문을 찾을 수 없습니다.' });
   }
 
-  const isAdmin = user.level === 'admin';
-  if (order.user_email !== user.email && !isAdmin) {
+  if (order.user_email !== user.email && !isAdminOrOperator(user)) {
     setCorsHeaders(res);
     return res.status(403).json({ error: '해당 주문을 볼 수 없습니다.' });
   }

@@ -32,13 +32,23 @@ function verifyToken(token) {
 }
 
 /**
- * 사용자 레벨 결정 (관리자 이메일은 Vercel 환경 변수 EMAIL_ADMIN 사용)
+ * 사용자 레벨 결정
+ * - EMAIL_ADMIN: admin
+ * - EMAIL_OPERATOR: operator (보조 관리자, 쉼표 구분 복수 가능)
+ * - 그 외: user
  */
 function getUserLevel(email) {
   const normalized = (email || '').toLowerCase().trim();
   const adminEmail = (process.env.EMAIL_ADMIN || '').toLowerCase().trim();
   if (adminEmail && normalized === adminEmail) return 'admin';
+  const operatorList = (process.env.EMAIL_OPERATOR || '').toLowerCase().trim().split(',').map((e) => e.trim()).filter(Boolean);
+  if (operatorList.length && operatorList.includes(normalized)) return 'operator';
   return 'user';
+}
+
+/** admin 또는 operator(보조 관리자) 여부 */
+function isAdminOrOperator(user) {
+  return user && (user.level === 'admin' || user.level === 'operator');
 }
 
 /**
@@ -74,6 +84,7 @@ module.exports = {
   generateToken,
   verifyToken,
   getUserLevel,
+  isAdminOrOperator,
   generateCode,
   setCorsHeaders,
   apiResponse,

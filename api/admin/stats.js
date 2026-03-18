@@ -3,7 +3,7 @@
  * 통계 집계 (admin 전용) - 주문/매출/전환/배송/메뉴/시계열/CRM/알림
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getAdminSampleOrders } = require('./_sample-orders');
 const { parseKSTDate, getKSTDateString } = require('../_kst');
@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
     const token = authHeader.substring(7);
     const user = verifyToken(token);
     if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
-    if (user.level !== 'admin') return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
+    if (!isAdminOrOperator(user)) return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
 
     const startDate = parseDate(req.query.startDate);
     const endDate = parseDate(req.query.endDate);

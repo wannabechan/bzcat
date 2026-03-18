@@ -62,8 +62,17 @@ function showApp(user) {
   const chatBtn = document.getElementById('categoryChatBtn');
   const profileUserEmailEl = document.getElementById('profileUserEmail');
   const isAdmin = user && user.level === 'admin';
+  const isOperator = user && user.level === 'operator';
   const isStoreManager = user && user.isStoreManager && user.level !== 'admin';
-  if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
+  if (adminLink) {
+    if (isAdmin || isOperator) {
+      adminLink.style.display = '';
+      adminLink.textContent = isOperator ? 'operator' : 'admin';
+      adminLink.href = '/admin';
+    } else {
+      adminLink.style.display = 'none';
+    }
+  }
   if (storeOrdersLink) storeOrdersLink.style.display = isStoreManager ? '' : 'none';
   if (profileUserEmailEl) profileUserEmailEl.textContent = user && user.email ? user.email : '';
   // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';

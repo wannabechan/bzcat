@@ -7,6 +7,9 @@ const API_BASE = '';
 const FETCH_TIMEOUT_MS = 15000;
 const ADMIN_TAB_KEY = 'bzcat_admin_tab';
 
+/** 'admin' | 'operator' - 관리 페이지 진입 허용 레벨. operator는 매장/로그 탭·주문 취소·삭제 비노출 */
+let adminUserLevel = 'admin';
+
 let adminPaymentOrders = [];
 let adminPaymentTotal = 0;
 let adminPaymentSortBy = 'created_at'; // 'created_at' | 'delivery_date'
@@ -79,8 +82,13 @@ async function checkAdmin() {
     });
     if (!res.ok) return { ok: false, error: '세션이 만료되었습니다.' };
     const data = await res.json();
-    const isAdmin = data.user?.level === 'admin';
-    return { ok: isAdmin, error: isAdmin ? null : '관리자만 접근할 수 있습니다.' };
+    const level = data.user?.level;
+    const allowed = level === 'admin' || level === 'operator';
+    return {
+      ok: allowed,
+      error: allowed ? null : '관리자만 접근할 수 있습니다.',
+      user: data.user,
+    };
   } catch (e) {
     return { ok: false, error: e.name === 'AbortError' ? '요청 시간이 초과되었습니다.' : (e.message || '연결에 실패했습니다.') };
   }
@@ -408,7 +416,16 @@ function setupTabs() {
     }
   }
 
+  const allowedTabs = adminUserLevel === 'operator'
+    ? ['payments', 'stats', 'settlement']
+    : ['stores', 'payments', 'stats', 'settlement', 'logs'];
   tabs.forEach(tab => {
+    const tabKey = tab.dataset.tab;
+    if (adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs')) {
+      tab.style.display = 'none';
+    } else {
+      tab.style.display = '';
+    }
     tab.addEventListener('click', () => {
       const targetTab = tab.dataset.tab;
       if (targetTab) sessionStorage.setItem(ADMIN_TAB_KEY, targetTab);
@@ -420,7 +437,10 @@ function setupTabs() {
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  const tabToActivate = (saved && ['stores', 'payments', 'stats', 'settlement', 'logs'].includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  let tabToActivate = (saved && allowedTabs.includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  if (adminUserLevel === 'operator' && (tabToActivate === 'stores' || tabToActivate === 'logs')) {
+    tabToActivate = 'payments';
+  }
   if (isReload && saved) {
     activateTab(tabToActivate);
   }
@@ -604,8 +624,8 @@ function renderPaymentList() {
           >저장</button>
         </div>
         <div class="admin-payment-order-delete-row">
-          ${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'order_accepted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${orderIdEsc}">취소</button>` : ''}
-          <button type="button" class="admin-payment-delete-btn" data-delete-order="${orderIdEsc}">삭제</button>
+          ${adminUserLevel !== 'operator' ? `${order.status !== 'cancelled' && (order.status === 'submitted' || order.status === 'order_accepted' || order.status === 'payment_link_issued') ? `<button type="button" class="admin-payment-cancel-btn" data-cancel-order="${orderIdEsc}">취소</button>` : ''}
+          <button type="button" class="admin-payment-delete-btn" data-delete-order="${orderIdEsc}">삭제</button>` : ''}
         </div>
       </div>
     `;
@@ -1899,6 +1919,7 @@ async function init() {
     return;
   }
   
+  adminUserLevel = authResult.user?.level || 'admin';
   setupTabs();
   adminPaymentPeriod = '45days';
   adminPaymentSortBy = 'created_at';

@@ -29,15 +29,6 @@ module.exports = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 테스트 계정: USERTEST_ACCOUNT 이메일이면 이메일 발송 생략
-    const testAccount = (process.env.USERTEST_ACCOUNT || '').toLowerCase().trim();
-    if (testAccount && normalizedEmail === testAccount) {
-      return apiResponse(res, 200, {
-        success: true,
-        message: '인증 코드가 발송되었습니다.',
-      });
-    }
-
     const code = generateCode();
 
     // Redis에 코드 저장 (TTL 10분, 기존 코드 덮어쓰기)

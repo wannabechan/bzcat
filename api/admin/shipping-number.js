@@ -3,14 +3,10 @@
  * 배송 번호(전화번호 형식) 저장 및 주문 상태를 배송중으로 변경 (admin 전용)
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator } = require('../_utils');
 const { getOrderById, updateOrderShippingNumber, getStores } = require('../_redis');
 const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
 
 /**
  * 대한민국 휴대폰·전화번호만 허용 (숫자만 사용, 9~11자리, 0으로 시작)
@@ -38,7 +34,7 @@ module.exports = async (req, res) => {
     }
 
     const user = verifyToken(authHeader.substring(7));
-    if (!user || !isAdmin(user)) {
+    if (!user || !isAdminOrOperator(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

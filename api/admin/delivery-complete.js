@@ -3,12 +3,8 @@
  * 주문을 배송 완료로 변경 (admin 전용, 코드 검증)
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator } = require('../_utils');
 const { getOrderById, updateOrderStatus } = require('../_redis');
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
@@ -24,7 +20,7 @@ module.exports = async (req, res) => {
     }
 
     const user = verifyToken(authHeader.substring(7));
-    if (!user || !isAdmin(user)) {
+    if (!user || !isAdminOrOperator(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

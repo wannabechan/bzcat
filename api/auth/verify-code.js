@@ -25,17 +25,7 @@ module.exports = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 테스트 계정: USERTEST_ACCOUNT + USERTEST_PASSWORD(6자리) 로 로그인 허용. 운영 환경에서는 미설정 또는 강한 6자리 권장.
-    const testAccount = (process.env.USERTEST_ACCOUNT || '').toLowerCase().trim();
-    const testPassword = String(process.env.USERTEST_PASSWORD || '').replace(/\D/g, '').slice(0, 6);
-    const inputCodeNorm = String(code || '').replace(/\D/g, '').slice(0, 6);
-
-    let valid = false;
-    if (testAccount && testPassword.length === 6 && normalizedEmail === testAccount && inputCodeNorm === testPassword) {
-      valid = true;
-    } else {
-      valid = await getAndDeleteAuthCode(normalizedEmail, code);
-    }
+    const valid = await getAndDeleteAuthCode(normalizedEmail, code);
     if (!valid) {
       return apiResponse(res, 401, { error: '인증 코드가 유효하지 않거나 만료되었습니다.' });
     }
