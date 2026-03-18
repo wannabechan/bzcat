@@ -946,6 +946,10 @@ function setupStoreOrdersTabs() {
     }
     if (targetTab === 'list') {
       listView?.classList.add('active');
+      storeOrdersPeriod = '45days';
+      storeOrdersSortBy = 'created_at';
+      storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
+      loadStoreOrders();
     } else if (targetTab === 'stats') {
       statsView?.classList.add('active');
       loadStoreOrdersStats();
@@ -974,4 +978,7 @@ function setupStoreOrdersTabs() {
 }
 
 setupStoreOrdersTabs();
+storeOrdersPeriod = '45days';
+storeOrdersSortBy = 'created_at';
+storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
 loadStoreOrders();

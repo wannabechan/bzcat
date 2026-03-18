@@ -392,6 +392,9 @@ function setupTabs() {
         clearPaymentIdleTimer();
       } else if (targetTab === 'payments') {
         document.getElementById('paymentsView').classList.add('active');
+        adminPaymentPeriod = '45days';
+        adminPaymentSortBy = 'created_at';
+        adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' };
         loadPaymentManagement().then(() => startPaymentIdleRefresh());
     } else     if (targetTab === 'stats') {
       document.getElementById('statsView').classList.add('active');
@@ -1897,6 +1900,9 @@ async function init() {
   }
   
   setupTabs();
+  adminPaymentPeriod = '45days';
+  adminPaymentSortBy = 'created_at';
+  adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' };
   loadPaymentManagement();
 
   document.getElementById('adminOrderDetailClose')?.addEventListener('click', closeAdminOrderDetail);
