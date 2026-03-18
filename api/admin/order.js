@@ -1,10 +1,23 @@
 /**
  * GET /api/admin/order?orderId=xxx
- * 단일 주문 전체 조회 (admin/operator - 주문 상세 팝업용, getOrderById로 항상 완전한 order_items 포함)
+ * 단일 주문 전체 조회 (admin/operator - 주문 상세 팝업용)
+ * slugToDisplayName: 주문에 등장하는 slug별 브랜드/표시명 (서버 getStores 기준, 팝업에서 브랜드명 표시용)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
-const { getOrderById } = require('../_redis');
+const { getOrderById, getStores } = require('../_redis');
+
+function buildSlugToDisplayName(stores) {
+  const map = {};
+  for (const s of stores || []) {
+    const slug = (s.slug || s.id || '').toString();
+    const displayName = (s.brand || s.title || s.id || s.slug || slug).toString().trim() || slug;
+    if (slug) map[slug] = displayName;
+    const lower = slug.toLowerCase();
+    if (lower) map[lower] = displayName;
+  }
+  return map;
+}
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
@@ -29,7 +42,10 @@ module.exports = async (req, res) => {
     const order = await getOrderById(orderId);
     if (!order) return apiResponse(res, 404, { error: '주문을 찾을 수 없습니다.' });
 
-    return apiResponse(res, 200, { order });
+    const stores = await getStores();
+    const slugToDisplayName = buildSlugToDisplayName(stores);
+
+    return apiResponse(res, 200, { order, slugToDisplayName });
   } catch (error) {
     console.error('Admin get order error:', error);
     return apiResponse(res, 500, { error: '서버 오류가 발생했습니다.' });

@@ -1823,7 +1823,8 @@ function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
 }
 
-function renderAdminOrderDetailHtml(order) {
+/** slugToDisplayName: 서버에서 받은 slug별 브랜드/표시명 (있으면 우선 사용) */
+function renderAdminOrderDetailHtml(order, slugToDisplayName) {
   const orderItems = order.order_items || order.orderItems || [];
   const byCategory = {};
   for (const oi of orderItems) {
@@ -1847,6 +1848,11 @@ function renderAdminOrderDetailHtml(order) {
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
   }
+  const displayNameForSlug = (slug) => {
+    if (slugToDisplayName && (slugToDisplayName[slug] !== undefined || slugToDisplayName[String(slug).toLowerCase()] !== undefined))
+      return slugToDisplayName[slug] || slugToDisplayName[String(slug).toLowerCase()];
+    return adminStoresMap[slug] || adminStoresMap[String(slug).toLowerCase()] || slug;
+  };
   const renderItem = ({ item, qty }) => `
     <div class="admin-order-detail-item">
       <div class="cart-item-info">
@@ -1858,7 +1864,7 @@ function renderAdminOrderDetailHtml(order) {
   return categoryOrder
     .filter(slug => byCategory[slug]?.length)
     .map(slug => {
-      const title = adminStoresMap[slug] || slug;
+      const title = displayNameForSlug(slug);
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderItem).join('');
       return `
@@ -1894,24 +1900,25 @@ async function openAdminOrderDetailById(orderId) {
     }
     const data = await res.json();
     const order = data.order;
+    const slugToDisplayName = data.slugToDisplayName || null;
     if (!order) {
       content.innerHTML = '<p class="admin-stats-error">주문을 찾을 수 없습니다.</p>';
       return;
     }
-    openAdminOrderDetail(order);
+    openAdminOrderDetail(order, slugToDisplayName);
   } catch (e) {
     content.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '주문을 불러올 수 없습니다.') + '</p>';
   }
 }
 
-function openAdminOrderDetail(order) {
+function openAdminOrderDetail(order, slugToDisplayName) {
   const content = document.getElementById('adminOrderDetailContent');
   const totalEl = document.getElementById('adminOrderDetailTotal');
   const pdfBtn = document.getElementById('adminOrderDetailPdfBtn');
   const overlay = document.getElementById('adminOrderDetailOverlay');
   const panel = overlay?.querySelector('.admin-order-detail-panel');
   if (!content || !overlay) return;
-  let html = renderAdminOrderDetailHtml(order);
+  let html = renderAdminOrderDetailHtml(order, slugToDisplayName);
   if (!html || !html.trim()) {
     html = '<p class="admin-settlement-empty">주문 메뉴 내역이 없습니다.</p>';
   }
