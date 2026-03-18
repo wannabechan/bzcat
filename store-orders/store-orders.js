@@ -191,8 +191,10 @@ function renderOrderDetailHtml(order) {
   const slugToTitle = {};
   for (const s of stores) {
     const id = (s.id || s.slug || '').toString().toLowerCase();
-    const displayName = (s.brand || s.title || s.id || s.slug || id).toString().trim() || id;
+    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || id).toString().trim() || id;
     if (id) slugToTitle[id] = displayName;
+    const suburl = (s.suburl || '').toString().trim().toLowerCase();
+    if (suburl) slugToTitle[suburl] = displayName;
   }
   const orderItems = order.order_items || [];
   const byCategory = {};

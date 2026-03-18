@@ -11,10 +11,13 @@ function buildSlugToDisplayName(stores) {
   const map = {};
   for (const s of stores || []) {
     const slug = (s.slug || s.id || '').toString();
-    const displayName = (s.brand || s.title || s.id || s.slug || slug).toString().trim() || slug;
+    // brand/title이 비어 있으면 id/slug만 쓰이면 "store"처럼 나올 수 있음 → suburl을 보조로 사용
+    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || slug).toString().trim() || slug;
     if (slug) map[slug] = displayName;
     const lower = slug.toLowerCase();
     if (lower) map[lower] = displayName;
+    const suburl = (s.suburl || '').toString().trim().toLowerCase();
+    if (suburl) map[suburl] = displayName;
   }
   return map;
 }

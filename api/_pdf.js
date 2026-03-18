@@ -34,9 +34,11 @@ async function generateOrderPdf(order, stores = [], options = {}) {
   for (const s of stores) {
     const key = s.slug || s.id;
     const keyLower = key ? String(key).toLowerCase() : '';
-    const displayName = (s.brand || s.title || s.id || s.slug || '').toString().trim() || key || '';
+    const displayName = (s.brand || s.title || (s.suburl && s.suburl.trim() ? s.suburl : null) || s.id || s.slug || '').toString().trim() || key || '';
     if (key) slugToTitle[key] = displayName;
     if (keyLower) slugToTitle[keyLower] = displayName;
+    const suburl = (s.suburl || '').toString().trim().toLowerCase();
+    if (suburl) slugToTitle[suburl] = displayName;
   }
   const getCategoryTitle = (slug) => slugToTitle[slug] || slugToTitle[String(slug || '').toLowerCase()] || DEFAULT_CATEGORY_TITLES[slug] || slug;
 
