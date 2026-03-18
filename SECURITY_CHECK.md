@@ -74,3 +74,36 @@
 
 ### 최적화
 - **admin/admin.js**: `getToken()`을 async에서 동기 함수로 변경. `localStorage.getItem`만 사용하므로 Promise 불필요. 호출부 14곳에서 `await getToken()` → `getToken()`으로 변경.
+
+---
+
+## 2025 보안 점검 및 최적화
+
+### 보안 강화 (반영됨)
+
+1. **주문 생성 입력 검증 강화** (`api/orders/create.js`)
+    - **req.body**를 객체 여부 확인 후 사용. 문자열 필드는 `trim()` 후 길이 제한 적용.
+    - **길이 제한**: 주문자명 50자, 연락처 50자, 배송희망일 10자, 배송희망시간 20자, 배송주소 500자, 상세주소 300자, 경비유형 20자, 경비증빙 500자.
+    - **orderItems**: 각 항목의 `id`/`name` 200자로 slice 후 저장. 과다 입력·저장 남용 방지.
+    - **총 금액**: `Number.isFinite` 검증 및 최대 1억 원 제한. 비정상 금액·오버플로우 방지.
+
+2. **이미지 업로드** (`api/admin/upload-image.js`)
+    - MIME 타입 화이트리스트(JPEG, PNG, WebP, GIF), 4MB 제한 이미 적용됨. 유지.
+
+3. **Cron / 결제**
+    - Cron은 `Authorization: Bearer <CRON_SECRET>` 만 사용. PDF filename 정규화 등 기존 조치 유지.
+
+### 코드 최적화 (반영됨)
+
+1. **공통 인증 헬퍼** (`api/_utils.js`)
+    - `requireAuth(req, res, { resolveLevel?: boolean })` 추가. Bearer 검증 후 사용자 반환, 실패 시 401 전송 후 null 반환.
+    - `api/admin/order.js`에서 `requireAuth` 사용으로 인증 블록 단순화. 다른 API에서도 동일 패턴 적용 가능.
+
+2. **주문 생성**
+    - 문자열 trim 및 길이 제한으로 저장 데이터 정규화. `total_amount`는 검증된 숫자(`orderTotal`)만 저장.
+
+### 참고 (추가 조치 없음)
+
+- **XSS**: 사용자/API 입력이 들어가는 HTML은 `escapeHtml()` 적용됨. 이미지 `onerror` 등은 고정 문자열만 사용.
+- **토큰**: JWT는 localStorage 저장. XSS 차단이 우선. 장기적으로 HttpOnly 쿠키 검토 가능.
+- **innerHTML**: admin/app/store-orders에서 사용. 동적 값은 escapeHtml 처리 후 삽입하는 패턴 유지.

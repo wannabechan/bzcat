@@ -4,7 +4,7 @@
  * slugToDisplayName: slug별 브랜드명 (주문 상세에서 매장명으로 표시)
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { requireAuth, apiResponse, isAdminOrOperator } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
 const { buildSlugToBrandName } = require('../_order-display');
 
@@ -16,13 +16,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
-    }
-
-    const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
-    if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
+    const user = requireAuth(req, res, { resolveLevel: true });
+    if (!user) return;
     if (!isAdminOrOperator(user)) return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
 
     const orderId = (req.query.orderId || '').toString().trim();

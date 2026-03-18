@@ -36,27 +36,42 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const {
-      depositor,
-      contact,
-      expenseType,
-      expenseDoc,
-      deliveryDate,
-      deliveryTime,
-      deliveryAddress,
-      detailAddress,
-      orderItems,
-      totalAmount,
-      categoryTotals,
-    } = req.body;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const depositor = typeof body.depositor === 'string' ? body.depositor.trim() : '';
+    const contact = typeof body.contact === 'string' ? body.contact.trim() : '';
+    const deliveryDate = typeof body.deliveryDate === 'string' ? body.deliveryDate.trim() : '';
+    const deliveryTime = typeof body.deliveryTime === 'string' ? body.deliveryTime.trim() : '';
+    const deliveryAddress = typeof body.deliveryAddress === 'string' ? body.deliveryAddress.trim() : '';
+    const detailAddress = typeof body.detailAddress === 'string' ? body.detailAddress.trim().slice(0, 300) : '';
+    const expenseType = typeof body.expenseType === 'string' ? body.expenseType.trim().slice(0, 20) : 'none';
+    const expenseDoc = body.expenseDoc != null && typeof body.expenseDoc === 'string' ? body.expenseDoc.trim().slice(0, 500) : null;
+    const orderItems = body.orderItems;
+    const totalAmount = body.totalAmount;
 
-    // 필수 필드 검증
-    if (!depositor || !contact || !deliveryDate || !deliveryTime || !deliveryAddress || !orderItems || !totalAmount) {
+    const MAX_STR = { depositor: 50, contact: 50, deliveryDate: 10, deliveryTime: 20, deliveryAddress: 500 };
+    if (!depositor || depositor.length > MAX_STR.depositor) {
+      return apiResponse(res, 400, { error: '주문자명을 1~50자로 입력해 주세요.' });
+    }
+    if (!contact || contact.length > MAX_STR.contact) {
+      return apiResponse(res, 400, { error: '연락처를 1~50자로 입력해 주세요.' });
+    }
+    if (!deliveryDate || deliveryDate.length > MAX_STR.deliveryDate) {
+      return apiResponse(res, 400, { error: '배송 희망일을 입력해 주세요.' });
+    }
+    if (!deliveryTime || deliveryTime.length > MAX_STR.deliveryTime) {
+      return apiResponse(res, 400, { error: '배송 희망 시간을 20자 이내로 입력해 주세요.' });
+    }
+    if (!deliveryAddress || deliveryAddress.length > MAX_STR.deliveryAddress) {
+      return apiResponse(res, 400, { error: '배송 주소를 1~500자로 입력해 주세요.' });
+    }
+    if (!orderItems || !totalAmount) {
       return apiResponse(res, 400, { error: '필수 정보를 모두 입력해 주세요.' });
     }
 
     // orderItems 구조 검증 (배열, 최대 100건, 각 항목 id/name/price/quantity)
     const MAX_ORDER_ITEMS = 100;
+    const MAX_ITEM_NAME = 200;
+    const MAX_ITEM_ID = 200;
     if (!Array.isArray(orderItems) || orderItems.length === 0 || orderItems.length > MAX_ORDER_ITEMS) {
       return apiResponse(res, 400, { error: '주문 메뉴가 올바르지 않습니다.' });
     }
@@ -65,18 +80,28 @@ module.exports = async (req, res) => {
       if (!it || typeof it !== 'object' || it.id == null || it.name == null || it.price == null || it.quantity == null) {
         return apiResponse(res, 400, { error: '주문 메뉴 형식이 올바르지 않습니다.' });
       }
+      const idStr = String(it.id).trim().slice(0, MAX_ITEM_ID);
+      const nameStr = String(it.name).trim().slice(0, MAX_ITEM_NAME);
+      if (!idStr || !nameStr) {
+        return apiResponse(res, 400, { error: '주문 메뉴 형식이 올바르지 않습니다.' });
+      }
       const qty = Number(it.quantity);
       const price = Number(it.price);
       if (!Number.isInteger(qty) || qty < 1 || qty > 999 || !Number.isFinite(price) || price < 0) {
         return apiResponse(res, 400, { error: '주문 메뉴 수량/가격이 올바르지 않습니다.' });
       }
+      orderItems[i] = { ...it, id: idStr, name: nameStr };
     }
 
-    // 최소 주문 금액 검증 (테스트용 100원)
+    // 주문 금액 검증 (최소 100원, 최대 1억 원)
     const TOTAL_MIN = 100;
+    const TOTAL_MAX = 100_000_000;
     const orderTotal = Number(totalAmount) || 0;
-    if (orderTotal < TOTAL_MIN) {
+    if (!Number.isFinite(orderTotal) || orderTotal < TOTAL_MIN) {
       return apiResponse(res, 400, { error: '최소 주문 금액은 100원입니다.' });
+    }
+    if (orderTotal > TOTAL_MAX) {
+      return apiResponse(res, 400, { error: '주문 금액이 허용 범위를 초과합니다.' });
     }
 
     // 주문 생성 (Redis)
@@ -91,7 +116,7 @@ module.exports = async (req, res) => {
       delivery_address: deliveryAddress,
       detail_address: detailAddress || null,
       order_items: orderItems,
-      total_amount: totalAmount,
+      total_amount: orderTotal,
     });
 
     // 주문서 PDF 생성 및 Vercel Blob 저장

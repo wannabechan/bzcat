@@ -86,6 +86,26 @@ function apiResponse(response, status, data) {
   response.status(status).json(data);
 }
 
+/**
+ * Bearer 토큰 검증 후 사용자 반환. 실패 시 401 응답 후 null 반환.
+ * @param {object} req - request (req.headers.authorization)
+ * @param {object} res - response
+ * @param {{ resolveLevel?: boolean }} [opts] - resolveLevel true면 withResolvedLevel 적용
+ */
+function requireAuth(req, res, opts = {}) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    apiResponse(res, 401, { error: '로그인이 필요합니다.' });
+    return null;
+  }
+  const decoded = verifyToken(authHeader.substring(7));
+  if (!decoded) {
+    apiResponse(res, 401, { error: '로그인이 필요합니다.' });
+    return null;
+  }
+  return opts.resolveLevel ? withResolvedLevel(decoded) : decoded;
+}
+
 module.exports = {
   generateToken,
   verifyToken,
@@ -95,4 +115,5 @@ module.exports = {
   generateCode,
   setCorsHeaders,
   apiResponse,
+  requireAuth,
 };
