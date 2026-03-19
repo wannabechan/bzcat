@@ -1983,6 +1983,9 @@ async function init() {
   }
   
   adminUserLevel = authResult.user?.level || 'admin';
+  const pageTitleEl = document.getElementById('adminPageTitle');
+  if (pageTitleEl) pageTitleEl.textContent = adminUserLevel === 'operator' ? 'Operator' : 'Admin';
+  document.title = (adminUserLevel === 'operator' ? 'Operator' : 'Admin') + ' - BzCat';
   setupTabs();
   adminPaymentPeriod = '45days';
   adminPaymentSortBy = 'created_at';

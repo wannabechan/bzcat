@@ -295,6 +295,7 @@
     .admin-logs-download-btn:hover { color: var(--color-primary); opacity: 0.9; }
     .admin-logs-download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     @media (max-width: 768px) {
+      .admin-payment-order-info { font-size: 90%; }
       .admin-tab[data-tab="stores"] { display: none; }
       .admin-tab[data-tab="settlement"] { display: none; }
       .admin-tab[data-tab="logs"] { display: none; }
@@ -317,9 +318,7 @@
 <body>
   <div class="admin-page">
     <div class="admin-header">
-      <h1>
-        Admin
-      </h1>
+      <h1 id="adminPageTitle">Admin</h1>
       <a href="/" class="admin-btn admin-btn-secondary">← 메인으로</a>
     </div>
 
