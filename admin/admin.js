@@ -398,6 +398,7 @@ function showLoadingError(msg, showRetry = false) {
 function setupTabs() {
   const tabs = document.querySelectorAll('.admin-tab');
   const views = document.querySelectorAll('.admin-view');
+  const canViewUsersTab = adminUserLevel === 'admin' || adminUserLevel === 'operator';
   
   function activateTab(targetTab) {
       tabs.forEach(t => t.classList.remove('active'));
@@ -429,11 +430,11 @@ function setupTabs() {
   }
 
   const allowedTabs = adminUserLevel === 'operator'
-    ? ['payments', 'stats', 'settlement', 'users']
-    : ['stores', 'payments', 'stats', 'settlement', 'logs', 'users'];
+    ? ['payments', 'stats', 'settlement', ...(canViewUsersTab ? ['users'] : [])]
+    : ['stores', 'payments', 'stats', 'settlement', 'logs', ...(canViewUsersTab ? ['users'] : [])];
   tabs.forEach(tab => {
     const tabKey = tab.dataset.tab;
-    if (adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs')) {
+    if ((adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs')) || (tabKey === 'users' && !canViewUsersTab)) {
       tab.style.display = 'none';
     } else {
       tab.style.display = '';
