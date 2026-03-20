@@ -57,6 +57,19 @@ async function getUser(email) {
   return typeof raw === 'string' ? JSON.parse(raw) : raw;
 }
 
+async function getAllUsers() {
+  const redis = getRedis();
+  const keys = await redis.keys('user:*');
+  if (!Array.isArray(keys) || keys.length === 0) return [];
+  const raws = await redis.mget(...keys);
+  const users = [];
+  for (const raw of raws || []) {
+    if (!raw) continue;
+    users.push(typeof raw === 'string' ? JSON.parse(raw) : raw);
+  }
+  return users;
+}
+
 async function createUser(email, level) {
   const redis = getRedis();
   const user = {
@@ -396,6 +409,7 @@ module.exports = {
   saveAuthCode,
   getAndDeleteAuthCode,
   getUser,
+  getAllUsers,
   createUser,
   updateUserLogin,
   createOrder,

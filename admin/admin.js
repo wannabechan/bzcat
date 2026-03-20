@@ -20,6 +20,9 @@ let adminStoresMap = {};
 let adminStoreOrder = []; // slug order for order detail
 let adminStatsLastData = null;
 let adminStatsMenuFilter = 'top10'; // 'top10' | 'all'
+let adminUsersList = [];
+let adminUsersSortKey = 'email'; // 'email' | 'recent'
+let adminUsersSortDir = 'desc'; // 'asc' | 'desc'
 
 const PAYMENT_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
 let paymentIdleTimerId = null;
@@ -419,12 +422,15 @@ function setupTabs() {
     } else if (targetTab === 'logs') {
       document.getElementById('logsView').classList.add('active');
       loadLogs();
+    } else if (targetTab === 'users') {
+      document.getElementById('usersView').classList.add('active');
+      loadUsersManagement();
     }
   }
 
   const allowedTabs = adminUserLevel === 'operator'
-    ? ['payments', 'stats', 'settlement']
-    : ['stores', 'payments', 'stats', 'settlement', 'logs'];
+    ? ['payments', 'stats', 'settlement', 'users']
+    : ['stores', 'payments', 'stats', 'settlement', 'logs', 'users'];
   tabs.forEach(tab => {
     const tabKey = tab.dataset.tab;
     if (adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs')) {
@@ -443,7 +449,7 @@ function setupTabs() {
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  let tabToActivate = (saved && allowedTabs.includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  let tabToActivate = (saved && allowedTabs.includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile()) && (saved !== 'users' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
   if (adminUserLevel === 'operator' && (tabToActivate === 'stores' || tabToActivate === 'logs')) {
     tabToActivate = 'payments';
   }
@@ -1696,6 +1702,111 @@ async function loadLogs() {
     });
   } catch (e) {
     container.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '로그 목록을 불러올 수 없습니다.') + '</p>';
+  }
+}
+
+async function loadUsersManagement() {
+  const container = document.getElementById('adminUsersContent');
+  if (!container) return;
+  container.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  const token = getToken();
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '사용자 목록을 불러올 수 없습니다.');
+    }
+    const data = await res.json();
+    adminUsersList = data.users || [];
+    adminUsersSortKey = 'email';
+    adminUsersSortDir = 'desc';
+
+    const levelMark = (level) => {
+      if (level === 'admin') return '***';
+      if (level === 'operator') return '**';
+      if (level === 'manager') return '*';
+      return '';
+    };
+    const levelRank = (level) => {
+      if (level === 'admin') return 3;
+      if (level === 'operator') return 2;
+      if (level === 'manager') return 1;
+      return 0;
+    };
+
+    const renderUsersTable = () => {
+      const sorted = adminUsersList.slice().sort((a, b) => {
+        if (adminUsersSortKey === 'email') {
+          const rankDiff = levelRank(a.level) - levelRank(b.level);
+          if (rankDiff !== 0) return adminUsersSortDir === 'desc' ? -rankDiff : rankDiff;
+          const emailCmp = (a.email || '').localeCompare((b.email || ''), 'en');
+          return adminUsersSortDir === 'desc' ? -emailCmp : emailCmp;
+        }
+        const dateA = (a.latestOrderDate || '0000-00-00');
+        const dateB = (b.latestOrderDate || '0000-00-00');
+        const dateCmp = dateA.localeCompare(dateB);
+        if (dateCmp !== 0) return adminUsersSortDir === 'desc' ? -dateCmp : dateCmp;
+        const cntA = Number(a.recent3mCount || 0);
+        const cntB = Number(b.recent3mCount || 0);
+        return adminUsersSortDir === 'desc' ? (cntB - cntA) : (cntA - cntB);
+      });
+
+      let rows = sorted.map((u) => {
+        const marker = levelMark(u.level);
+        const emailWithLevel = marker ? `${u.email || '—'} ${marker}` : (u.email || '—');
+        const recentOrderDate = `${u.latestOrderDate || '—'} (3개월 이내 ${Number(u.recent3mCount || 0)}번 주문)`;
+        const orderLink = u.latestOrderId && u.latestOrderId !== '—'
+          ? `<span class="admin-users-order-link" data-user-last-order="${escapeHtml(u.latestOrderId)}">주문 #${escapeHtml(u.latestOrderId)}</span>`
+          : '—';
+        return `<tr>
+          <td>${escapeHtml(emailWithLevel)}</td>
+          <td>${escapeHtml(u.contact || '—')}</td>
+          <td>${escapeHtml(recentOrderDate)}</td>
+          <td>${orderLink}</td>
+        </tr>`;
+      }).join('');
+      if (!rows) rows = '<tr><td colspan="4">표시할 사용자가 없습니다.</td></tr>';
+
+      const emailArrow = adminUsersSortKey === 'email' ? (adminUsersSortDir === 'desc' ? '▼' : '▲') : '△';
+      const recentArrow = adminUsersSortKey === 'recent' ? (adminUsersSortDir === 'desc' ? '▼' : '▲') : '△';
+
+      container.innerHTML =
+        '<h2 class="admin-users-title">사용자관리</h2>' +
+        '<div class="admin-users-table-wrap">' +
+        '<table class="admin-users-table"><thead><tr>' +
+        '<th class="admin-users-col-email">이메일<button type="button" class="admin-users-sort-btn" data-users-sort="email" aria-label="이메일 정렬">' + emailArrow + '</button></th>' +
+        '<th class="admin-users-col-contact">연락처</th>' +
+        '<th class="admin-users-col-last-date">최근주문일<button type="button" class="admin-users-sort-btn" data-users-sort="recent" aria-label="최근주문일 정렬">' + recentArrow + '</button></th>' +
+        '<th class="admin-users-col-last-order">최근주문넘버</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+        '</div>';
+
+      container.querySelectorAll('[data-user-last-order]').forEach((el) => {
+        el.addEventListener('click', () => {
+          const orderId = el.getAttribute('data-user-last-order');
+          if (!orderId) return;
+          openAdminOrderDetailById(orderId);
+        });
+      });
+
+      container.querySelectorAll('[data-users-sort]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-users-sort');
+          if (!key) return;
+          if (adminUsersSortKey === key) {
+            adminUsersSortDir = adminUsersSortDir === 'desc' ? 'asc' : 'desc';
+          } else {
+            adminUsersSortKey = key;
+            adminUsersSortDir = 'desc';
+          }
+          renderUsersTable();
+        });
+      });
+    };
+
+    renderUsersTable();
+  } catch (e) {
+    container.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '사용자 목록을 불러올 수 없습니다.') + '</p>';
   }
 }
 

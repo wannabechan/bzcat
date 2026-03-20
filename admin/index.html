@@ -283,6 +283,17 @@
     .admin-settlement-pdf-btn { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
     .admin-settlement-pdf-btn:hover { opacity: 0.9; }
     .admin-logs-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 16px; }
+    .admin-users-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 16px; }
+    .admin-users-table-wrap { margin-bottom: 12px; overflow-x: auto; }
+    .admin-users-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .admin-users-table th, .admin-users-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.7875rem; vertical-align: middle; }
+    .admin-users-table th { font-weight: 600; }
+    .admin-users-col-email { width: 30%; }
+    .admin-users-col-contact { width: 20%; }
+    .admin-users-col-last-date { width: 30%; }
+    .admin-users-col-last-order { width: 20%; }
+    .admin-users-order-link { color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+    .admin-users-sort-btn { border: none; background: none; color: var(--color-text-secondary); cursor: pointer; font-size: 0.75rem; margin-left: 4px; padding: 0; vertical-align: middle; }
     .admin-logs-table-wrap { margin-bottom: 12px; }
     .admin-logs-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .admin-logs-table th, .admin-logs-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
@@ -299,9 +310,11 @@
       .admin-tab[data-tab="stores"] { display: none; }
       .admin-tab[data-tab="settlement"] { display: none; }
       .admin-tab[data-tab="logs"] { display: none; }
+      .admin-tab[data-tab="users"] { display: none; }
       #storesView { display: none !important; }
       #settlementView { display: none !important; }
       #logsView { display: none !important; }
+      #usersView { display: none !important; }
       .admin-tabs { display: flex; gap: 0; }
       .admin-tabs .admin-tab { flex: 1; min-width: 0; padding: 12px 6px; font-size: 0.8125rem; text-align: center; }
       .admin-stats-table-menu tbody tr { height: 5em; }
@@ -328,6 +341,7 @@
       <button class="admin-tab" data-tab="stats">통계관리</button>
       <button class="admin-tab" data-tab="settlement">정산관리</button>
       <button class="admin-tab admin-tab-logs" data-tab="logs">로그관리</button>
+      <button class="admin-tab" data-tab="users">사용자관리</button>
     </div>
 
     <div id="adminError" class="admin-error" style="display: none;"></div>
@@ -356,6 +370,10 @@
 
     <div id="logsView" class="admin-view">
       <div id="adminLogsContent"></div>
+    </div>
+
+    <div id="usersView" class="admin-view">
+      <div id="adminUsersContent"></div>
     </div>
 
     <div class="admin-order-detail-overlay" id="adminOrderDetailOverlay" aria-hidden="true">
