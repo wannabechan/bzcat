@@ -13,6 +13,30 @@ const MENU_DATA_FALLBACK = {
 };
 
 let MENU_DATA = { ...MENU_DATA_FALLBACK };
+let MIN_ORDER_PRICE = 100;
+
+function updateMinOrderNoticeText() {
+  if (!cartMinOrderNotice) return;
+  cartMinOrderNotice.textContent = `※ 최소 주문 금액은 ${formatPrice(MIN_ORDER_PRICE)} 입니다.`;
+}
+
+async function loadPublicConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) return false;
+    const data = await res.json();
+    const raw = Number(data?.minOrderPrice);
+    if (Number.isFinite(raw) && raw >= 1) {
+      MIN_ORDER_PRICE = Math.floor(raw);
+      updateMinOrderNoticeText();
+      return true;
+    }
+  } catch (e) {
+    console.warn('Config load failed:', e);
+  }
+  updateMinOrderNoticeText();
+  return false;
+}
 
 async function loadMenuData() {
   try {
@@ -107,6 +131,8 @@ const ORDER_STATUS_STEPS = [
   { key: 'delivery_completed', label: '배송완료' },
 ];
 const PENDING_ORDER_STATUSES = ['submitted', 'order_accepted', 'payment_link_issued', 'payment_completed', 'shipping'];
+const DELIVERY_FEE_CATEGORY = 'etc';
+const DELIVERY_FEE_ITEM_ID = 'etc-fee';
 
 // 유틸: 금액 포맷
 function formatPrice(price) {
@@ -193,6 +219,7 @@ function calculateTotal() {
     const item = findItemById(itemId);
     if (item) total += item.price * qty;
   }
+  if (getCartTotalCount() > 0) total += getCartDeliveryFee();
   return total;
 }
 
@@ -211,6 +238,19 @@ function getCategoryForItem(itemId) {
   }
   const parts = itemId.split('-');
   return parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
+}
+
+function getDisplayCategoryTitle(slug) {
+  if (slug === DELIVERY_FEE_CATEGORY) return '기타';
+  return MENU_DATA[slug]?.brand || MENU_DATA[slug]?.title || slug;
+}
+
+function getCartDeliveryFee() {
+  const cartCategory = getCartCategory();
+  if (!cartCategory) return 0;
+  const fee = Number(MENU_DATA[cartCategory]?.deliveryFee);
+  if (Number.isFinite(fee) && fee >= 0) return Math.floor(fee);
+  return 50000;
 }
 
 // 장바구니에 담긴 카테고리 (1가지만 허용)
@@ -268,40 +308,46 @@ function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
     ? MENU_DATA[categorySlug].businessDays
     : [0, 1, 2, 3, 4, 5, 6];
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  let html = '<div class="delivery-date-picker-grid">';
-  weekdays.forEach((w) => { html += `<div class="delivery-date-picker-weekday">${w}</div>`; });
-  const minDay = getKSTDayOfWeek(minDate.getTime());
-  const start = new Date(minDate.getTime() - minDay * 86400000);
-  const maxDay = getKSTDayOfWeek(maxDate.getTime());
-  const end = new Date(maxDate.getTime() + (6 - maxDay) * 86400000);
-  let lastMonth = -1;
-  let lastYear = -1;
-  for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
-    const kst = new Date(t + KST_OFFSET_MS);
-    const y = kst.getUTCFullYear();
-    const monthNum = kst.getUTCMonth();
-    const m = String(monthNum + 1).padStart(2, '0');
-    const day = String(kst.getUTCDate()).padStart(2, '0');
-    const dateStr = `${y}-${m}-${day}`;
-    const dayNum = kst.getUTCDate();
-    if (monthNum !== lastMonth || y !== lastYear) {
-      lastMonth = monthNum;
-      lastYear = y;
-      html += `<div class="delivery-date-picker-month" style="grid-column: 1 / -1;">${y}년 ${monthNum + 1}월</div>`;
-    }
-    const cellDateStr = getKSTDateStr(t);
-    const inRange = cellDateStr >= minStr && cellDateStr <= maxStr;
-    const isBusiness = businessDays.includes(getKSTDayOfWeek(t));
-    const enabled = inRange && isBusiness;
-    if (enabled) {
-      html += `<button type="button" class="delivery-date-cell delivery-date-cell--enabled" data-date="${dateStr}">${dayNum}</button>`;
-    } else if (inRange) {
-      html += `<span class="delivery-date-cell delivery-date-cell--disabled">${dayNum}</span>`;
-    } else {
-      html += `<span class="delivery-date-cell delivery-date-cell--disabled" aria-hidden="true">${dayNum}</span>`;
+  const minKst = new Date(minDate.getTime() + KST_OFFSET_MS);
+  const maxKst = new Date(maxDate.getTime() + KST_OFFSET_MS);
+  const minYear = minKst.getUTCFullYear();
+  const minMonth = minKst.getUTCMonth();
+  const maxYear = maxKst.getUTCFullYear();
+  const maxMonth = maxKst.getUTCMonth();
+
+  let html = '';
+  for (let y = minYear; y <= maxYear; y += 1) {
+    const startMonth = y === minYear ? minMonth : 0;
+    const endMonth = y === maxYear ? maxMonth : 11;
+    for (let monthNum = startMonth; monthNum <= endMonth; monthNum += 1) {
+      html += `<div class="delivery-date-picker-month">${y}년 ${monthNum + 1}월</div>`;
+      html += '<div class="delivery-date-picker-grid">';
+      weekdays.forEach((w) => { html += `<div class="delivery-date-picker-weekday">${w}</div>`; });
+
+      const firstDateStr = `${y}-${String(monthNum + 1).padStart(2, '0')}-01`;
+      const firstDay = getKSTDayOfWeek(new Date(firstDateStr + 'T00:00:00+09:00').getTime());
+      const daysInMonth = new Date(Date.UTC(y, monthNum + 1, 0)).getUTCDate();
+
+      for (let i = 0; i < firstDay; i += 1) {
+        html += '<span class="delivery-date-cell delivery-date-cell--blank" aria-hidden="true"></span>';
+      }
+
+      for (let dayNum = 1; dayNum <= daysInMonth; dayNum += 1) {
+        const dateStr = `${y}-${String(monthNum + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+        const t = new Date(dateStr + 'T00:00:00+09:00').getTime();
+        const inRange = dateStr >= minStr && dateStr <= maxStr;
+        const isBusiness = businessDays.includes(getKSTDayOfWeek(t));
+        const enabled = inRange && isBusiness;
+        if (enabled) {
+          html += `<button type="button" class="delivery-date-cell delivery-date-cell--enabled" data-date="${dateStr}">${dayNum}</button>`;
+        } else {
+          html += `<span class="delivery-date-cell delivery-date-cell--disabled" ${inRange ? '' : 'aria-hidden="true"'}>${dayNum}</span>`;
+        }
+      }
+
+      html += '</div>';
     }
   }
-  html += '</div>';
   panelEl.innerHTML = html;
 }
 
@@ -484,7 +530,7 @@ function renderCartItems() {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
 
-  const TOTAL_MIN = 100;
+  const TOTAL_MIN = MIN_ORDER_PRICE;
   const categoryTotals = {};
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
@@ -515,7 +561,7 @@ function renderCartItems() {
   cartItems.innerHTML = categoryOrder
     .filter((slug) => byCategory[slug]?.length)
     .map((slug) => {
-      const categoryTitle = escapeHtml(MENU_DATA[slug]?.brand || MENU_DATA[slug]?.title || slug);
+      const categoryTitle = escapeHtml(getDisplayCategoryTitle(slug));
       const catTotal = categoryTotals[slug] || 0;
       const meetMin = catTotal >= TOTAL_MIN;
       const totalClass = meetMin ? 'cart-category-total met' : 'cart-category-total below';
@@ -531,6 +577,24 @@ function renderCartItems() {
       `;
     })
     .join('');
+  const deliveryFee = getCartDeliveryFee();
+  if (deliveryFee > 0) {
+    cartItems.innerHTML += `
+      <div class="cart-category-group">
+        <div class="cart-category-header">
+          <span class="cart-category-title">기타</span>
+          <span class="cart-category-total met">${formatPrice(deliveryFee)}</span>
+        </div>
+        <div class="cart-item" data-id="${DELIVERY_FEE_ITEM_ID}">
+          <div class="cart-item-info">
+            <div class="cart-item-name">배송비</div>
+            <div class="cart-item-price">${formatPrice(deliveryFee)} × 1</div>
+          </div>
+          <div class="cart-item-qty"><span>1</span></div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 // 장바구니 열기/닫기
@@ -573,6 +637,10 @@ function renderOrderSummaryList(entries) {
   for (const slug of Object.keys(byCategory)) {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
+  const deliveryFee = getCartDeliveryFee();
+  if (deliveryFee > 0) {
+    byCategory[DELIVERY_FEE_CATEGORY] = [{ item: { name: '배송비', price: deliveryFee }, qty: 1 }];
+  }
   return renderOrderDetailByCategory(byCategory, categoryOrder);
 }
 
@@ -581,7 +649,7 @@ function renderOrderSummaryFromOrderItems(orderItems) {
   const byCategory = {};
   for (const oi of orderItems || []) {
     const itemId = oi.id || '';
-    const slug = getCategoryForItem(itemId);
+    const slug = oi.category || getCategoryForItem(itemId);
     const item = { name: oi.name || '', price: oi.price || 0 };
     const qty = oi.quantity || 0;
     if (!slug || qty <= 0) continue;
@@ -610,9 +678,12 @@ function renderOrderDetailByCategory(byCategory, categoryOrder) {
   const slugsToShow = categoryOrder.filter((slug) => byCategory[slug]?.length).length
     ? categoryOrder.filter((slug) => byCategory[slug]?.length)
     : Object.keys(byCategory);
+  if (byCategory[DELIVERY_FEE_CATEGORY]?.length && !slugsToShow.includes(DELIVERY_FEE_CATEGORY)) {
+    slugsToShow.push(DELIVERY_FEE_CATEGORY);
+  }
   return slugsToShow
     .map((slug) => {
-      const categoryTitle = escapeHtml(MENU_DATA[slug]?.brand || MENU_DATA[slug]?.title || slug);
+      const categoryTitle = escapeHtml(getDisplayCategoryTitle(slug));
       const catTotal = categoryTotals[slug] || 0;
       const itemsHtml = byCategory[slug].map(renderDetailItem).join('');
       return `
@@ -1294,7 +1365,7 @@ function init() {
   });
   btnCheckout.addEventListener('click', (e) => {
     const total = calculateTotal();
-    const TOTAL_MIN = 100;
+    const TOTAL_MIN = MIN_ORDER_PRICE;
     if (total < TOTAL_MIN) {
       cartMinOrderNotice.classList.remove('notice-blink');
       cartMinOrderNotice.offsetHeight;
@@ -1468,10 +1539,20 @@ function init() {
           quantity: qty,
         };
       });
+      const deliveryFee = getCartDeliveryFee();
+      if (deliveryFee > 0) {
+        orderItems.push({
+          id: DELIVERY_FEE_ITEM_ID,
+          category: DELIVERY_FEE_CATEGORY,
+          name: '배송비',
+          price: deliveryFee,
+          quantity: 1,
+        });
+      }
 
       const categoryTotals = {};
-      for (const { id, price, quantity } of orderItems) {
-        const slug = getCategoryForItem(id);
+      for (const { id, category, price, quantity } of orderItems) {
+        const slug = category || getCategoryForItem(id);
         if (!categoryTotals[slug]) categoryTotals[slug] = 0;
         categoryTotals[slug] += price * quantity;
       }
@@ -1543,7 +1624,7 @@ function init() {
     }
   });
 
-  loadMenuData().then(() => {
+  Promise.all([loadMenuData(), loadPublicConfig()]).then(() => {
     const pathSeg = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0] || '';
     let initialSlug = null;
     if (pathSeg) {

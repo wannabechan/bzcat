@@ -93,12 +93,15 @@ module.exports = async (req, res) => {
       orderItems[i] = { ...it, id: idStr, name: nameStr };
     }
 
-    // 주문 금액 검증 (최소 100원, 최대 1억 원)
-    const TOTAL_MIN = 100;
+    // 주문 금액 검증 (최소 주문 금액 환경변수, 최대 1억 원)
+    const envMinOrderPrice = Number(process.env.MIN_ORDERRPICE);
+    const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
+      ? Math.floor(envMinOrderPrice)
+      : 100;
     const TOTAL_MAX = 100_000_000;
     const orderTotal = Number(totalAmount) || 0;
     if (!Number.isFinite(orderTotal) || orderTotal < TOTAL_MIN) {
-      return apiResponse(res, 400, { error: '최소 주문 금액은 100원입니다.' });
+      return apiResponse(res, 400, { error: `최소 주문 금액은 ${TOTAL_MIN}원입니다.` });
     }
     if (orderTotal > TOTAL_MAX) {
       return apiResponse(res, 400, { error: '주문 금액이 허용 범위를 초과합니다.' });

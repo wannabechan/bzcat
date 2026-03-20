@@ -2169,6 +2169,10 @@ body {
   color: var(--color-text-secondary);
   pointer-events: none;
 }
+.delivery-date-cell--blank {
+  visibility: hidden;
+  pointer-events: none;
+}
 .delivery-date-picker-month { font-size: 0.8125rem; font-weight: 600; margin: 12px 0 6px; color: var(--color-text-secondary); }
 .delivery-date-picker-month:first-child { margin-top: 0; }
 

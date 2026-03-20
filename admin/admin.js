@@ -170,6 +170,7 @@ function generateStoreId() {
 
 function renderStore(store, menus) {
   const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY' };
+  const deliveryFee = Number.isFinite(Number(store.deliveryFee)) && Number(store.deliveryFee) >= 0 ? Math.floor(Number(store.deliveryFee)) : 50000;
   const items = menus || [];
   const storeIdEsc = escapeHtml(store.id || '');
 
@@ -201,6 +202,7 @@ function renderStore(store, menus) {
           <input type="hidden" data-field="apiKeyEnvVar" value="${escapeHtml(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY')}">
           <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
           <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
+          <input type="hidden" data-field="deliveryFee" value="${deliveryFee}">
         </div>
         <div class="admin-section">
           <div class="admin-section-title">브랜드</div>
@@ -332,11 +334,13 @@ function collectData() {
     const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
+    const deliveryFeeInput = storeEl.querySelector('input[data-field="deliveryFee"]');
     const businessDaysStr = businessDaysInput?.value?.trim() || '0,1,2,3,4,5,6';
     const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
     const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
     const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], payment: {
+    const deliveryFee = parseInt(deliveryFeeInput?.value || '50000', 10);
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
     } };
     stores.push(store);
@@ -2009,12 +2013,14 @@ async function init() {
     const modalInput = document.getElementById('adminApiSettingsEnvVar');
     const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
     const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
+    const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
     const storeId = modal?.dataset?.currentStoreId;
     if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
     const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
+    const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
     if (apiKeyInput) apiKeyInput.value = (modalInput?.value || '').trim() || 'TOSS_SECRET_KEY';
     if (businessDaysContainer && businessDaysInput) {
       const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
@@ -2027,6 +2033,10 @@ async function init() {
         .map((cb) => cb.dataset.slot)
         .filter(Boolean);
       businessHoursInput.value = checked.length ? checked.join(',') : BUSINESS_HOURS_SLOTS.join(',');
+    }
+    if (deliveryFeeInput && deliveryFeeModalInput) {
+      const parsedFee = parseInt(deliveryFeeModalInput.value || '50000', 10);
+      deliveryFeeInput.value = Number.isFinite(parsedFee) && parsedFee >= 0 ? String(parsedFee) : '50000';
     }
     closeApiSettingsModal();
   }
@@ -2041,7 +2051,7 @@ async function init() {
       if (!modal) return;
       const tabId = tab.dataset.settingsTab;
       modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
-      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours' };
+      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours', 'delivery-fee': 'adminSettingsPanelDeliveryFee' };
       const panelId = panelMap[tabId];
       modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
       if (panelId) document.getElementById(panelId)?.classList.add('active');
@@ -2081,8 +2091,10 @@ async function init() {
         const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
         const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
         const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
+        const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
         const modal = document.getElementById('adminApiSettingsModal');
         const modalInput = document.getElementById('adminApiSettingsEnvVar');
+        const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
         const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
         const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
@@ -2100,6 +2112,10 @@ async function init() {
           businessHoursContainer?.querySelectorAll('input[data-slot]').forEach((cb) => {
             cb.checked = hoursSet.has(cb.dataset.slot);
           });
+          if (deliveryFeeModalInput) {
+            const parsedDeliveryFee = parseInt(deliveryFeeInput?.value || '50000', 10);
+            deliveryFeeModalInput.value = Number.isFinite(parsedDeliveryFee) && parsedDeliveryFee >= 0 ? String(parsedDeliveryFee) : '50000';
+          }
           modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.remove('active'));
           modal.querySelector('[data-settings-tab="payment-env"]')?.classList.add('active');
           modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
@@ -2132,6 +2148,7 @@ async function init() {
           suburl: '',
           businessDays: [0, 1, 2, 3, 4, 5, 6],
           businessHours: [...BUSINESS_HOURS_SLOTS],
+          deliveryFee: 50000,
           payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');
