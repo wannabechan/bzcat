@@ -4,7 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel } = require('../_utils');
 const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
@@ -93,13 +93,23 @@ module.exports = async (req, res) => {
       orderItems[i] = { ...it, id: idStr, name: nameStr };
     }
 
+    const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
+    if (isEmailAdmin) {
+      for (let i = 0; i < orderItems.length; i++) {
+        if (String(orderItems[i].id || '') === 'etc-fee') {
+          orderItems[i] = { ...orderItems[i], price: 0 };
+        }
+      }
+    }
+
     // 주문 금액 검증 (최소 주문 금액 환경변수, 최대 1억 원)
     const envMinOrderPrice = Number(process.env.MIN_ORDERRPICE);
     const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
       ? Math.floor(envMinOrderPrice)
       : 100;
     const TOTAL_MAX = 100_000_000;
-    const orderTotal = Number(totalAmount) || 0;
+    const computedFromItems = orderItems.reduce((sum, it) => sum + Number(it.price) * Number(it.quantity), 0);
+    const orderTotal = isEmailAdmin ? computedFromItems : (Number(totalAmount) || 0);
     if (!Number.isFinite(orderTotal) || orderTotal < TOTAL_MIN) {
       return apiResponse(res, 400, { error: `최소 주문 금액은 ${TOTAL_MIN}원입니다.` });
     }

@@ -68,8 +68,12 @@ async function fetchIsEmailAdmin() {
   }
 }
 
+/** 메뉴 로드 시 세션과 동기화. EMAIL_ADMIN이면 배송비 0원 처리에 사용 */
+let cachedOrderPageIsEmailAdmin = false;
+
 function applyMenuDataForOrderPage(rawData, isEmailAdmin) {
   if (!rawData || typeof rawData !== 'object') return;
+  cachedOrderPageIsEmailAdmin = !!isEmailAdmin;
   MENU_DATA = isEmailAdmin ? rawData : filterMenuDataForOrderPage(rawData);
 }
 
@@ -304,6 +308,7 @@ function getDisplayCategoryTitle(slug) {
 }
 
 function getCartDeliveryFee() {
+  if (cachedOrderPageIsEmailAdmin) return 0;
   const cartCategory = getCartCategory();
   if (!cartCategory) return 0;
   const fee = Number(MENU_DATA[cartCategory]?.deliveryFee);
