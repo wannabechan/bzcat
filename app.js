@@ -52,12 +52,56 @@ async function loadPublicConfig() {
   return false;
 }
 
+/** EMAIL_ADMIN에 해당하는 계정(level === 'admin')만 숨긴 카테고리까지 볼 수 있음 */
+async function fetchIsEmailAdmin() {
+  try {
+    const token = window.BzCatAuth?.getToken?.();
+    if (!token) return false;
+    const res = await fetch('/api/auth/session', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body.user?.level === 'admin';
+  } catch {
+    return false;
+  }
+}
+
+function applyMenuDataForOrderPage(rawData, isEmailAdmin) {
+  if (!rawData || typeof rawData !== 'object') return;
+  MENU_DATA = isEmailAdmin ? rawData : filterMenuDataForOrderPage(rawData);
+}
+
+/** 로그인/로그아웃 후 카테고리 노출 갱신 */
+async function reloadMenuDataForOrderPage() {
+  try {
+    const res = await fetch('/api/menu-data');
+    if (!res.ok) return false;
+    const data = await res.json();
+    const isEmailAdmin = await fetchIsEmailAdmin();
+    applyMenuDataForOrderPage(data, isEmailAdmin);
+    const activeSlug = document.querySelector('.category-tab.active')?.dataset?.category;
+    const slugs = Object.keys(MENU_DATA);
+    const initialSlug = activeSlug && slugs.includes(activeSlug) ? activeSlug : undefined;
+    renderCategoryTabs(initialSlug);
+    renderMenuCards();
+    renderCartItems();
+    updateCartCount();
+    return true;
+  } catch (e) {
+    console.warn('Menu reload failed:', e);
+    return false;
+  }
+}
+
 async function loadMenuData() {
   try {
     const res = await fetch('/api/menu-data');
     if (res.ok) {
       const data = await res.json();
-      MENU_DATA = filterMenuDataForOrderPage(data);
+      const isEmailAdmin = await fetchIsEmailAdmin();
+      applyMenuDataForOrderPage(data, isEmailAdmin);
       return true;
     }
   } catch (e) {
@@ -1289,6 +1333,7 @@ function handleMenuGridClick(e) {
 // 이벤트 바인딩
 function init() {
   window.BzCatAppOpenProfile = openProfile;
+  window.BzCatAppReloadMenu = reloadMenuDataForOrderPage;
   categoryTabs.addEventListener('click', handleCategoryClick);
   menuGrid.addEventListener('click', handleMenuGridClick);
   cartItems.addEventListener('click', (e) => {

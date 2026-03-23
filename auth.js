@@ -301,6 +301,9 @@ async function initAuth() {
       resetToStep1();
       const sessionUser = await checkSession();
       showApp(sessionUser);
+      if (typeof window.BzCatAppReloadMenu === 'function') {
+        window.BzCatAppReloadMenu().catch(() => {});
+      }
       loginForm.reset();
 
     } catch (error) {
@@ -361,6 +364,9 @@ async function initAuth() {
       clearToken();
       resetToStep1();
       showApp(null);
+      if (typeof window.BzCatAppReloadMenu === 'function') {
+        window.BzCatAppReloadMenu().catch(() => {});
+      }
       if (loginForm) loginForm.reset();
     });
   }
