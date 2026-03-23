@@ -1,6 +1,7 @@
 /**
  * POST /api/payment/create
  * Toss Payments 결제 생성 (Secret Key 서버 전용)
+ * 결제 가능: payment_link_issued 만 (매장 승인 후 어드민이 결제 링크/코드 반영된 뒤)
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
@@ -37,8 +38,10 @@ module.exports = async (req, res) => {
     }
 
     const status = order.status || 'submitted';
-    if (status !== 'submitted' && status !== 'payment_link_issued') {
-      return apiResponse(res, 400, { error: '결제할 수 없는 주문 상태입니다.' });
+    if (status !== 'payment_link_issued') {
+      return apiResponse(res, 400, {
+        error: '매장 승인 및 결제 링크 발급 후에만 결제할 수 있습니다.',
+      });
     }
 
     const amount = Number(order.total_amount);

@@ -5,7 +5,7 @@
  */
 
 const { verifyToken, apiResponse } = require('../_utils');
-const { getOrderById, updateOrderStatus, updateOrderAcceptToken, updateOrderPaymentLink, getStores } = require('../_redis');
+const { getOrderById, updateOrderStatus, updateOrderAcceptToken, getStores } = require('../_redis');
 const { getStoreEmailForOrder } = require('../orders/_order-email');
 
 module.exports = async (req, res) => {
@@ -54,10 +54,6 @@ module.exports = async (req, res) => {
 
     await updateOrderStatus(id, 'order_accepted', user.email);
     await updateOrderAcceptToken(id, null);
-
-    // [결제 테스트용] 매장 승인 시 결제 생성 코드 자동 입력 → 주문자 결제하기 활성화. 테스트 후 제거.
-    await updateOrderPaymentLink(id, 'TEST-AUTO-' + id);
-    await updateOrderStatus(id, 'payment_link_issued', user.email);
 
     return apiResponse(res, 200, { success: true });
   } catch (error) {

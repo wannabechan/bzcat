@@ -320,8 +320,8 @@ function openOrderDetail(order) {
         }
         const o = storeOrdersData.find(x => x.id === orderId);
         if (o) {
-          o.status = 'payment_link_issued';
-          o.payment_link = 'TEST-AUTO-' + orderId;
+          o.status = 'order_accepted';
+          delete o.payment_link;
         }
         closeOrderDetail();
         await loadStoreOrders();
