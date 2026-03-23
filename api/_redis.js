@@ -400,7 +400,18 @@ async function getMenuDataForApp() {
       : DEFAULT_MENUS[stores[i].id] || [];
     const businessDays = stores[i].businessDays && Array.isArray(stores[i].businessDays) ? stores[i].businessDays : [0, 1, 2, 3, 4, 5, 6];
     const businessHours = stores[i].businessHours && Array.isArray(stores[i].businessHours) && stores[i].businessHours.length > 0 ? stores[i].businessHours : BUSINESS_HOURS_SLOTS;
-    result[stores[i].slug] = { title: stores[i].title, items, payment: stores[i].payment, suburl: (stores[i].suburl || ''), brand: (stores[i].brand || ''), bizNo: (stores[i].bizNo || ''), businessDays, businessHours };
+    result[stores[i].slug] = {
+      title: stores[i].title,
+      items,
+      payment: stores[i].payment,
+      suburl: (stores[i].suburl || ''),
+      brand: (stores[i].brand || ''),
+      bizNo: (stores[i].bizNo || ''),
+      businessDays,
+      businessHours,
+      storeContactEmail: (stores[i].storeContactEmail || ''),
+      deliveryFee: stores[i].deliveryFee,
+    };
   }
   return result;
 }

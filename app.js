@@ -15,6 +15,20 @@ const MENU_DATA_FALLBACK = {
 let MENU_DATA = { ...MENU_DATA_FALLBACK };
 let MIN_ORDER_PRICE = 100;
 
+/** 담당자 이메일이 이 값과 일치하는 매장은 주문 페이지 카테고리에서 숨김 (소문자·trim 비교) */
+const HIDDEN_ORDER_PAGE_STORE_CONTACT_EMAILS = new Set(['wannabechan@gmail.com']);
+
+function filterMenuDataForOrderPage(data) {
+  if (!data || typeof data !== 'object') return data;
+  const out = {};
+  for (const [slug, store] of Object.entries(data)) {
+    const email = (store?.storeContactEmail || '').trim().toLowerCase();
+    if (HIDDEN_ORDER_PAGE_STORE_CONTACT_EMAILS.has(email)) continue;
+    out[slug] = store;
+  }
+  return out;
+}
+
 function updateMinOrderNoticeText() {
   if (!cartMinOrderNotice) return;
   cartMinOrderNotice.textContent = `※ 최소 주문 금액은 ${formatPrice(MIN_ORDER_PRICE)} 입니다.`;
@@ -43,7 +57,7 @@ async function loadMenuData() {
     const res = await fetch('/api/menu-data');
     if (res.ok) {
       const data = await res.json();
-      MENU_DATA = data;
+      MENU_DATA = filterMenuDataForOrderPage(data);
       return true;
     }
   } catch (e) {
