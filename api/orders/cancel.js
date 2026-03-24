@@ -7,13 +7,43 @@
  * 취소 시 주문서 PDF 재생성 (주문 취소건 표시)
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { requireAuth, apiResponse } = require('../_utils');
 const { getOrderById } = require('../_redis');
 const { cancelOrderAndRegeneratePdf, isPastPaymentDeadline } = require('../_orderCancel');
 const { getTossSecretKeyForOrder } = require('../payment/_helpers');
 
 const CANCELABLE_BEFORE_PAYMENT = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
 const TOSS_CANCEL_API = 'https://api.tosspayments.com/v1/payments';
+
+async function cancelPaymentWithSecret(secretKey, paymentKey) {
+  const auth = Buffer.from(`${secretKey}:`, 'utf8').toString('base64');
+  const cancelRes = await fetch(`${TOSS_CANCEL_API}/${encodeURIComponent(paymentKey.trim())}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+    },
+    body: JSON.stringify({
+      cancelReason: '고객 요청에 의한 결제 취소',
+    }),
+  });
+  const bodyText = await cancelRes.text();
+  let bodyJson = null;
+  try {
+    bodyJson = bodyText ? JSON.parse(bodyText) : null;
+  } catch (_) {}
+  return { ok: cancelRes.ok, status: cancelRes.status, bodyText, bodyJson };
+}
+
+function isRetryableTossKeyMismatch(result) {
+  const code = result?.bodyJson?.code ? String(result.bodyJson.code).trim() : '';
+  return (
+    code === 'UNAUTHORIZED_KEY' ||
+    code === 'FORBIDDEN_REQUEST' ||
+    result?.status === 401 ||
+    result?.status === 403
+  );
+}
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -25,19 +55,11 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
-    }
+    const user = requireAuth(req, res);
+    if (!user) return;
 
-    const token = authHeader.substring(7);
-    const user = verifyToken(token);
-
-    if (!user) {
-      return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
-    }
-
-    const { orderId } = req.body;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const { orderId } = body;
     const id = orderId != null ? (typeof orderId === 'number' ? orderId : String(orderId).trim()) : '';
     if (!id) {
       return apiResponse(res, 400, { error: '주문 번호가 올바르지 않습니다.' });
@@ -83,22 +105,26 @@ module.exports = async (req, res) => {
       if (!TOSS_SECRET_KEY) {
         return apiResponse(res, 503, { error: '결제 설정을 찾을 수 없습니다.' });
       }
-      const auth = Buffer.from(`${TOSS_SECRET_KEY}:`, 'utf8').toString('base64');
-      const cancelRes = await fetch(`${TOSS_CANCEL_API}/${encodeURIComponent(paymentKey.trim())}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${auth}`,
-        },
-        body: JSON.stringify({
-          cancelReason: '고객 요청에 의한 결제 취소',
-        }),
-      });
-      const cancelData = await cancelRes.json().catch(() => ({}));
-      if (!cancelRes.ok) {
+      const TOSS_API_SECRET_KEY = (process.env.PAYKEY_BZCAT_API_SECRET || '').trim();
+      let cancelResult = await cancelPaymentWithSecret(TOSS_SECRET_KEY, paymentKey);
+      if (
+        !cancelResult.ok &&
+        TOSS_API_SECRET_KEY &&
+        TOSS_API_SECRET_KEY !== TOSS_SECRET_KEY &&
+        isRetryableTossKeyMismatch(cancelResult)
+      ) {
+        console.warn(
+          'Toss payment cancel: retry with PAYKEY_BZCAT_API_SECRET',
+          cancelResult.status,
+          cancelResult.bodyJson?.code || ''
+        );
+        cancelResult = await cancelPaymentWithSecret(TOSS_API_SECRET_KEY, paymentKey);
+      }
+      const cancelData = cancelResult.bodyJson || {};
+      if (!cancelResult.ok) {
         const errMsg = cancelData.message || cancelData.error?.message || cancelData.msg || '결제 취소에 실패했습니다.';
-        console.error('Toss payment cancel failed:', cancelRes.status, cancelData);
-        return apiResponse(res, cancelRes.status >= 500 ? 502 : 400, {
+        console.error('Toss payment cancel failed:', cancelResult.status, cancelData);
+        return apiResponse(res, cancelResult.status >= 500 ? 502 : 400, {
           error: typeof errMsg === 'string' ? errMsg : '결제 취소에 실패했습니다.',
         });
       }

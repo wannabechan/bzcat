@@ -20,8 +20,9 @@
 ### 3. 개발용 코드 노출 (`auth.js`)
 - **변경**: `devCode`를 `innerHTML`에 넣지 않고, `textContent`와 `createElement`로만 표시하도록 수정.
 
-### 4. 관리자 입력 – env 변수 이름 (`api/payment/create.js`, `api/payment/success.js`)
-- **변경**: `ALLOWED_TOSS_ENV_NAMES = ['TOSS_SECRET_KEY', 'TOSS_SECRET_KEY_TEST']` 화이트리스트 추가. 목록에 없는 이름이면 `TOSS_SECRET_KEY`로 fallback.
+### 4. 결제 시크릿 선택 (구: 매장별 env 이름)
+- **현재**: 서버는 `PAYKEY_BZCAT_WIDGET_SECRET`(및 구 `PAYKEY_BZCAT`)만 사용. 어드민 매장별 결제 env 입력은 제거됨.
+- **직연동 결제**: 클라이언트는 `PAYKEY_BZCAT_API_CLIENT`, 승인/취소는 `PAYKEY_BZCAT_API_SECRET`과 위젯 시크릿 조합(아래 최근 점검 참고).
 
 ---
 
@@ -74,6 +75,19 @@
 
 ### 최적화
 - **admin/admin.js**: `getToken()`을 async에서 동기 함수로 변경. `localStorage.getItem`만 사용하므로 Promise 불필요. 호출부 14곳에서 `await getToken()` → `getToken()`으로 변경.
+
+---
+
+## 2026 보안 점검 및 최적화
+
+### 보안·안정성
+- **결제 취소 API** (`api/orders/cancel.js`): `payment_completed` 시 토스 결제 취소 호출에 **위젯 시크릿(`gsk`) 실패 시 `PAYKEY_BZCAT_API_SECRET` 재시도** 추가. 직연동 간편결제(`ck` 경로)로 결제된 건의 취소가 위젯 키만으로는 `UNAUTHORIZED_KEY`가 나올 수 있어, 승인 API(`success.js`)와 동일한 키 매칭 전략을 맞춤.
+- **요청 본문**: `req.body`가 객체가 아닐 때를 대비해 빈 객체로 처리 후 `orderId` 파싱.
+- **인증**: 동일 파일에서 수동 Bearer 파싱 대신 `requireAuth(req, res)` 사용으로 일관성 유지.
+
+### 참고 (추가 조치 없음)
+- **`/api/config`**: `tossWidgetClientKey`, `tossApiClientKey`는 공개 클라이언트 키이므로 응답 포함이 정상. 시크릿은 절대 노출하지 않음.
+- **프로덕션 CORS**: `APP_ORIGIN` 미설정 시 `Access-Control-Allow-Origin`이 빈 값에 가깝게 동작할 수 있으므로 배포 시 반드시 설정 권장.
 
 ---
 
