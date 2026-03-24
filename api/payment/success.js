@@ -54,6 +54,7 @@ module.exports = async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Basic ${auth}`,
+        'TossPayments-Version': '2022-11-16',
       },
       body: JSON.stringify({
         paymentKey: String(paymentKey).trim(),

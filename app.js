@@ -164,6 +164,9 @@ const loginRequiredGo = document.getElementById('loginRequiredGo');
 const chatIntroModal = document.getElementById('chatIntroModal');
 const chatIntroClose = document.getElementById('chatIntroClose');
 const categoryChatBtn = document.getElementById('categoryChatBtn');
+const tossWidgetModal = document.getElementById('tossWidgetModal');
+const tossWidgetModalClose = document.getElementById('tossWidgetModalClose');
+const btnTossWidgetPay = document.getElementById('btnTossWidgetPay');
 
 let profileOrdersData = {};
 let profileAllOrders = [];
@@ -1270,6 +1273,109 @@ function closeChatIntroModal() {
   setModalVisible(chatIntroModal, false);
 }
 
+/** 토스 결제위젯 세션 정리용 (render destroy) */
+let tossWidgetCleanup = null;
+
+async function closeTossWidgetModal() {
+  if (typeof tossWidgetCleanup === 'function') {
+    try {
+      await tossWidgetCleanup();
+    } catch (e) {
+      console.warn('Toss widget cleanup', e);
+    }
+  }
+  tossWidgetCleanup = null;
+  if (btnTossWidgetPay) {
+    btnTossWidgetPay.onclick = null;
+    btnTossWidgetPay.disabled = true;
+  }
+  setModalVisible(tossWidgetModal, false);
+}
+
+/**
+ * POST /api/payment/create 응답으로 결제위젯 UI 렌더 후 결제 요청
+ * (시크릿 키 live_gsk_… 는 서버 승인 단계에서만 사용)
+ */
+async function openTossPaymentWidget(prep) {
+  if (typeof window.TossPayments !== 'function') {
+    alert('결제 모듈을 불러오지 못했습니다. 페이지를 새로고침 후 다시 시도해 주세요.');
+    return;
+  }
+  await closeTossWidgetModal();
+
+  const {
+    tossWidgetClientKey,
+    amount,
+    orderId,
+    orderName,
+    successUrl,
+    failUrl,
+    paymentMethodsVariantKey,
+    agreementVariantKey,
+    customerEmail,
+    customerName,
+    customerMobilePhone,
+  } = prep;
+
+  if (!tossWidgetClientKey || orderId == null || amount == null || !successUrl || !failUrl) {
+    alert('결제 정보가 올바르지 않습니다.');
+    return;
+  }
+  if (!btnTossWidgetPay || !tossWidgetModal) {
+    alert('결제 UI를 찾을 수 없습니다.');
+    return;
+  }
+
+  const tossPayments = TossPayments(tossWidgetClientKey);
+  const widgets = tossPayments.widgets({ customerKey: TossPayments.ANONYMOUS });
+
+  await widgets.setAmount({
+    currency: 'KRW',
+    value: amount,
+  });
+
+  const paymentMethodWidget = await widgets.renderPaymentMethods({
+    selector: '#toss-payment-method',
+    variantKey: paymentMethodsVariantKey || 'DEFAULT',
+  });
+
+  const agreementWidget = await widgets.renderAgreement({
+    selector: '#toss-agreement',
+    variantKey: agreementVariantKey || 'AGREEMENT',
+  });
+
+  const payBtn = btnTossWidgetPay;
+  payBtn.disabled = true;
+  agreementWidget.on('agreementStatusChange', (agreementStatus) => {
+    payBtn.disabled = !agreementStatus.agreedRequiredTerms;
+  });
+
+  payBtn.onclick = async () => {
+    try {
+      await widgets.requestPayment({
+        orderId,
+        orderName,
+        successUrl,
+        failUrl,
+        ...(customerEmail ? { customerEmail } : {}),
+        ...(customerName ? { customerName } : {}),
+        ...(customerMobilePhone ? { customerMobilePhone } : {}),
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || '결제 요청에 실패했습니다.');
+    }
+  };
+
+  tossWidgetCleanup = async () => {
+    payBtn.onclick = null;
+    await paymentMethodWidget.destroy();
+    await agreementWidget.destroy();
+  };
+
+  setModalVisible(tossWidgetModal, true);
+}
+
 // 메뉴 그리드 클릭 위임 (이벤트 리스너 최소화)
 function handleMenuGridClick(e) {
   const qtyBtn = e.target.closest('.menu-qty-btn');
@@ -1402,8 +1508,16 @@ function init() {
             alert(data.error || '결제 요청에 실패했습니다.');
             return;
           }
-          if (data.checkoutUrl) window.location.href = data.checkoutUrl;
-          else alert('결제 URL을 받지 못했습니다.');
+          if (data.tossWidgetClientKey != null && data.amount != null) {
+            try {
+              await openTossPaymentWidget(data);
+            } catch (widgetErr) {
+              console.error(widgetErr);
+              alert(widgetErr?.message || '결제창을 열 수 없습니다. 다시 시도해 주세요.');
+            }
+          } else {
+            alert('결제 정보를 받지 못했습니다.');
+          }
         } catch (err) {
           console.error(err);
           alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
@@ -1462,6 +1576,16 @@ function init() {
   if (chatIntroModal) {
     chatIntroModal.addEventListener('click', (e) => {
       if (e.target === chatIntroModal) closeChatIntroModal();
+    });
+  }
+  if (tossWidgetModalClose) {
+    tossWidgetModalClose.addEventListener('click', () => {
+      closeTossWidgetModal();
+    });
+  }
+  if (tossWidgetModal) {
+    tossWidgetModal.addEventListener('click', (e) => {
+      if (e.target === tossWidgetModal) closeTossWidgetModal();
     });
   }
   function updateOrderSubmitButton() {

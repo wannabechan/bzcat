@@ -42,7 +42,30 @@ async function getTossSecretKeyForOrder(order) {
   return process.env[envVarName] || '';
 }
 
+/** 결제위젯(브라우저 SDK)용 클라이언트 키 — live_gck_… (개발자센터 API 키) */
+const FIXED_WIDGET_CLIENT_ENV_NAMES = ['TOSS_WIDGET_CLIENT_KEY', 'TOSS_WIDGET_CLIENT_KEY_TEST'];
+/** 결제위젯 클라이언트 키 전용 env 이름: WIDGETKEY_ + 영문/숫자/밑줄 */
+const WIDGETKEY_PATTERN = /^WIDGETKEY_[A-Za-z0-9_]+$/;
+
+function isAllowedWidgetClientEnvName(name) {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  return FIXED_WIDGET_CLIENT_ENV_NAMES.includes(trimmed) || WIDGETKEY_PATTERN.test(trimmed);
+}
+
+async function getTossWidgetClientKeyForOrder(order) {
+  const stores = await getStores();
+  const slug = getStoreSlugFromOrder(order);
+  const store = slug
+    ? stores.find((s) => (s.id === slug || s.slug === slug))
+    : null;
+  let envVarName = (store?.payment?.widgetClientKeyEnvVar || stores[0]?.payment?.widgetClientKeyEnvVar || '').trim() || 'TOSS_WIDGET_CLIENT_KEY';
+  if (!isAllowedWidgetClientEnvName(envVarName)) envVarName = 'TOSS_WIDGET_CLIENT_KEY';
+  return process.env[envVarName] || '';
+}
+
 module.exports = {
   getAppOrigin,
   getTossSecretKeyForOrder,
+  getTossWidgetClientKeyForOrder,
 };
