@@ -46,6 +46,50 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  /**
+   * 결제위젯에서 widgets.requestPayment()로 바로 열 수 있는 수단(ENUM·간편결제).
+   * 커스텀 결제수단(어드민에 등록한 키)·간편결제 직연동(별도 구현)은 제외 — CUSTOM_PAYMENT_METHOD_UNABLE_TO_PAY 방지.
+   * @see https://docs.tosspayments.com/codes/enum-codes
+   * @see https://docs.tosspayments.com/guides/v2/payment-widget/pro/integration-custom
+   */
+  var WIDGET_REQUEST_PAYMENT_CODES = new Set([
+    '카드',
+    'CARD',
+    '계좌이체',
+    'TRANSFER',
+    '가상계좌',
+    'VIRTUAL_ACCOUNT',
+    '휴대폰',
+    'MOBILE_PHONE',
+    '문화상품권',
+    'CULTURE_GIFT_CERTIFICATE',
+    '도서문화상품권',
+    'BOOK_GIFT_CERTIFICATE',
+    '게임문화상품권',
+    'GAME_GIFT_CERTIFICATE',
+    '간편결제',
+    'EASY_PAY',
+    '토스페이',
+    '토스결제',
+    'TOSSPAY',
+    '네이버페이',
+    'NAVERPAY',
+    '카카오페이',
+    'KAKAOPAY',
+    '삼성페이',
+    'SAMSUNGPAY',
+    '엘페이',
+    'LPAY',
+    '페이코',
+    'PAYCO',
+    'SSG페이',
+    'SSG',
+    '애플페이',
+    'APPLEPAY',
+    '핀페이',
+    'PINPAY',
+  ]);
+
   /** 토스 SDK가 던지는 PublicError 등에서 사용자/지원용 문구 추출 */
   function formatWidgetPaymentError(err) {
     if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
@@ -164,7 +208,7 @@
       value: payAmount,
     });
 
-    await widgets.renderPaymentMethods({
+    var paymentMethodWidget = await widgets.renderPaymentMethods({
       selector: '#payment-method',
       variantKey: 'DEFAULT',
     });
@@ -199,6 +243,27 @@
       btnPay.addEventListener('click', async function () {
         if (!agreementOk) return;
         try {
+          var selectedPm = null;
+          try {
+            if (paymentMethodWidget && typeof paymentMethodWidget.getSelectedPaymentMethod === 'function') {
+              selectedPm = await paymentMethodWidget.getSelectedPaymentMethod();
+            }
+          } catch (selErr) {
+            console.warn('getSelectedPaymentMethod', selErr);
+          }
+          var code =
+            selectedPm && selectedPm.code != null ? String(selectedPm.code).trim() : '';
+          if (!code) {
+            alert('결제 수단을 선택해 주세요.');
+            return;
+          }
+          if (!WIDGET_REQUEST_PAYMENT_CODES.has(code)) {
+            alert(
+              '선택하신 결제수단은 이 연동 방식으로 결제할 수 없습니다.\n' +
+                '카드·계좌이체·가상계좌 등을 선택하거나, 토스 결제위젯 어드민에서 커스텀 결제수단(또는 직연동만 추가된 간편결제)을 끄고 다시 시도해 주세요.',
+            );
+            return;
+          }
           await widgets.requestPayment({
             orderId: String(orderData.orderId),
             orderName: String(orderData.orderName),
