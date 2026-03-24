@@ -89,7 +89,6 @@ module.exports = async (req, res) => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Basic ${auth}`,
-          'TossPayments-Version': '2022-11-16',
         },
         body: JSON.stringify({
           cancelReason: '고객 요청에 의한 결제 취소',

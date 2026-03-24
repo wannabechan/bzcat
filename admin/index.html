@@ -409,14 +409,9 @@
         <div class="admin-modal-body">
           <div class="admin-modal-panel active" id="adminSettingsPanelPaymentEnv">
             <div class="admin-form-field">
-              <label class="admin-form-label" for="adminApiSettingsEnvVar">시크릿 키(live_gsk_…) 환경변수 명칭</label>
-              <input type="text" id="adminApiSettingsEnvVar" class="admin-form-input" placeholder="예: PAYKEY_BZCAT 또는 TOSS_SECRET_KEY" value="">
+              <label class="admin-form-label" for="adminApiSettingsEnvVar">환경변수 명칭</label>
+              <input type="text" id="adminApiSettingsEnvVar" class="admin-form-input" placeholder="ENV. Variable" value="">
             </div>
-            <div class="admin-form-field">
-              <label class="admin-form-label" for="adminApiSettingsWidgetEnvVar">결제위젯 클라이언트 키(live_gck_…) 환경변수 명칭</label>
-              <input type="text" id="adminApiSettingsWidgetEnvVar" class="admin-form-input" placeholder="예: WIDGETKEY_BZCAT 또는 TOSS_WIDGET_CLIENT_KEY" value="">
-            </div>
-            <p class="admin-modal-hint">Vercel 등에 동일 이름으로 키 값을 등록하세요. 시크릿 키는 서버 전용, 클라이언트 키는 브라우저 SDK용입니다.</p>
           </div>
           <div class="admin-modal-panel" id="adminSettingsPanelBusinessDays">
             <p class="admin-modal-hint">배송 희망일 선택 시 이 요일만 선택 가능합니다.</p>

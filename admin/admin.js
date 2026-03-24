@@ -172,7 +172,7 @@ function generateStoreId() {
 }
 
 function renderStore(store, menus) {
-  const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY', widgetClientKeyEnvVar: 'TOSS_WIDGET_CLIENT_KEY' };
+  const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY' };
   const deliveryFee = Number.isFinite(Number(store.deliveryFee)) && Number(store.deliveryFee) >= 0 ? Math.floor(Number(store.deliveryFee)) : 50000;
   const items = menus || [];
   const storeIdEsc = escapeHtml(store.id || '');
@@ -203,7 +203,6 @@ function renderStore(store, menus) {
             </div>
           </div>
           <input type="hidden" data-field="apiKeyEnvVar" value="${escapeHtml(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY')}">
-          <input type="hidden" data-field="widgetClientKeyEnvVar" value="${escapeHtml(payment.widgetClientKeyEnvVar || 'TOSS_WIDGET_CLIENT_KEY')}">
           <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
           <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
           <input type="hidden" data-field="deliveryFee" value="${deliveryFee}">
@@ -336,7 +335,6 @@ function collectData() {
     const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
     const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
-    const widgetClientKeyEnvVarInput = storeEl.querySelector('input[data-field="widgetClientKeyEnvVar"]');
     const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl.querySelector('input[data-field="deliveryFee"]');
@@ -347,7 +345,6 @@ function collectData() {
     const deliveryFee = parseInt(deliveryFeeInput?.value || '50000', 10);
     const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, payment: {
       apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
-      widgetClientKeyEnvVar: widgetClientKeyEnvVarInput?.value?.trim() || 'TOSS_WIDGET_CLIENT_KEY',
     } };
     stores.push(store);
 
@@ -2126,7 +2123,6 @@ async function init() {
   function applyApiSettingsModal() {
     const modal = document.getElementById('adminApiSettingsModal');
     const modalInput = document.getElementById('adminApiSettingsEnvVar');
-    const modalWidgetInput = document.getElementById('adminApiSettingsWidgetEnvVar');
     const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
     const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
     const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
@@ -2134,12 +2130,10 @@ async function init() {
     if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
     const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
-    const widgetKeyInput = storeEl?.querySelector('input[data-field="widgetClientKeyEnvVar"]');
     const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
     if (apiKeyInput) apiKeyInput.value = (modalInput?.value || '').trim() || 'TOSS_SECRET_KEY';
-    if (widgetKeyInput) widgetKeyInput.value = (modalWidgetInput?.value || '').trim() || 'TOSS_WIDGET_CLIENT_KEY';
     if (businessDaysContainer && businessDaysInput) {
       const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
         .map((cb) => parseInt(cb.dataset.day, 10))
@@ -2207,13 +2201,11 @@ async function init() {
         const storeEl = btn.closest('.admin-store');
         const storeId = storeEl?.dataset?.storeId;
         const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
-        const widgetKeyInput = storeEl?.querySelector('input[data-field="widgetClientKeyEnvVar"]');
         const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
         const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
         const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
         const modal = document.getElementById('adminApiSettingsModal');
         const modalInput = document.getElementById('adminApiSettingsEnvVar');
-        const modalWidgetInput = document.getElementById('adminApiSettingsWidgetEnvVar');
         const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
         const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
@@ -2222,7 +2214,6 @@ async function init() {
           modal.dataset.currentStoreId = storeId;
           modalTitle.textContent = storeEl.querySelector('.admin-store-title')?.textContent || storeId;
           modalInput.value = apiKeyInput.value || 'TOSS_SECRET_KEY';
-          if (modalWidgetInput && widgetKeyInput) modalWidgetInput.value = widgetKeyInput.value || 'TOSS_WIDGET_CLIENT_KEY';
           const daysStr = businessDaysInput?.value || '0,1,2,3,4,5,6';
           const days = daysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
           businessDaysContainer?.querySelectorAll('input[data-day]').forEach((cb) => {
@@ -2270,7 +2261,7 @@ async function init() {
           businessDays: [0, 1, 2, 3, 4, 5, 6],
           businessHours: [...BUSINESS_HOURS_SLOTS],
           deliveryFee: 50000,
-          payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY', widgetClientKeyEnvVar: 'TOSS_WIDGET_CLIENT_KEY' },
+          payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');
         div.innerHTML = renderStore(newStore, []);

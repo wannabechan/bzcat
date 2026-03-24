@@ -37,10 +37,8 @@ Vercel Dashboard → 프로젝트 → Settings → Environment Variables
 JWT_SECRET=<강력한-랜덤-문자열-64자-이상>
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxx
 RESEND_FROM_EMAIL=noreply@yourdomain.com  (도메인 인증 후, 선택)
-TOSS_SECRET_KEY=live_gsk_xxxx  (토스페이먼츠 **결제위젯 연동 시크릿 키** — 서버 승인·취소 API 전용, 브라우저에 넣지 않음)
-TOSS_WIDGET_CLIENT_KEY=live_gck_xxxx  (같은 상점의 **결제위젯 연동 클라이언트 키** — 프론트 SDK 초기화용, 공개되어도 됨)
-# 선택: 매장별 시크릿 키는 관리자에서 PAYKEY_xxx 로 지정한 env에 live_gsk_… 저장. 위젯 클라이언트 키는 WIDGETKEY_xxx + 동일 이름 env에 live_gck_… 저장 후 매장 payment에 widgetClientKeyEnvVar 설정
-# 선택: TOSS_WIDGET_PAYMENT_METHODS_VARIANT, TOSS_WIDGET_AGREEMENT_VARIANT (어드민 variantKey, 기본 DEFAULT / AGREEMENT)
+TOSS_SECRET_KEY=test_sk_xxxx  (토스페이먼츠 **API 개별 연동** 시크릿 키, `test_sk_` / `live_sk_` 로 시작. 서버 전용)
+PAYKEY_매장식별자=live_sk_xxxx  (선택) 매장별 결제키: 어드민 매장 설정의 환경변수 명과 동일한 이름으로 설정. **결제위젯 클라이언트 키(`*_ck_`)는 사용 불가** — 반드시 시크릿 키(`*_sk_`).
 CRON_SECRET=<랜덤문자열>  (선택, 자동 취소 크론 보안용. 설정 시 /api/cron/auto-cancel-orders 호출 시 Authorization: Bearer <CRON_SECRET> 필요)
 ```
 
