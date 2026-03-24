@@ -965,6 +965,22 @@ function handlePaymentCancelClick(order) {
   modal.setAttribute('aria-hidden', 'false');
 }
 
+function showOrderCancelLoading() {
+  const el = document.getElementById('orderCancelLoadingOverlay');
+  if (!el) return;
+  el.classList.add('visible');
+  el.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideOrderCancelLoading() {
+  const el = document.getElementById('orderCancelLoadingOverlay');
+  if (!el) return;
+  el.classList.remove('visible');
+  el.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
 async function doCancelOrder(order) {
   const token = window.BzCatAuth?.getToken();
   if (!token) {
@@ -972,6 +988,7 @@ async function doCancelOrder(order) {
     window.location.reload();
     return;
   }
+  showOrderCancelLoading();
   try {
     const res = await fetch('/api/orders/cancel', {
       method: 'POST',
@@ -981,7 +998,11 @@ async function doCancelOrder(order) {
       },
       body: JSON.stringify({ orderId: order.id }),
     });
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (_) {}
+    hideOrderCancelLoading();
     if (!res.ok) {
       alert(data.error || '주문 취소에 실패했습니다.');
       return;
@@ -990,6 +1011,7 @@ async function doCancelOrder(order) {
     closeOrderDetailOverlay();
     await fetchAndRenderProfileOrders();
   } catch (err) {
+    hideOrderCancelLoading();
     console.error('Cancel order error:', err);
     alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
   }

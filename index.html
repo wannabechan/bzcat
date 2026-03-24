@@ -406,6 +406,13 @@
         </div>
       </div>
     </div>
+    <!-- 주문/결제 취소 처리 중 (API 응답 전) -->
+    <div class="order-cancel-loading-overlay" id="orderCancelLoadingOverlay" aria-hidden="true" aria-live="polite">
+      <div class="order-cancel-loading-inner">
+        <div class="order-cancel-loading-spinner" role="status" aria-label="처리 중"></div>
+        <p class="order-cancel-loading-text">주문 취소중입니다.</p>
+      </div>
+    </div>
     <!-- 로그인 유도 모달 -->
     <div class="modal-overlay login-required-modal" id="loginRequiredModal" aria-hidden="true">
       <div class="modal login-required-modal-inner">
