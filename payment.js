@@ -232,6 +232,7 @@
       summaryEl.appendChild(span);
     }
 
+    var selectedPaymentMethodFromEvent = null;
     var tossPayments;
     var widgets;
     var paymentMethodWidget;
@@ -251,6 +252,11 @@
         selector: '#payment-method',
         variantKey: variantPayment,
       });
+      if (paymentMethodWidget && typeof paymentMethodWidget.on === 'function') {
+        paymentMethodWidget.on('paymentMethodSelect', function (selectedPaymentMethod) {
+          selectedPaymentMethodFromEvent = selectedPaymentMethod || null;
+        });
+      }
 
       var agreementWidget = await widgets.renderAgreement({
         selector: '#agreement',
@@ -287,13 +293,16 @@
           } catch (selErr) {
             console.warn('getSelectedPaymentMethod', selErr);
           }
+          var selectedPmForFlow = selectedPm || selectedPaymentMethodFromEvent || null;
           var code =
-            selectedPm && selectedPm.code != null ? String(selectedPm.code).trim() : '';
+            selectedPmForFlow && selectedPmForFlow.code != null
+              ? String(selectedPmForFlow.code).trim()
+              : '';
           if (!code) {
             alert('결제 수단을 선택해 주세요.');
             return;
           }
-          var directEasyPay = resolveDirectEasyPay(selectedPm);
+          var directEasyPay = resolveDirectEasyPay(selectedPmForFlow);
           if (directEasyPay) {
             if (!apiClientKey) {
               alert('직연동 간편결제 설정이 필요합니다. 관리자에게 문의해 주세요.');
