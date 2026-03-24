@@ -46,6 +46,27 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  function resolveDirectEasyPay(selectedPm) {
+    if (!selectedPm || typeof selectedPm !== 'object') return '';
+    var fields = [
+      selectedPm.code,
+      selectedPm.easyPay,
+      selectedPm.easyPayCode,
+      selectedPm.methodKey,
+      selectedPm.key,
+      selectedPm.name,
+    ];
+    for (var i = 0; i < fields.length; i++) {
+      var raw = fields[i];
+      if (raw == null) continue;
+      var normalized = String(raw).trim().toUpperCase().replace(/\s+/g, '');
+      if (normalized === 'NAVERPAY' || normalized === '네이버페이') return 'NAVERPAY';
+      if (normalized === 'KAKAOPAY' || normalized === '카카오페이') return 'KAKAOPAY';
+      if (normalized === 'TOSSPAY' || normalized === '토스페이') return 'TOSSPAY';
+    }
+    return '';
+  }
+
   /** 토스 약관: 렌더 직후 체크는 보이는데 agreementStatusChange가 안 오는 경우가 있어, SDK/지연/DOM으로 보완 */
   function syncAgreementInitialState(agreementWidget, btnPayEl, setAgreementOk) {
     if (!agreementWidget || typeof setAgreementOk !== 'function') return;
@@ -169,6 +190,7 @@
       showError('결제(클라이언트 키) 설정이 되어 있지 않습니다. 관리자에게 문의해 주세요.');
       return;
     }
+    var apiClientKey = (config && config.tossApiClientKey) ? String(config.tossApiClientKey).trim() : '';
     var variantPayment = (config && config.tossWidgetVariantPayment)
       ? String(config.tossWidgetVariantPayment).trim()
       : 'DEFAULT';
@@ -213,10 +235,12 @@
     var tossPayments;
     var widgets;
     var paymentMethodWidget;
+    var directPayment = null;
     var agreementOk = false;
+    var customerKey = getOrCreateCustomerKey();
     try {
       tossPayments = TossPayments(clientKey);
-      widgets = tossPayments.widgets({ customerKey: getOrCreateCustomerKey() });
+      widgets = tossPayments.widgets({ customerKey: customerKey });
 
       await widgets.setAmount({
         currency: 'KRW',
@@ -267,6 +291,41 @@
             selectedPm && selectedPm.code != null ? String(selectedPm.code).trim() : '';
           if (!code) {
             alert('결제 수단을 선택해 주세요.');
+            return;
+          }
+          var directEasyPay = resolveDirectEasyPay(selectedPm);
+          if (directEasyPay) {
+            if (!apiClientKey) {
+              alert('직연동 간편결제 설정이 필요합니다. 관리자에게 문의해 주세요.');
+              return;
+            }
+            if (!directPayment) {
+              try {
+                directPayment = TossPayments(apiClientKey).payment({ customerKey: customerKey });
+              } catch (initDirectErr) {
+                console.error('direct payment init:', initDirectErr);
+                alert('직연동 결제 모듈을 초기화하지 못했습니다. 설정을 확인해 주세요.');
+                return;
+              }
+            }
+            await directPayment.requestPayment({
+              method: 'CARD',
+              amount: { currency: 'KRW', value: payAmount },
+              orderId: String(orderData.orderId),
+              orderName: String(orderData.orderName),
+              successUrl: successUrl,
+              failUrl: failUrl,
+              windowTarget: 'self',
+              customerEmail: orderData.customerEmail || undefined,
+              customerName: orderData.customerName || undefined,
+              customerMobilePhone: orderData.customerMobilePhone
+                ? digitsOnly(orderData.customerMobilePhone)
+                : undefined,
+              card: {
+                flowMode: 'DIRECT',
+                easyPay: directEasyPay,
+              },
+            });
             return;
           }
           await widgets.requestPayment({
