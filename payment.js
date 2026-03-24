@@ -46,6 +46,24 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  /** 토스 SDK가 던지는 PublicError 등에서 사용자/지원용 문구 추출 */
+  function formatWidgetPaymentError(err) {
+    if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
+    var code = err.code != null ? String(err.code) : '';
+    var msg =
+      (typeof err.message === 'string' && err.message.trim()) ||
+      (typeof err.reason === 'string' && err.reason.trim()) ||
+      '';
+    if (msg && code) return msg + '\n(' + code + ')';
+    if (msg) return msg;
+    if (code) return '결제 요청에 실패했습니다. (' + code + ')';
+    try {
+      return '결제 요청에 실패했습니다.\n' + String(err);
+    } catch (_) {
+      return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
+    }
+  }
+
   document.getElementById('paymentErrorBack')?.addEventListener('click', goBackToOrders);
   document.getElementById('paymentHomeLink')?.addEventListener('click', function (e) {
     e.preventDefault();
@@ -160,28 +178,31 @@
     }
 
     var origin = window.location.origin;
-    var oid = encodeURIComponent(orderData.orderId);
-    var successUrl = origin + '/api/payment/success?orderId=' + oid;
-    var failUrl = origin + '/api/payment/fail?orderId=' + oid;
+    // successUrl·failUrl에는 쿼리를 붙이지 않음. 토스가 인증 후 orderId·amount·paymentKey 등을 붙임.
+    // 기존 ?orderId= 를 미리 넣으면 URL 검증 실패(IncorrectSuccessUrlFormat 등)가 날 수 있음.
+    var successUrl = origin + '/api/payment/success';
+    var failUrl = origin + '/api/payment/fail';
 
     if (btnPay) {
       btnPay.addEventListener('click', async function () {
         if (!agreementOk) return;
         try {
           await widgets.requestPayment({
-            orderId: orderData.orderId,
-            orderName: orderData.orderName,
+            orderId: String(orderData.orderId),
+            orderName: String(orderData.orderName),
             successUrl: successUrl,
             failUrl: failUrl,
-            customerEmail: orderData.customerEmail,
-            customerName: orderData.customerName,
+            // PC 기본 iframe이면 리다이렉트 결과 페이지로 이동이 막힐 수 있어 전체 창(self)으로 통일
+            windowTarget: 'self',
+            customerEmail: orderData.customerEmail || undefined,
+            customerName: orderData.customerName || undefined,
             customerMobilePhone: orderData.customerMobilePhone
               ? digitsOnly(orderData.customerMobilePhone)
               : undefined,
           });
         } catch (payErr) {
-          console.error(payErr);
-          alert('결제 요청에 실패했습니다. 다시 시도해 주세요.');
+          console.error('requestPayment', payErr);
+          alert(formatWidgetPaymentError(payErr));
         }
       });
     }
