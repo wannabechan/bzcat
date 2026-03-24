@@ -384,7 +384,7 @@ function showLoadingError(msg, showRetry = false) {
   `;
   if (showRetry) {
     document.getElementById('adminRetryBtn')?.addEventListener('click', () => {
-      document.getElementById('adminContent').innerHTML = '<div class="admin-loading">로딩 중...</div>';
+      document.getElementById('adminContent').innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
       init();
     });
   }
@@ -931,7 +931,7 @@ function getPaymentPeriodRange(period) {
 
 async function loadPaymentManagement() {
   const content = document.getElementById('adminPaymentContent');
-  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
 
   try {
     const token = getToken();
@@ -1097,7 +1097,7 @@ async function loadStats() {
   if (!startDate) startDate = defaultRange.start;
   if (!endDate) endDate = defaultRange.end;
 
-  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   try {
     const token = getToken();
     const params = new URLSearchParams();
@@ -1609,7 +1609,7 @@ async function loadLogs() {
   const container = document.getElementById('adminLogsContent');
   if (!container) return;
 
-  container.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  container.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   const token = getToken();
   try {
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/logs/list`, { headers: { Authorization: `Bearer ${token}` } });
@@ -1704,7 +1704,7 @@ async function loadLogs() {
 async function loadUsersManagement() {
   const container = document.getElementById('adminUsersContent');
   if (!container) return;
-  container.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  container.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   const token = getToken();
   try {
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
@@ -2015,7 +2015,7 @@ async function openAdminOrderDetailById(orderId) {
   if (!content || !overlay) return;
   overlay.classList.add('visible');
   overlay.setAttribute('aria-hidden', 'false');
-  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   const token = getToken();
   try {
     const res = await fetchWithTimeout(`${API_BASE}/api/admin/order?orderId=${encodeURIComponent(orderId)}`, {

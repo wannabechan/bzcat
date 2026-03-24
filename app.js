@@ -404,7 +404,7 @@ function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
         if (enabled) {
           html += `<button type="button" class="delivery-date-cell delivery-date-cell--enabled" data-date="${dateStr}">${dayNum}</button>`;
         } else {
-          html += `<span class="delivery-date-cell delivery-date-cell--disabled" ${inRange ? '' : 'aria-hidden="true"'}>${dayNum}</span>`;
+          html += `<span class="delivery-date-cell delivery-date-cell--disabled" data-date="${dateStr}" ${inRange ? '' : 'aria-hidden="true"'}>${dayNum}</span>`;
         }
       }
 
@@ -412,6 +412,16 @@ function renderDeliveryDatePickerPanel(panelEl, categorySlug) {
     }
   }
   panelEl.innerHTML = html;
+}
+
+function scrollDeliveryDatePickerToTodayRow(panelEl) {
+  if (!panelEl) return;
+  const todayStr = getKSTDateStr(Date.now());
+  const target =
+    panelEl.querySelector(`.delivery-date-cell[data-date="${todayStr}"]`) ||
+    panelEl.querySelector('.delivery-date-cell--enabled[data-date]');
+  if (!target) return;
+  target.scrollIntoView({ block: 'center', inline: 'nearest' });
 }
 
 // 장바구니에 포함된 첫 매장의 결제정보
@@ -1101,7 +1111,7 @@ async function fetchAndRenderProfileOrders() {
   }
   profileEmpty.style.display = 'block';
   profileOrders.style.display = 'none';
-  profileEmpty.innerHTML = '<p>로딩 중...</p>';
+  profileEmpty.innerHTML = '<div class="initial-load-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div>';
 
   try {
     const res = await fetch('/api/orders/my', {
@@ -1469,6 +1479,7 @@ function init() {
     if (deliveryDatePickerPanel) {
       renderDeliveryDatePickerPanel(deliveryDatePickerPanel, category);
       deliveryDatePickerPanel.classList.add('open');
+      requestAnimationFrame(() => scrollDeliveryDatePickerToTodayRow(deliveryDatePickerPanel));
       deliveryDatePickerDisplay?.setAttribute('aria-expanded', 'true');
       setTimeout(() => document.addEventListener('click', closeDeliveryDatePickerOnOutside), 0);
     }

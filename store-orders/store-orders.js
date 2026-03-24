@@ -586,7 +586,7 @@ async function loadStoreOrdersStats() {
   if (!startDate) startDate = defaultRange.start;
   if (!endDate) endDate = defaultRange.end;
 
-  content.innerHTML = '<div class="admin-loading">로딩 중...</div>';
+  content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   try {
     const token = getToken();
     if (!token) {
