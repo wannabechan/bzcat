@@ -200,7 +200,6 @@
         if (!agreementOk) return;
         try {
           await widgets.requestPayment({
-            amount: { currency: 'KRW', value: payAmount },
             orderId: String(orderData.orderId),
             orderName: String(orderData.orderName),
             successUrl: successUrl,
