@@ -49,9 +49,16 @@
   /** 토스 SDK가 던지는 PublicError 등에서 사용자/지원용 문구 추출 */
   function formatWidgetPaymentError(err) {
     if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
-    var code = err.code != null ? String(err.code) : '';
+    var nested = err.error && typeof err.error === 'object' ? err.error : null;
+    var code =
+      err.code != null
+        ? String(err.code)
+        : nested && nested.code != null
+          ? String(nested.code)
+          : '';
     var msg =
       (typeof err.message === 'string' && err.message.trim()) ||
+      (nested && typeof nested.message === 'string' && nested.message.trim()) ||
       (typeof err.reason === 'string' && err.reason.trim()) ||
       '';
     if (msg && code) return msg + '\n(' + code + ')';
@@ -123,6 +130,12 @@
       return;
     }
 
+    var payAmount = Math.floor(Number(orderData.amount));
+    if (!Number.isFinite(payAmount) || payAmount < 100) {
+      showError('유효한 결제 금액이 아닙니다.');
+      return;
+    }
+
     var loading = document.getElementById('paymentLoading');
     var main = document.getElementById('paymentMain');
     var summaryEl = document.getElementById('paymentOrderSummary');
@@ -138,8 +151,7 @@
       strong.textContent = '주문 #' + String(orderData.orderId);
       var span = document.createElement('span');
       span.className = 'payment-widget-amount';
-      var amt = Number(orderData.amount);
-      span.textContent = Number.isFinite(amt) ? amt.toLocaleString() + '원' : '';
+      span.textContent = payAmount.toLocaleString() + '원';
       summaryEl.appendChild(strong);
       summaryEl.appendChild(span);
     }
@@ -149,7 +161,7 @@
 
     await widgets.setAmount({
       currency: 'KRW',
-      value: orderData.amount,
+      value: payAmount,
     });
 
     await widgets.renderPaymentMethods({
@@ -188,6 +200,7 @@
         if (!agreementOk) return;
         try {
           await widgets.requestPayment({
+            amount: { currency: 'KRW', value: payAmount },
             orderId: String(orderData.orderId),
             orderName: String(orderData.orderName),
             successUrl: successUrl,
