@@ -4,6 +4,7 @@
  * emailAdmin: 문의용 이메일 (환경변수 EMAIL_ADMIN)
  * minOrderPrice: 최소 주문 금액 (환경변수 MIN_ORDERRPICE)
  * tossWidgetClientKey: 토스 결제위젯 클라이언트 키 (live_gck_…, PAYKEY_BZCAT_WIDGET_CLIENT)
+ * tossWidgetVariantPayment: 결제위젯 어드민의 결제 UI variantKey (기본 DEFAULT, 환경변수 PAYKEY_BZCAT_WIDGET_VARIANT_PAYMENT)
  */
 
 const { apiResponse } = require('./_utils');
@@ -24,9 +25,21 @@ module.exports = async (req, res) => {
       ? Math.floor(envMinOrderPrice)
       : 100;
     const tossWidgetClientKey = (process.env.PAYKEY_BZCAT_WIDGET_CLIENT || '').trim();
-    return apiResponse(res, 200, { emailAdmin, minOrderPrice, tossWidgetClientKey });
+    const rawVariant = (process.env.PAYKEY_BZCAT_WIDGET_VARIANT_PAYMENT || '').trim();
+    const tossWidgetVariantPayment = rawVariant || 'DEFAULT';
+    return apiResponse(res, 200, {
+      emailAdmin,
+      minOrderPrice,
+      tossWidgetClientKey,
+      tossWidgetVariantPayment,
+    });
   } catch (error) {
     console.error('Config error:', error);
-    return apiResponse(res, 500, { emailAdmin: '', minOrderPrice: 100, tossWidgetClientKey: '' });
+    return apiResponse(res, 500, {
+      emailAdmin: '',
+      minOrderPrice: 100,
+      tossWidgetClientKey: '',
+      tossWidgetVariantPayment: 'DEFAULT',
+    });
   }
 };

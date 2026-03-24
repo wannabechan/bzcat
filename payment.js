@@ -46,49 +46,55 @@
     return String(s || '').replace(/\D/g, '');
   }
 
-  /**
-   * 결제위젯에서 widgets.requestPayment()로 바로 열 수 있는 수단(ENUM·간편결제).
-   * 커스텀 결제수단(어드민에 등록한 키)·간편결제 직연동(별도 구현)은 제외 — CUSTOM_PAYMENT_METHOD_UNABLE_TO_PAY 방지.
-   * @see https://docs.tosspayments.com/codes/enum-codes
-   * @see https://docs.tosspayments.com/guides/v2/payment-widget/pro/integration-custom
-   */
-  var WIDGET_REQUEST_PAYMENT_CODES = new Set([
-    '카드',
-    'CARD',
-    '계좌이체',
-    'TRANSFER',
-    '가상계좌',
-    'VIRTUAL_ACCOUNT',
-    '휴대폰',
-    'MOBILE_PHONE',
-    '문화상품권',
-    'CULTURE_GIFT_CERTIFICATE',
-    '도서문화상품권',
-    'BOOK_GIFT_CERTIFICATE',
-    '게임문화상품권',
-    'GAME_GIFT_CERTIFICATE',
-    '간편결제',
-    'EASY_PAY',
-    '토스페이',
-    '토스결제',
-    'TOSSPAY',
-    '네이버페이',
-    'NAVERPAY',
-    '카카오페이',
-    'KAKAOPAY',
-    '삼성페이',
-    'SAMSUNGPAY',
-    '엘페이',
-    'LPAY',
-    '페이코',
-    'PAYCO',
-    'SSG페이',
-    'SSG',
-    '애플페이',
-    'APPLEPAY',
-    '핀페이',
-    'PINPAY',
-  ]);
+  /** 토스 약관: 렌더 직후 체크는 보이는데 agreementStatusChange가 안 오는 경우가 있어, SDK/지연/DOM으로 보완 */
+  function syncAgreementInitialState(agreementWidget, btnPayEl, setAgreementOk) {
+    if (!agreementWidget || typeof setAgreementOk !== 'function') return;
+
+    function applyAgreementStatus(agreementStatus) {
+      var ok = !!(agreementStatus && agreementStatus.agreedRequiredTerms);
+      setAgreementOk(ok);
+      if (btnPayEl) btnPayEl.disabled = !ok;
+    }
+
+    if (typeof agreementWidget.on === 'function') {
+      agreementWidget.on('agreementStatusChange', applyAgreementStatus);
+    } else {
+      setAgreementOk(true);
+      if (btnPayEl) btnPayEl.disabled = false;
+      return;
+    }
+
+    function trySdkStatus() {
+      var fn = agreementWidget.getAgreementStatus;
+      if (typeof fn !== 'function') return;
+      Promise.resolve(fn.call(agreementWidget))
+        .then(applyAgreementStatus)
+        .catch(function () {});
+    }
+
+    trySdkStatus();
+    setTimeout(trySdkStatus, 0);
+    setTimeout(trySdkStatus, 100);
+    setTimeout(trySdkStatus, 300);
+
+    setTimeout(function domFallbackIfStillDisabled() {
+      if (!btnPayEl || !btnPayEl.disabled) return;
+      var root = document.getElementById('agreement');
+      if (!root) return;
+      var boxes = root.querySelectorAll('input[type="checkbox"]');
+      if (!boxes.length) return;
+      var allChecked = true;
+      for (var i = 0; i < boxes.length; i++) {
+        if (!boxes[i].checked) {
+          allChecked = false;
+          break;
+        }
+      }
+      if (allChecked) {
+        applyAgreementStatus({ agreedRequiredTerms: true });
+      }
+    }, 50);
+  }
 
   /** 토스 SDK가 던지는 PublicError 등에서 사용자/지원용 문구 추출 */
   function formatWidgetPaymentError(err) {
@@ -163,6 +169,10 @@
       showError('결제(클라이언트 키) 설정이 되어 있지 않습니다. 관리자에게 문의해 주세요.');
       return;
     }
+    var variantPayment = (config && config.tossWidgetVariantPayment)
+      ? String(config.tossWidgetVariantPayment).trim()
+      : 'DEFAULT';
+    if (!variantPayment) variantPayment = 'DEFAULT';
 
     var orderData = {};
     try {
@@ -200,36 +210,38 @@
       summaryEl.appendChild(span);
     }
 
-    var tossPayments = TossPayments(clientKey);
-    var widgets = tossPayments.widgets({ customerKey: getOrCreateCustomerKey() });
-
-    await widgets.setAmount({
-      currency: 'KRW',
-      value: payAmount,
-    });
-
-    var paymentMethodWidget = await widgets.renderPaymentMethods({
-      selector: '#payment-method',
-      variantKey: 'DEFAULT',
-    });
-
+    var tossPayments;
+    var widgets;
+    var paymentMethodWidget;
     var agreementOk = false;
     try {
+      tossPayments = TossPayments(clientKey);
+      widgets = tossPayments.widgets({ customerKey: getOrCreateCustomerKey() });
+
+      await widgets.setAmount({
+        currency: 'KRW',
+        value: payAmount,
+      });
+
+      paymentMethodWidget = await widgets.renderPaymentMethods({
+        selector: '#payment-method',
+        variantKey: variantPayment,
+      });
+
       var agreementWidget = await widgets.renderAgreement({
         selector: '#agreement',
       });
-      if (agreementWidget && typeof agreementWidget.on === 'function') {
-        agreementWidget.on('agreementStatusChange', function (agreementStatus) {
-          agreementOk = !!(agreementStatus && agreementStatus.agreedRequiredTerms);
-          if (btnPay) btnPay.disabled = !agreementOk;
+      if (agreementWidget) {
+        syncAgreementInitialState(agreementWidget, btnPay, function (ok) {
+          agreementOk = ok;
         });
       } else {
         agreementOk = true;
         if (btnPay) btnPay.disabled = false;
       }
-    } catch (agrErr) {
-      console.error('renderAgreement:', agrErr);
-      showError('약관 영역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } catch (widgetErr) {
+      console.error('payment widget init:', widgetErr);
+      showError('결제 화면을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
       return;
     }
 
@@ -255,13 +267,6 @@
             selectedPm && selectedPm.code != null ? String(selectedPm.code).trim() : '';
           if (!code) {
             alert('결제 수단을 선택해 주세요.');
-            return;
-          }
-          if (!WIDGET_REQUEST_PAYMENT_CODES.has(code)) {
-            alert(
-              '선택하신 결제수단은 이 연동 방식으로 결제할 수 없습니다.\n' +
-                '카드·계좌이체·가상계좌 등을 선택하거나, 토스 결제위젯 어드민에서 커스텀 결제수단(또는 직연동만 추가된 간편결제)을 끄고 다시 시도해 주세요.',
-            );
             return;
           }
           await widgets.requestPayment({
