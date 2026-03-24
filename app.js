@@ -1381,34 +1381,15 @@ function init() {
       const orderId = card?.dataset?.orderId;
       const order = orderId && profileOrdersData[orderId];
       if (!order) return;
-      (async () => {
-        const token = window.BzCatAuth?.getToken();
-        if (!token) {
-          alert('로그인이 필요합니다.');
-          return;
-        }
-        try {
-          const res = await fetch('/api/payment/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ orderId }),
-          });
-          const text = await res.text();
-          let data = {};
-          try {
-            data = text ? JSON.parse(text) : {};
-          } catch (_) {}
-          if (!res.ok) {
-            alert(data.error || '결제 요청에 실패했습니다.');
-            return;
-          }
-          if (data.checkoutUrl) window.location.href = data.checkoutUrl;
-          else alert('결제 URL을 받지 못했습니다.');
-        } catch (err) {
-          console.error(err);
-          alert('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
-        }
-      })();
+      const token = window.BzCatAuth?.getToken();
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      try {
+        sessionStorage.setItem('bzcat_pay_return_open_profile', '1');
+      } catch (_) {}
+      window.location.href = '/payment.html?orderId=' + encodeURIComponent(orderId);
       return;
     }
     
@@ -1711,6 +1692,9 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   const paymentResult = params.get('payment');
   if (paymentResult === 'cancel') {
+    try {
+      sessionStorage.removeItem('bzcat_pay_return_open_profile');
+    } catch (_) {}
     const clearParam = () => {
       const u = new URL(window.location.href);
       u.searchParams.delete('payment');
@@ -1721,6 +1705,9 @@ function init() {
       clearParam();
     });
   } else if (paymentResult === 'success' || paymentResult === 'error') {
+    try {
+      sessionStorage.removeItem('bzcat_pay_return_open_profile');
+    } catch (_) {}
     const clearParam = () => {
       const u = new URL(window.location.href);
       u.searchParams.delete('payment');
@@ -1729,6 +1716,13 @@ function init() {
     openProfile().then(() => {
       clearParam();
     });
+  } else {
+    try {
+      if (sessionStorage.getItem('bzcat_pay_return_open_profile') === '1') {
+        sessionStorage.removeItem('bzcat_pay_return_open_profile');
+        openProfile();
+      }
+    } catch (_) {}
   }
 
   const orderAcceptResult = params.get('order_accept');

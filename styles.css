@@ -3089,3 +3089,146 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Toss 결제위젯 전용 페이지 (payment.html) ===== */
+.payment-widget-page {
+  margin: 0;
+  min-height: 100dvh;
+  background: #f4f5f7;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+}
+
+.payment-widget-inner {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.payment-widget-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.payment-widget-logo-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.payment-widget-logo {
+  height: 28px;
+  width: auto;
+  vertical-align: middle;
+}
+
+.payment-widget-loading {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.payment-widget-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--color-primary, #2d7a4f);
+  border-radius: 50%;
+  animation: payment-widget-spin 0.8s linear infinite;
+}
+
+@keyframes payment-widget-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.payment-widget-loading-text {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.payment-widget-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 16px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.payment-widget-lead {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.payment-widget-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.payment-widget-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+
+.payment-widget-slot {
+  margin-bottom: 16px;
+}
+
+.payment-widget-agreement-slot {
+  margin-top: 8px;
+}
+
+.payment-widget-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-payment-widget-primary {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-primary, #2d7a4f);
+  color: #fff;
+}
+
+.btn-payment-widget-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-payment-widget-secondary {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: #fff;
+  color: #333;
+}
+
+.payment-widget-error {
+  text-align: center;
+}
+
+.payment-widget-error-text {
+  margin: 0 0 16px;
+  color: #c0392b;
+  line-height: 1.5;
+}
