@@ -59,7 +59,7 @@
 | JWT fallback       | 높음   | production 외 환경에서도 시크릿 필수 또는 fallback 제거 |
 | 메뉴 name/desc XSS | 중간   | HTML 이스케이프 적용          |
 | auth devCode       | 중간   | textContent 또는 이스케이프   |
-| apiKeyEnvVar       | 중간   | 허용 env 이름 화이트리스트   |
+| 결제 시크릿       | —      | 매장별 env 선택 제거. 서버는 `PAYKEY_BZCAT_WIDGET_SECRET` 등 고정 키만 사용 |
 | localStorage 토큰 | 낮음   | 장기적으로 HttpOnly 쿠키 검토 |
 
 위 항목부터 순서대로 반영하면 위험 요소가 크게 줄어듭니다.

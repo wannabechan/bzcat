@@ -172,7 +172,6 @@ function generateStoreId() {
 }
 
 function renderStore(store, menus) {
-  const payment = store.payment || { apiKeyEnvVar: 'TOSS_SECRET_KEY' };
   const deliveryFee = Number.isFinite(Number(store.deliveryFee)) && Number(store.deliveryFee) >= 0 ? Math.floor(Number(store.deliveryFee)) : 50000;
   const items = menus || [];
   const storeIdEsc = escapeHtml(store.id || '');
@@ -192,7 +191,7 @@ function renderStore(store, menus) {
         <div class="admin-section">
           <div class="admin-section-title-row">
             <span class="admin-section-title">매장 정보</span>
-            <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${storeIdEsc}" aria-label="API 환경변수 설정" title="API 환경변수 설정">
+            <button type="button" class="admin-btn admin-btn-icon admin-btn-settings" data-store-settings="${storeIdEsc}" aria-label="영업·배송 설정" title="영업 요일·시간·배송비">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
           </div>
@@ -202,7 +201,6 @@ function renderStore(store, menus) {
               <input type="text" data-field="title" value="${escapeHtml(store.title || '')}" placeholder="예: 도시락">
             </div>
           </div>
-          <input type="hidden" data-field="apiKeyEnvVar" value="${escapeHtml(payment.apiKeyEnvVar || 'TOSS_SECRET_KEY')}">
           <input type="hidden" data-field="businessDays" value="${(store.businessDays && Array.isArray(store.businessDays) ? store.businessDays : [0,1,2,3,4,5,6]).join(',')}">
           <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
           <input type="hidden" data-field="deliveryFee" value="${deliveryFee}">
@@ -334,7 +332,6 @@ function collectData() {
     const representativeInput = storeEl.querySelector('input[data-field="representative"]');
     const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
-    const apiKeyEnvVarInput = storeEl.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl.querySelector('input[data-field="deliveryFee"]');
@@ -343,9 +340,7 @@ function collectData() {
     const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
     const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
     const deliveryFee = parseInt(deliveryFeeInput?.value || '50000', 10);
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, payment: {
-      apiKeyEnvVar: apiKeyEnvVarInput?.value?.trim() || 'TOSS_SECRET_KEY',
-    } };
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000 };
     stores.push(store);
 
     const menuList = storeEl.querySelector('.admin-menu-list');
@@ -2122,18 +2117,15 @@ async function init() {
   }
   function applyApiSettingsModal() {
     const modal = document.getElementById('adminApiSettingsModal');
-    const modalInput = document.getElementById('adminApiSettingsEnvVar');
     const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
     const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
     const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
     const storeId = modal?.dataset?.currentStoreId;
     if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
-    const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
     const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
-    if (apiKeyInput) apiKeyInput.value = (modalInput?.value || '').trim() || 'TOSS_SECRET_KEY';
     if (businessDaysContainer && businessDaysInput) {
       const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
         .map((cb) => parseInt(cb.dataset.day, 10))
@@ -2163,7 +2155,7 @@ async function init() {
       if (!modal) return;
       const tabId = tab.dataset.settingsTab;
       modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
-      const panelMap = { 'payment-env': 'adminSettingsPanelPaymentEnv', 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours', 'delivery-fee': 'adminSettingsPanelDeliveryFee' };
+      const panelMap = { 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours', 'delivery-fee': 'adminSettingsPanelDeliveryFee' };
       const panelId = panelMap[tabId];
       modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
       if (panelId) document.getElementById(panelId)?.classList.add('active');
@@ -2200,20 +2192,17 @@ async function init() {
         const btn = e.target.closest('[data-store-settings]');
         const storeEl = btn.closest('.admin-store');
         const storeId = storeEl?.dataset?.storeId;
-        const apiKeyInput = storeEl?.querySelector('input[data-field="apiKeyEnvVar"]');
         const businessDaysInput = storeEl?.querySelector('input[data-field="businessDays"]');
         const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
         const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
         const modal = document.getElementById('adminApiSettingsModal');
-        const modalInput = document.getElementById('adminApiSettingsEnvVar');
         const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
         const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
         const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
-        if (storeId && apiKeyInput && modal && modalInput) {
+        if (storeId && modal) {
           modal.dataset.currentStoreId = storeId;
           modalTitle.textContent = storeEl.querySelector('.admin-store-title')?.textContent || storeId;
-          modalInput.value = apiKeyInput.value || 'TOSS_SECRET_KEY';
           const daysStr = businessDaysInput?.value || '0,1,2,3,4,5,6';
           const days = daysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
           businessDaysContainer?.querySelectorAll('input[data-day]').forEach((cb) => {
@@ -2229,9 +2218,9 @@ async function init() {
             deliveryFeeModalInput.value = Number.isFinite(parsedDeliveryFee) && parsedDeliveryFee >= 0 ? String(parsedDeliveryFee) : '50000';
           }
           modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.remove('active'));
-          modal.querySelector('[data-settings-tab="payment-env"]')?.classList.add('active');
+          modal.querySelector('[data-settings-tab="business-days"]')?.classList.add('active');
           modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
-          document.getElementById('adminSettingsPanelPaymentEnv')?.classList.add('active');
+          document.getElementById('adminSettingsPanelBusinessDays')?.classList.add('active');
           modal.classList.add('admin-modal-visible');
           modal.setAttribute('aria-hidden', 'false');
         }
@@ -2261,7 +2250,6 @@ async function init() {
           businessDays: [0, 1, 2, 3, 4, 5, 6],
           businessHours: [...BUSINESS_HOURS_SLOTS],
           deliveryFee: 50000,
-          payment: { apiKeyEnvVar: 'TOSS_SECRET_KEY' },
         };
         const div = document.createElement('div');
         div.innerHTML = renderStore(newStore, []);

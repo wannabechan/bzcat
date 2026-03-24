@@ -1,8 +1,13 @@
 /**
- * 결제 API 공통 헬퍼 (getAppOrigin, getStoreSlugFromOrder, getTossSecretKeyForOrder)
+ * 결제 API 공통 헬퍼 (getAppOrigin, getTossSecretKeyForOrder)
+ *
+ * 결제위젯 시크릿(live_gsk_…): Vercel `PAYKEY_BZCAT_WIDGET_SECRET`
+ * 구 이름 `PAYKEY_BZCAT`은 fallback
  */
 
-const { getStores } = require('../_redis');
+/** 결제위젯 연동 시크릿 전용 env (구 PAYKEY_BZCAT → 이 이름 권장) */
+const WIDGET_SECRET_ENV = 'PAYKEY_BZCAT_WIDGET_SECRET';
+const WIDGET_SECRET_ENV_LEGACY = 'PAYKEY_BZCAT';
 
 function getAppOrigin(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host || '';
@@ -10,36 +15,13 @@ function getAppOrigin(req) {
   return `${proto}://${host}`;
 }
 
-/** itemId 형식: {slug}-{menuId}. slug에 하이픈 포함 가능(예: store-mma43xv8-1 → store-mma43xv8) */
-function getStoreSlugFromOrder(order) {
-  const items = order.order_items;
-  if (!Array.isArray(items) || items.length === 0) return null;
-  const firstId = items[0]?.id;
-  if (!firstId || typeof firstId !== 'string') return null;
-  const parts = firstId.split('-');
-  const slug = parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
-  return slug || null;
-}
-
-const FIXED_TOSS_ENV_NAMES = ['TOSS_SECRET_KEY', 'TOSS_SECRET_KEY_TEST'];
-/** 결제키 환경변수 명칭 규칙: PAYKEY_ 로 시작 + 영문/숫자/밑줄 */
-const PAYKEY_PATTERN = /^PAYKEY_[A-Za-z0-9_]+$/;
-
-function isAllowedTossEnvName(name) {
-  if (!name || typeof name !== 'string') return false;
-  const trimmed = name.trim();
-  return FIXED_TOSS_ENV_NAMES.includes(trimmed) || PAYKEY_PATTERN.test(trimmed);
-}
-
-async function getTossSecretKeyForOrder(order) {
-  const stores = await getStores();
-  const slug = getStoreSlugFromOrder(order);
-  const store = slug
-    ? stores.find((s) => (s.id === slug || s.slug === slug))
-    : null;
-  let envVarName = (store?.payment?.apiKeyEnvVar || stores[0]?.payment?.apiKeyEnvVar || '').trim() || 'TOSS_SECRET_KEY';
-  if (!isAllowedTossEnvName(envVarName)) envVarName = 'TOSS_SECRET_KEY';
-  return process.env[envVarName] || '';
+/** 매장 구분 없이 동일한 결제위젯 시크릿 사용 */
+async function getTossSecretKeyForOrder() {
+  return (
+    process.env[WIDGET_SECRET_ENV] ||
+    process.env[WIDGET_SECRET_ENV_LEGACY] ||
+    ''
+  ).trim();
 }
 
 module.exports = {

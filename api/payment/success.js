@@ -15,6 +15,35 @@ function pickQuery(req, key) {
   return Array.isArray(v) ? v[0] : v;
 }
 
+async function confirmPaymentWithSecret(secretKey, payload) {
+  const auth = Buffer.from(`${secretKey}:`, 'utf8').toString('base64');
+  const confirmRes = await fetch(TOSS_CONFIRM, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const bodyText = await confirmRes.text();
+  let bodyJson = null;
+  try {
+    bodyJson = bodyText ? JSON.parse(bodyText) : null;
+  } catch (_) {}
+  return { ok: confirmRes.ok, status: confirmRes.status, bodyText, bodyJson };
+}
+
+function isRetryableKeyMismatch(result) {
+  const code = result?.bodyJson?.code ? String(result.bodyJson.code).trim() : '';
+  return (
+    code === 'UNAUTHORIZED_KEY' ||
+    code === 'FORBIDDEN_REQUEST' ||
+    result?.status === 401 ||
+    result?.status === 403
+  );
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -45,26 +74,32 @@ module.exports = async (req, res) => {
   if (!TOSS_SECRET_KEY) {
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
+  const TOSS_API_SECRET_KEY = (process.env.PAYKEY_BZCAT_API_SECRET || '').trim();
 
   try {
     const amountNum = Number(amount);
-    const auth = Buffer.from(`${TOSS_SECRET_KEY}:`, 'utf8').toString('base64');
-    const confirmRes = await fetch(TOSS_CONFIRM, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({
-        paymentKey: String(paymentKey).trim(),
-        orderId: orderIdStr,
-        amount: amountNum,
-      }),
-    });
+    const confirmPayload = {
+      paymentKey: String(paymentKey).trim(),
+      orderId: orderIdStr,
+      amount: amountNum,
+    };
+    let confirmResult = await confirmPaymentWithSecret(TOSS_SECRET_KEY, confirmPayload);
+    if (
+      !confirmResult.ok &&
+      TOSS_API_SECRET_KEY &&
+      TOSS_API_SECRET_KEY !== TOSS_SECRET_KEY &&
+      isRetryableKeyMismatch(confirmResult)
+    ) {
+      console.warn(
+        'Payment success: retry confirm with PAYKEY_BZCAT_API_SECRET',
+        confirmResult.status,
+        confirmResult.bodyJson?.code || ''
+      );
+      confirmResult = await confirmPaymentWithSecret(TOSS_API_SECRET_KEY, confirmPayload);
+    }
 
-    if (!confirmRes.ok) {
-      const errBody = await confirmRes.text();
-      console.error('Payment success: confirm failed', confirmRes.status, errBody);
+    if (!confirmResult.ok) {
+      console.error('Payment success: confirm failed', confirmResult.status, confirmResult.bodyText);
       return res.redirect(302, `${redirectBase}?payment=error`);
     }
 
