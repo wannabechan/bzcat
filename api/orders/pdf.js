@@ -4,7 +4,7 @@
  * 본인 주문 또는 관리자만 접근
  */
 
-const { verifyToken, setCorsHeaders, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, setCorsHeaders, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 
@@ -30,13 +30,13 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: '주문 번호가 필요합니다.' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const sessionToken = getTokenFromRequest(req);
+  if (!sessionToken) {
     setCorsHeaders(res);
     return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
 
-  const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
+  const user = withResolvedLevel(verifyToken(sessionToken));
   if (!user) {
     setCorsHeaders(res);
     return res.status(401).json({ error: '로그인이 필요합니다.' });

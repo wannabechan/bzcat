@@ -55,6 +55,13 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function adminAuthHeaders(base = {}) {
+  const h = { ...base };
+  const token = getToken();
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
 function escapeHtml(s) {
   if (s == null || s === '') return '';
   const t = String(s);
@@ -73,16 +80,16 @@ function safeImageUrl(url) {
 function fetchWithTimeout(url, options, timeoutMs) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), timeoutMs || FETCH_TIMEOUT_MS);
-  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(id));
+  const opts = { credentials: 'include', ...(options || {}), signal: ctrl.signal };
+  opts.headers = { ...(opts.headers || {}) };
+  const token = getToken();
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, opts).finally(() => clearTimeout(id));
 }
 
 async function checkAdmin() {
-  const token = getToken();
-  if (!token) return { ok: false, error: '로그인이 필요합니다.' };
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/auth/session`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(`${API_BASE}/api/auth/session`, {});
     if (!res.ok) return { ok: false, error: '세션이 만료되었습니다.' };
     const data = await res.json();
     const level = data.user?.level;
@@ -98,13 +105,10 @@ async function checkAdmin() {
 }
 
 async function fetchStores() {
-  const token = getToken();
   const debug = /[?&]debug=1(?:&|$)/i.test(window.location.search || '');
   const url = `${API_BASE}/api/admin/stores` + (debug ? '?debug=1' : '');
   try {
-    const res = await fetchWithTimeout(url, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(url, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || '데이터를 불러올 수 없습니다.');
@@ -117,13 +121,10 @@ async function fetchStores() {
 }
 
 async function saveStores(stores, menus) {
-  const token = getToken();
   const res = await fetch(`${API_BASE}/api/admin/stores`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    credentials: 'include',
+    headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ stores, menus }),
   });
   if (!res.ok) {
@@ -133,12 +134,12 @@ async function saveStores(stores, menus) {
 }
 
 async function uploadImage(file) {
-  const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch(`${API_BASE}/api/admin/upload-image`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
+    credentials: 'include',
+    headers: adminAuthHeaders(),
     body: formData,
   });
   const data = await res.json().catch(() => ({}));
@@ -715,13 +716,10 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/payment-link`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include',
+          headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId, paymentLink }),
         });
 
@@ -767,13 +765,10 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/shipping-number`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include',
+          headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId, trackingNumber }),
         });
 
@@ -815,13 +810,10 @@ function renderPaymentList() {
       btn.textContent = '저장 중...';
 
       try {
-        const token = getToken();
         const res = await fetch(`${API_BASE}/api/admin/delivery-complete`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include',
+          headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId, code }),
         });
 
@@ -854,11 +846,10 @@ function renderPaymentList() {
         return;
       }
       try {
-        const token = getToken();
-        if (!token) return;
         const res = await fetch(`${API_BASE}/api/admin/cancel-order`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId }),
         });
         const data = await res.json().catch(() => ({}));
@@ -887,11 +878,10 @@ function renderPaymentList() {
         return;
       }
       try {
-        const token = getToken();
-        if (!token) return;
         const res = await fetch(`${API_BASE}/api/admin/delete-order`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId }),
         });
         const data = await res.json().catch(() => ({}));
@@ -2061,11 +2051,10 @@ function openAdminOrderDetail(order, slugToDisplayName, storeSlugs) {
     const orderIdForPdf = order.id;
     pdfBtn.onclick = async (e) => {
       e.preventDefault();
-      const token = getToken();
-      if (!token) return;
       try {
         const res = await fetch(`${API_BASE}/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: adminAuthHeaders(),
         });
         if (!res.ok) return;
         const blob = await res.blob();
@@ -2340,9 +2329,9 @@ async function init() {
         const menuId = itemEl?.dataset?.menuId;
         if (menuId) {
           try {
-            const token = getToken();
             const res = await fetch(`${API_BASE}/api/admin/check-menu-in-use?menuId=${encodeURIComponent(menuId)}`, {
-              headers: { Authorization: `Bearer ${token}` },
+              credentials: 'include',
+              headers: adminAuthHeaders(),
             });
             const data = await res.json().catch(() => ({}));
             if (data.inUse === true) {

@@ -4,7 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
-const { verifyToken, apiResponse, getUserLevel } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest } = require('../_utils');
 const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
@@ -24,13 +24,12 @@ module.exports = async (req, res) => {
 
   try {
     // 인증 확인
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const token = authHeader.substring(7);
-    const user = verifyToken(token);
+    const user = verifyToken(sessionToken);
 
     if (!user) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });

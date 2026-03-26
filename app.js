@@ -56,10 +56,14 @@ async function loadPublicConfig() {
 async function fetchIsEmailAdmin() {
   try {
     const token = window.BzCatAuth?.getToken?.();
-    if (!token) return false;
-    const res = await fetch('/api/auth/session', {
-      headers: { Authorization: `Bearer ${token}` },
+    const headers = window.BzCatAuth?.authFetchHeaders?.() || {};
+    let res = await fetch('/api/auth/session', {
+      credentials: 'include',
+      headers,
     });
+    if (!res.ok && token) {
+      res = await fetch('/api/auth/session', { credentials: 'include', headers: {} });
+    }
     if (!res.ok) return false;
     const body = await res.json();
     return body.user?.level === 'admin';
@@ -857,11 +861,11 @@ function openProfileOrderDetail(order) {
     const orderIdForPdf = order.id;
     pdfBtn.onclick = async (e) => {
       e.preventDefault();
-      const token = window.BzCatAuth?.getToken();
-      if (!token) return;
+      if (!window.BzCatAuth?.isLoggedIn?.()) return;
       try {
         const res = await fetch(`/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: window.BzCatAuth.authFetchHeaders(),
         });
         if (!res.ok) return;
         const blob = await res.blob();
@@ -982,8 +986,7 @@ function hideOrderCancelLoading() {
 }
 
 async function doCancelOrder(order) {
-  const token = window.BzCatAuth?.getToken();
-  if (!token) {
+  if (!window.BzCatAuth?.isLoggedIn?.()) {
     alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
     window.location.reload();
     return;
@@ -992,10 +995,10 @@ async function doCancelOrder(order) {
   try {
     const res = await fetch('/api/orders/cancel', {
       method: 'POST',
-      headers: {
+      credentials: 'include',
+      headers: window.BzCatAuth.authFetchHeaders({
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      }),
       body: JSON.stringify({ orderId: order.id }),
     });
     let data = {};
@@ -1122,8 +1125,7 @@ function updateProfileButtonHighlight() {
 }
 
 async function fetchAndRenderProfileOrders() {
-  const token = window.BzCatAuth?.getToken();
-  if (!token) {
+  if (!window.BzCatAuth?.isLoggedIn?.()) {
     profileEmpty.style.display = 'block';
     profileOrders.style.display = 'none';
     profileEmpty.innerHTML = '<p>로그인이 필요합니다</p>';
@@ -1137,7 +1139,8 @@ async function fetchAndRenderProfileOrders() {
 
   try {
     const res = await fetch('/api/orders/my', {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: window.BzCatAuth.authFetchHeaders(),
     });
     const data = await res.json();
 
@@ -1306,7 +1309,7 @@ function closeChatIntroModal() {
 function handleMenuGridClick(e) {
   const qtyBtn = e.target.closest('.menu-qty-btn');
   if (qtyBtn) {
-    if (!window.BzCatAuth?.getToken()) {
+    if (!window.BzCatAuth?.isLoggedIn?.()) {
       openLoginRequiredModal();
       return;
     }
@@ -1328,7 +1331,7 @@ function handleMenuGridClick(e) {
   }
   const addBtn = e.target.closest('.menu-add-btn');
   if (addBtn) {
-    if (!window.BzCatAuth?.getToken()) {
+    if (!window.BzCatAuth?.isLoggedIn?.()) {
       openLoginRequiredModal();
       return;
     }
@@ -1413,8 +1416,7 @@ function init() {
       const orderId = card?.dataset?.orderId;
       const order = orderId && profileOrdersData[orderId];
       if (!order) return;
-      const token = window.BzCatAuth?.getToken();
-      if (!token) {
+      if (!window.BzCatAuth?.isLoggedIn?.()) {
         alert('로그인이 필요합니다.');
         return;
       }
@@ -1600,8 +1602,7 @@ function init() {
   });
 
   btnOrderSubmit.addEventListener('click', async () => {
-      const token = window.BzCatAuth?.getToken();
-      if (!token) {
+      if (!window.BzCatAuth?.isLoggedIn?.()) {
         alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
         window.location.reload();
         return;
@@ -1655,10 +1656,10 @@ function init() {
       try {
         const response = await fetch('/api/orders/create', {
           method: 'POST',
-          headers: {
+          credentials: 'include',
+          headers: window.BzCatAuth.authFetchHeaders({
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          }),
           body: JSON.stringify(orderData),
         });
 

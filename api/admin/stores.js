@@ -7,7 +7,7 @@
  */
 
 const { getStores, getMenus, saveStoresAndMenus } = require('../_redis');
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -19,12 +19,12 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
+    const user = withResolvedLevel(verifyToken(sessionToken));
     if (!user) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }

@@ -3,7 +3,7 @@
  * 인증 코드 검증 및 JWT 토큰 발급
  */
 
-const { generateToken, getUserLevel, apiResponse } = require('../_utils');
+const { generateToken, getUserLevel, apiResponse, setSessionCookie } = require('../_utils');
 const { getAndDeleteAuthCode, getUser, createUser, updateUserLogin } = require('../_redis');
 
 module.exports = async (req, res) => {
@@ -47,10 +47,10 @@ module.exports = async (req, res) => {
     }
 
     const token = generateToken(normalizedEmail, userData.level);
+    setSessionCookie(res, req, token);
 
     return apiResponse(res, 200, {
       success: true,
-      token,
       user: {
         email: userData.email,
         level: userData.level,

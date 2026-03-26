@@ -4,7 +4,7 @@
  * user.isStoreManager: 매장 담당자 이메일로 등록된 매장이 있을 때 true
  */
 
-const { verifyToken, apiResponse, getUserLevel } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest } = require('../_utils');
 const { getStores } = require('../_redis');
 
 function isStoreManagerEmail(email, stores) {
@@ -25,12 +25,11 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = getTokenFromRequest(req);
+    if (!token) {
       return apiResponse(res, 401, { error: '인증 토큰이 필요합니다.' });
     }
 
-    const token = authHeader.substring(7);
     const decoded = verifyToken(token);
     if (!decoded) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });

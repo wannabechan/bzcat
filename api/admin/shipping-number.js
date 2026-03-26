@@ -3,7 +3,7 @@
  * 배송 번호(전화번호 형식) 저장 및 주문 상태를 배송중으로 변경 (admin 전용)
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 const { getOrderById, updateOrderShippingNumber, getStores } = require('../_redis');
 const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
@@ -28,12 +28,12 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = withResolvedLevel(verifyToken(authHeader.substring(7)));
+    const user = withResolvedLevel(verifyToken(sessionToken));
     if (!user || !isAdminOrOperator(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }

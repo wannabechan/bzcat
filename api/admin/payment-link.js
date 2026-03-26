@@ -3,7 +3,7 @@
  * 주문의 결제 링크 설정 (admin 전용)
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 const { getOrderById, updateOrderPaymentLink, updateOrderStatus, getStores } = require('../_redis');
 const { getStoreForOrder, getStoreDisplayName } = require('../orders/_order-email');
 const { sendAlimtalk } = require('../_alimtalk');
@@ -18,13 +18,12 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const token = authHeader.substring(7);
-    const user = withResolvedLevel(verifyToken(token));
+    const user = withResolvedLevel(verifyToken(sessionToken));
 
     if (!user) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });

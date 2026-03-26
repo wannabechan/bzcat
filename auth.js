@@ -10,6 +10,8 @@ const CODE_VALID_SECONDS = 120; // 2분
 
 let pendingEmail = null;
 let codeCountdownInterval = null;
+/** checkSession 성공 시 사용자 (쿠키 세션 포함). 로그아웃 시 null. */
+let cachedSessionUser = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -22,18 +24,40 @@ function setToken(token) {
 function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
   pendingEmail = null;
+  cachedSessionUser = null;
+}
+
+function isLoggedIn() {
+  return !!cachedSessionUser;
+}
+
+/** 인증이 필요한 fetch용 헤더. 레거시 localStorage 토큰이 있으면 Bearer 병행. */
+function authFetchHeaders(extra = {}) {
+  const headers = { ...extra };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
 }
 
 async function checkSession() {
-  const token = getToken();
-  if (!token) return null;
-
   try {
-    const response = await fetch(`${API_BASE}/api/auth/session`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const token = getToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    let response = await fetch(`${API_BASE}/api/auth/session`, {
+      credentials: 'include',
+      headers,
     });
+    if (!response.ok && token) {
+      response = await fetch(`${API_BASE}/api/auth/session`, {
+        credentials: 'include',
+        headers: {},
+      });
+      if (response.ok) {
+        try {
+          localStorage.removeItem(TOKEN_KEY);
+        } catch (_) {}
+      }
+    }
 
     if (!response.ok) {
       clearToken();
@@ -41,6 +65,7 @@ async function checkSession() {
     }
 
     const data = await response.json();
+    cachedSessionUser = data.user || null;
     return data.user;
   } catch (error) {
     console.error('Session check error:', error);
@@ -216,6 +241,7 @@ async function initAuth() {
     try {
       const response = await fetch(`${API_BASE}/api/auth/send-code`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -272,6 +298,7 @@ async function initAuth() {
     try {
       const response = await fetch(`${API_BASE}/api/auth/verify-code`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -288,8 +315,6 @@ async function initAuth() {
         return;
       }
 
-      // 토큰 저장
-      setToken(data.token);
       pendingEmail = null;
 
       // 첫 로그인 환영 메시지
@@ -355,12 +380,15 @@ async function initAuth() {
   }
 
   if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
+    btnLogout.addEventListener('click', async () => {
       if (profileMenuPanel) {
         profileMenuPanel.classList.remove('open');
         profileMenuPanel.setAttribute('aria-hidden', 'true');
         if (profileHamburgerBtn) profileHamburgerBtn.setAttribute('aria-expanded', 'false');
       }
+      try {
+        await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+      } catch (_) {}
       clearToken();
       resetToStep1();
       showApp(null);
@@ -404,6 +432,8 @@ window.BzCatAuth = {
   getToken,
   checkSession,
   showLogin,
+  isLoggedIn,
+  authFetchHeaders,
 };
 
 document.addEventListener('DOMContentLoaded', initAuth);

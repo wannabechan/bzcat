@@ -5,6 +5,18 @@
 (function () {
   const TOKEN_KEY = 'bzcat_token';
 
+  /** 체크아웃 전용 페이지: 브라우저 뒤로 가기 시 중간 히스토리 대신 홈(취소 URL)으로 보냄 */
+  (function setupPaymentBackGuard() {
+    try {
+      history.pushState({ bzcatPaymentGuard: true }, '', window.location.href);
+    } catch (_) {}
+    function onPopState() {
+      window.removeEventListener('popstate', onPopState);
+      window.location.replace('/?payment=cancel');
+    }
+    window.addEventListener('popstate', onPopState);
+  })();
+
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       window.location.reload();
@@ -13,6 +25,33 @@
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY);
+  }
+
+  function paymentAuthHeaders() {
+    var t = getToken();
+    var h = {};
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+
+  async function ensurePaymentSession() {
+    var initial = getToken();
+    var r = await fetch('/api/auth/session', {
+      credentials: 'include',
+      headers: paymentAuthHeaders(),
+    });
+    if (!r.ok && initial) {
+      r = await fetch('/api/auth/session', {
+        credentials: 'include',
+        headers: {},
+      });
+      if (r.ok) {
+        try {
+          localStorage.removeItem(TOKEN_KEY);
+        } catch (_) {}
+      }
+    }
+    return r.ok;
   }
 
   function showError(message) {
@@ -151,13 +190,12 @@
   async function init() {
     const params = new URLSearchParams(window.location.search);
     const orderId = (params.get('orderId') || '').trim();
-    const token = getToken();
 
     if (!orderId) {
       showError('주문 번호가 없습니다.');
       return;
     }
-    if (!token) {
+    if (!(await ensurePaymentSession())) {
       window.location.replace('/?payment=cancel');
       return;
     }
@@ -172,7 +210,8 @@
     try {
       configRes = await fetch('/api/config');
       orderRes = await fetch('/api/payment/widget-order?orderId=' + encodeURIComponent(orderId), {
-        headers: { Authorization: 'Bearer ' + token },
+        credentials: 'include',
+        headers: paymentAuthHeaders(),
       });
     } catch (err) {
       console.error(err);

@@ -42,6 +42,33 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function storeOrdersAuthHeaders(base = {}) {
+  const h = { ...base };
+  const t = getToken();
+  if (t) h['Authorization'] = `Bearer ${t}`;
+  return h;
+}
+
+async function fetchStoreOrdersSession() {
+  const initial = getToken();
+  let res = await fetch(`${API_BASE}/api/auth/session`, {
+    credentials: 'include',
+    headers: storeOrdersAuthHeaders(),
+  });
+  if (!res.ok && initial) {
+    res = await fetch(`${API_BASE}/api/auth/session`, {
+      credentials: 'include',
+      headers: {},
+    });
+    if (res.ok) {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+      } catch (_) {}
+    }
+  }
+  return res;
+}
+
 function escapeHtml(s) {
   if (s == null || s === '') return '';
   const t = String(s);
@@ -302,13 +329,10 @@ function openOrderDetail(order) {
       acceptBtn.disabled = true;
       acceptBtn.textContent = '처리 중...';
       try {
-        const token = getToken();
         const res = await fetch(`${API_BASE}/api/manager/accept-order`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include',
+          headers: storeOrdersAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId }),
         });
         const data = await res.json().catch(() => ({}));
@@ -344,13 +368,10 @@ function openOrderDetail(order) {
       const origText = el.textContent;
       el.textContent = '처리 중...';
       try {
-        const token = getToken();
         const res = await fetch(`${API_BASE}/api/manager/reject-order`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include',
+          headers: storeOrdersAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ orderId, reason }),
         });
         const data = await res.json().catch(() => ({}));
@@ -588,16 +609,12 @@ async function loadStoreOrdersStats() {
 
   content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   try {
-    const token = getToken();
-    if (!token) {
-      content.innerHTML = '<div class="admin-stats-error">로그인이 필요합니다.</div>';
-      return;
-    }
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
     const res = await fetch(`${API_BASE}/api/manager/stats?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: storeOrdersAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -727,18 +744,11 @@ function showStoreOrdersError(msg) {
 
 async function loadStoreOrders() {
   const content = document.getElementById('storeOrdersContent');
-  const token = getToken();
-  if (!token) {
-    showStoreOrdersError('로그인이 필요합니다.');
-    return;
-  }
 
   try {
-    const sessionRes = await fetch(`${API_BASE}/api/auth/session`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const sessionRes = await fetchStoreOrdersSession();
     if (!sessionRes.ok) {
-      showStoreOrdersError('세션 확인에 실패했습니다. 다시 로그인해 주세요.');
+      showStoreOrdersError('로그인이 필요합니다.');
       return;
     }
     const sessionData = await sessionRes.json();
@@ -751,7 +761,8 @@ async function loadStoreOrders() {
     const { startDate, endDate } = getStoreOrdersPeriodRange(storeOrdersPeriod);
     const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
     const res = await fetch(`${API_BASE}/api/manager/orders?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: storeOrdersAuthHeaders(),
     });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
@@ -896,11 +907,11 @@ async function loadStoreSettlementPeriod(settlementDateStr) {
   const resultEl = document.getElementById('storeSettlementPeriodResult');
   if (resultEl) resultEl.innerHTML = '';
 
-  const token = getToken();
   const requestedDate = settlementDateStr;
   try {
     const res = await fetch(`${API_BASE}/api/manager/settlement-period?startDate=${encodeURIComponent(period.start)}&endDate=${encodeURIComponent(period.end)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: storeOrdersAuthHeaders(),
     });
     const dateSelect = document.getElementById('storeSettlementDateSelect');
     if (dateSelect && dateSelect.value !== requestedDate) {

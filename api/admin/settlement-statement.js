@@ -3,7 +3,7 @@
  * 기간·브랜드별 정산서 데이터 (일별 집계, 수수료 18%, admin 전용)
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
 const { getAdminSampleOrders } = require('./_sample-orders');
@@ -21,12 +21,11 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return apiResponse(res, 405, { error: 'Method not allowed' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
-    const token = authHeader.substring(7);
-    const user = withResolvedLevel(verifyToken(token));
+    const user = withResolvedLevel(verifyToken(sessionToken));
     if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     if (!isAdminOrOperator(user)) return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
 

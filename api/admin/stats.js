@@ -3,7 +3,7 @@
  * 통계 집계 (admin 전용) - 주문/매출/전환/배송/메뉴/시계열/CRM/알림
  */
 
-const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getAdminSampleOrders } = require('./_sample-orders');
 const { parseKSTDate, getKSTDateString } = require('../_kst');
@@ -57,12 +57,11 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return apiResponse(res, 405, { error: 'Method not allowed' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
-    const token = authHeader.substring(7);
-    const user = withResolvedLevel(verifyToken(token));
+    const user = withResolvedLevel(verifyToken(sessionToken));
     if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     if (!isAdminOrOperator(user)) return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
 

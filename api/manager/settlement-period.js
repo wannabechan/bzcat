@@ -3,7 +3,7 @@
  * 기간 내 배송완료된 주문을 브랜드별로 집계 (매장 담당자 전용 - 담당 매장만)
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder, getStoreEmailForOrder } = require('../orders/_order-email');
 
@@ -20,12 +20,11 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return apiResponse(res, 405, { error: 'Method not allowed' });
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
-    const token = authHeader.substring(7);
-    const user = verifyToken(token);
+    const user = verifyToken(sessionToken);
     if (!user) return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
 
     const managerEmail = (user.email || '').trim().toLowerCase();

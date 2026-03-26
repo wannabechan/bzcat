@@ -4,6 +4,11 @@
 
 const jwt = require('jsonwebtoken');
 
+/** HttpOnly 세션 쿠키 (JWT). Bearer 헤더와 병행 지원(이전 클라이언트·외부 도구 호환). */
+const SESSION_COOKIE_NAME = 'bzcat_session';
+/** generateToken expiresIn: '3d' 와 동일 */
+const JWT_MAX_AGE_SEC = 3 * 24 * 60 * 60;
+
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 16) {
   throw new Error('JWT_SECRET is required and must be at least 16 characters. Set it in Vercel Environment Variables (and .env.local for local dev).');
@@ -75,7 +80,77 @@ function setCorsHeaders(response) {
   response.setHeader('Access-Control-Allow-Credentials', 'true');
   response.setHeader('Access-Control-Allow-Origin', allowOrigin || 'null');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  response.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  response.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie'
+  );
+}
+
+/**
+ * Authorization: Bearer 우선, 없으면 HttpOnly 쿠키(bzcat_session)에서 JWT 추출
+ */
+function getTokenFromRequest(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    const t = authHeader.substring(7).trim();
+    if (t) return t;
+  }
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader || typeof cookieHeader !== 'string') return '';
+  const parts = cookieHeader.split(';');
+  const prefix = `${SESSION_COOKIE_NAME}=`;
+  for (let i = 0; i < parts.length; i += 1) {
+    const segment = parts[i].trim();
+    if (segment.startsWith(prefix)) {
+      const rawVal = segment.slice(prefix.length);
+      if (!rawVal) return '';
+      try {
+        return decodeURIComponent(rawVal);
+      } catch (_) {
+        return rawVal;
+      }
+    }
+  }
+  return '';
+}
+
+function isSecureForSessionCookie(req) {
+  if (process.env.NODE_ENV === 'production') return true;
+  const proto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  return proto === 'https';
+}
+
+function buildSessionSetCookie(token, req) {
+  const value = encodeURIComponent(token);
+  const parts = [
+    `${SESSION_COOKIE_NAME}=${value}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${JWT_MAX_AGE_SEC}`,
+  ];
+  if (isSecureForSessionCookie(req)) parts.push('Secure');
+  return parts.join('; ');
+}
+
+function buildSessionClearCookie(req) {
+  const parts = [
+    `${SESSION_COOKIE_NAME}=`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=0',
+  ];
+  if (isSecureForSessionCookie(req)) parts.push('Secure');
+  return parts.join('; ');
+}
+
+function setSessionCookie(res, req, token) {
+  res.setHeader('Set-Cookie', buildSessionSetCookie(token, req));
+}
+
+function clearSessionCookie(res, req) {
+  res.setHeader('Set-Cookie', buildSessionClearCookie(req));
 }
 
 /**
@@ -93,12 +168,12 @@ function apiResponse(response, status, data) {
  * @param {{ resolveLevel?: boolean }} [opts] - resolveLevel true면 withResolvedLevel 적용
  */
 function requireAuth(req, res, opts = {}) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = getTokenFromRequest(req);
+  if (!token) {
     apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     return null;
   }
-  const decoded = verifyToken(authHeader.substring(7));
+  const decoded = verifyToken(token);
   if (!decoded) {
     apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     return null;
@@ -116,4 +191,9 @@ module.exports = {
   setCorsHeaders,
   apiResponse,
   requireAuth,
+  getTokenFromRequest,
+  setSessionCookie,
+  clearSessionCookie,
+  SESSION_COOKIE_NAME,
+  JWT_MAX_AGE_SEC,
 };

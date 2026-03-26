@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { put } = require('@vercel/blob');
 const formidable = require('formidable-serverless');
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
@@ -38,12 +38,12 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(authHeader.substring(7));
+    const user = verifyToken(sessionToken);
     if (!user || !isAdmin(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }

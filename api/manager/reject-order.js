@@ -4,7 +4,7 @@
  * reason: schedule | cooking | other → 취소 사유: 매장 일정 이슈 | 매장 준비 이슈 | 매장 운영 이슈
  */
 
-const { verifyToken, apiResponse } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
 const { getOrderById, getStores } = require('../_redis');
 const { getStoreEmailForOrder } = require('../orders/_order-email');
 const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
@@ -23,13 +23,12 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const sessionToken = getTokenFromRequest(req);
+    if (!sessionToken) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const token = authHeader.substring(7);
-    const user = verifyToken(token);
+    const user = verifyToken(sessionToken);
     if (!user) {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
