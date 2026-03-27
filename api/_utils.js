@@ -90,28 +90,37 @@ function setCorsHeaders(response) {
  * Authorization: Bearer 우선, 없으면 HttpOnly 쿠키(bzcat_session)에서 JWT 추출
  */
 function getTokenFromRequest(req) {
+  const getCookieToken = () => {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader || typeof cookieHeader !== 'string') return '';
+    const parts = cookieHeader.split(';');
+    const prefix = `${SESSION_COOKIE_NAME}=`;
+    for (let i = 0; i < parts.length; i += 1) {
+      const segment = parts[i].trim();
+      if (segment.startsWith(prefix)) {
+        const rawVal = segment.slice(prefix.length);
+        if (!rawVal) return '';
+        try {
+          return decodeURIComponent(rawVal);
+        } catch (_) {
+          return rawVal;
+        }
+      }
+    }
+    return '';
+  };
+
   const authHeader = req.headers.authorization;
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     const t = authHeader.substring(7).trim();
-    if (t) return t;
-  }
-  const cookieHeader = req.headers.cookie;
-  if (!cookieHeader || typeof cookieHeader !== 'string') return '';
-  const parts = cookieHeader.split(';');
-  const prefix = `${SESSION_COOKIE_NAME}=`;
-  for (let i = 0; i < parts.length; i += 1) {
-    const segment = parts[i].trim();
-    if (segment.startsWith(prefix)) {
-      const rawVal = segment.slice(prefix.length);
-      if (!rawVal) return '';
-      try {
-        return decodeURIComponent(rawVal);
-      } catch (_) {
-        return rawVal;
-      }
+    if (t && t !== 'null' && t !== 'undefined') {
+      // 만료/훼손 Bearer가 있어도 쿠키 세션이 유효하면 정상 동작하도록 fallback
+      if (verifyToken(t)) return t;
+      const cookieToken = getCookieToken();
+      return cookieToken || t;
     }
   }
-  return '';
+  return getCookieToken();
 }
 
 function isSecureForSessionCookie(req) {

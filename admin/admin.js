@@ -924,12 +924,9 @@ async function loadPaymentManagement() {
   content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
 
   try {
-    const token = getToken();
     const { startDate, endDate } = getPaymentPeriodRange(adminPaymentPeriod);
     const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {});
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -941,9 +938,7 @@ async function loadPaymentManagement() {
     adminPaymentTotal = typeof total === 'number' ? total : adminPaymentOrders.length;
 
     try {
-      const storesRes = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const storesRes = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {});
       if (storesRes.ok) {
         const { stores } = await storesRes.json();
         adminStoresMap = {};
@@ -972,12 +967,9 @@ async function loadPaymentManagement() {
 async function refetchPaymentOrdersAndRender() {
   const content = document.getElementById('adminPaymentContent');
   try {
-    const token = getToken();
     const { startDate, endDate } = getPaymentPeriodRange(adminPaymentPeriod);
     const params = new URLSearchParams({ startDate, endDate, limit: '5000', offset: '0' });
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/orders?${params}`, {});
     if (!res.ok) return;
     const { orders, total } = await res.json();
     adminPaymentOrders = orders || [];
@@ -1089,13 +1081,10 @@ async function loadStats() {
 
   content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
   try {
-    const token = getToken();
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/stats?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/stats?${params.toString()}`, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       content.innerHTML = `<div class="admin-stats-error">${escapeHtml(err.error || '통계를 불러올 수 없습니다.')}</div>`;
@@ -1413,8 +1402,7 @@ async function runSettlementStatementSearch() {
     return;
   }
   try {
-    const token = getToken();
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&slug=${encodeURIComponent(slug)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&slug=${encodeURIComponent(slug)}`, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       _showStatementSpinner(false);
@@ -1489,10 +1477,9 @@ async function loadSettlementPeriod(settlementDateStr) {
     _applySettlementPeriodResult(renderMockSettlementTwoLists(data.executed || [], data.notExecuted || []));
     return;
   }
-  const token = getToken();
   const requestedDate = settlementDateStr;
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-period?startDate=${encodeURIComponent(period.start)}&endDate=${encodeURIComponent(period.end)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/settlement-period?startDate=${encodeURIComponent(period.start)}&endDate=${encodeURIComponent(period.end)}`, {});
     const currentSelect = document.getElementById('adminSettlementDateSelect');
     if (currentSelect && currentSelect.value !== requestedDate) {
       if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
@@ -1600,9 +1587,8 @@ async function loadLogs() {
   if (!container) return;
 
   container.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
-  const token = getToken();
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/logs/list`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/logs/list`, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || '로그 목록을 불러올 수 없습니다.');
@@ -1674,7 +1660,7 @@ async function loadLogs() {
       for (const { pathname, url } of checked) {
         try {
           const q = url ? `url=${encodeURIComponent(url)}` : `pathname=${encodeURIComponent(pathname)}`;
-          const r = await fetchWithTimeout(`${API_BASE}/api/admin/logs/download?${q}`, { headers: { Authorization: `Bearer ${token}` } });
+          const r = await fetchWithTimeout(`${API_BASE}/api/admin/logs/download?${q}`, {});
           if (!r.ok) continue;
           const blob = await r.blob();
           const objectUrl = URL.createObjectURL(blob);
@@ -1695,9 +1681,8 @@ async function loadUsersManagement() {
   const container = document.getElementById('adminUsersContent');
   if (!container) return;
   container.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
-  const token = getToken();
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/users`, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || '사용자 목록을 불러올 수 없습니다.');
@@ -2006,11 +1991,8 @@ async function openAdminOrderDetailById(orderId) {
   overlay.classList.add('visible');
   overlay.setAttribute('aria-hidden', 'false');
   content.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
-  const token = getToken();
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/api/admin/order?orderId=${encodeURIComponent(orderId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/order?orderId=${encodeURIComponent(orderId)}`, {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       content.innerHTML = '<p class="admin-stats-error">' + escapeHtml(err.error || '주문을 불러올 수 없습니다.') + '</p>';
