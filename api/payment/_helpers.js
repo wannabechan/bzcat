@@ -6,7 +6,12 @@
  */
 
 function getAppOrigin(req) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+  const configured = (process.env.APP_ORIGIN || '').trim();
+  if (/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(configured)) {
+    return configured;
+  }
+  const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').toString().trim();
+  const host = rawHost.replace(/[^A-Za-z0-9.:-]/g, '');
   const proto = req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
   return `${proto}://${host}`;
 }

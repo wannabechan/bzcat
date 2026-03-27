@@ -74,6 +74,9 @@ async function fetchIsEmailAdmin() {
 
 let tossSdkLoadPromise = null;
 let activePaymentOrderId = null;
+let paymentConfigCache = null;
+let paymentConfigCachedAt = 0;
+const PAYMENT_CONFIG_CACHE_MS = 5 * 60 * 1000;
 
 function loadTossPaymentsSdk() {
   if (typeof window.TossPayments === 'function') return Promise.resolve();
@@ -126,8 +129,15 @@ async function startOrderPayment(orderId) {
       sessionStorage.setItem('bzcat_pay_return_open_profile', '1');
     } catch (_) {}
 
+    const configPromise = (() => {
+      const now = Date.now();
+      if (paymentConfigCache && now - paymentConfigCachedAt < PAYMENT_CONFIG_CACHE_MS) {
+        return Promise.resolve({ ok: true, json: async () => paymentConfigCache });
+      }
+      return fetch('/api/config');
+    })();
     const [configRes, orderRes] = await Promise.all([
-      fetch('/api/config'),
+      configPromise,
       fetch(`/api/payment/prepare?orderId=${encodeURIComponent(orderId)}`, {
         credentials: 'include',
         headers: window.BzCatAuth.authFetchHeaders(),
@@ -135,6 +145,10 @@ async function startOrderPayment(orderId) {
     ]);
 
     const config = await configRes.json().catch(() => ({}));
+    if (configRes.ok && config && typeof config === 'object') {
+      paymentConfigCache = config;
+      paymentConfigCachedAt = Date.now();
+    }
     const orderData = await orderRes.json().catch(() => ({}));
     if (!orderRes.ok) {
       alert(orderData.error || '주문 정보를 불러올 수 없습니다.');

@@ -54,6 +54,11 @@ module.exports = async (req, res) => {
   }
 
   const orderIdStr = String(orderId).trim();
+  const paymentKeyStr = String(paymentKey).trim();
+  if (orderIdStr.length > 64 || !/^[A-Za-z0-9_-]+$/.test(orderIdStr) || paymentKeyStr.length < 8 || paymentKeyStr.length > 256) {
+    console.error('Payment success: invalid params format');
+    return res.redirect(302, `${redirectBase}?payment=error`);
+  }
   const order = await getOrderById(orderIdStr);
   if (!order) {
     console.error('Payment success: order not found', orderIdStr);
@@ -67,8 +72,13 @@ module.exports = async (req, res) => {
 
   try {
     const amountNum = Number(amount);
+    const expectedAmount = Math.floor(Number(order.total_amount));
+    if (!Number.isFinite(amountNum) || !Number.isInteger(amountNum) || amountNum < 100 || amountNum !== expectedAmount) {
+      console.error('Payment success: amount mismatch', { requested: amountNum, expected: expectedAmount, orderId: orderIdStr });
+      return res.redirect(302, `${redirectBase}?payment=error`);
+    }
     const confirmPayload = {
-      paymentKey: String(paymentKey).trim(),
+      paymentKey: paymentKeyStr,
       orderId: orderIdStr,
       amount: amountNum,
     };
@@ -79,7 +89,7 @@ module.exports = async (req, res) => {
       return res.redirect(302, `${redirectBase}?payment=error`);
     }
 
-    await updateOrderTossPaymentKey(orderIdStr, String(paymentKey).trim());
+    await updateOrderTossPaymentKey(orderIdStr, paymentKeyStr);
     await updateOrderStatus(orderIdStr, 'payment_completed', 'payment_system');
 
     // 결제 완료 시 매장 담당자 알림톡: storeName, orderId, totalAmount, deliveryDate, deliveryTime

@@ -46,6 +46,10 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 # Resend API Key (https://resend.com 에서 발급)
 RESEND_API_KEY=re_your_api_key_here
 RESEND_FROM_EMAIL=인증한_발신_이메일  (도메인 인증 후, 선택)
+
+# Toss Payments (API 개별 연동)
+PAYKEY_BZCAT_API_CLIENT=test_ck_xxxx
+PAYKEY_BZCAT_API_SECRET=test_sk_xxxx
 ```
 
 ### 3. 데이터베이스 설정
@@ -108,6 +112,9 @@ Vercel Dashboard → 프로젝트 → Storage → Postgres → Query에서 `db/s
 
 ### 주문
 - `POST /api/orders/create` - 주문 생성
+- `GET /api/payment/prepare` - 결제 요청 사전 검증/데이터 반환 (로그인 필요)
+- `GET /api/payment/success` - 결제 성공 리다이렉트/승인 처리
+- `GET /api/payment/fail` - 결제 실패/취소 리다이렉트 처리
 
 ## 보안
 

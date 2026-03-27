@@ -20,9 +20,11 @@
 ### 3. 개발용 코드 노출 (`auth.js`)
 - **변경**: `devCode`를 `innerHTML`에 넣지 않고, `textContent`와 `createElement`로만 표시하도록 수정.
 
-### 4. 결제 시크릿 선택 (구: 매장별 env 이름)
-- **현재**: 서버는 `PAYKEY_BZCAT_WIDGET_SECRET`(및 구 `PAYKEY_BZCAT`)만 사용. 어드민 매장별 결제 env 입력은 제거됨.
-- **직연동 결제**: 클라이언트는 `PAYKEY_BZCAT_API_CLIENT`, 승인/취소는 `PAYKEY_BZCAT_API_SECRET`과 위젯 시크릿 조합(아래 최근 점검 참고).
+### 4. 결제 키 관리 (API 개별 연동)
+- **현재**: 결제는 API 개별 연동 기준으로 고정.
+- **클라이언트 SDK 키**: `PAYKEY_BZCAT_API_CLIENT` (`*_ck_`)
+- **서버 승인/취소 키**: `PAYKEY_BZCAT_API_SECRET` (`*_sk_`)
+- **중요**: 코드에서 키를 추측/파생하지 않고, 관리자 페이지 발급 키를 환경변수로 직접 사용.
 
 ---
 
@@ -60,7 +62,7 @@
 | JWT fallback       | 높음   | production 외 환경에서도 시크릿 필수 또는 fallback 제거 |
 | 메뉴 name/desc XSS | 중간   | HTML 이스케이프 적용          |
 | auth devCode       | 중간   | textContent 또는 이스케이프   |
-| 결제 시크릿       | —      | 매장별 env 선택 제거. 서버는 `PAYKEY_BZCAT_WIDGET_SECRET` 등 고정 키만 사용 |
+| 결제 키 관리      | —      | API 개별 연동 키 2개(`PAYKEY_BZCAT_API_CLIENT`, `PAYKEY_BZCAT_API_SECRET`)를 명시적으로 사용 |
 | localStorage 토큰 | 낮음   | 장기적으로 HttpOnly 쿠키 검토 |
 
 위 항목부터 순서대로 반영하면 위험 요소가 크게 줄어듭니다.
@@ -81,12 +83,12 @@
 ## 2026 보안 점검 및 최적화
 
 ### 보안·안정성
-- **결제 취소 API** (`api/orders/cancel.js`): `payment_completed` 시 토스 결제 취소 호출에 **위젯 시크릿(`gsk`) 실패 시 `PAYKEY_BZCAT_API_SECRET` 재시도** 추가. 직연동 간편결제(`ck` 경로)로 결제된 건의 취소가 위젯 키만으로는 `UNAUTHORIZED_KEY`가 나올 수 있어, 승인 API(`success.js`)와 동일한 키 매칭 전략을 맞춤.
+- **결제 취소 API** (`api/orders/cancel.js`): `PAYKEY_BZCAT_API_SECRET` 단일 경로로 취소 호출.
 - **요청 본문**: `req.body`가 객체가 아닐 때를 대비해 빈 객체로 처리 후 `orderId` 파싱.
 - **인증**: 동일 파일에서 수동 Bearer 파싱 대신 `requireAuth(req, res)` 사용으로 일관성 유지.
 
 ### 참고 (추가 조치 없음)
-- **`/api/config`**: `tossWidgetClientKey`, `tossApiClientKey`는 공개 클라이언트 키이므로 응답 포함이 정상. 시크릿은 절대 노출하지 않음.
+- **`/api/config`**: `tossApiClientKey`(`PAYKEY_BZCAT_API_CLIENT`)는 공개 가능한 SDK 키이므로 응답 포함이 정상. 시크릿은 절대 노출하지 않음.
 - **프로덕션 CORS**: `APP_ORIGIN` 미설정 시 `Access-Control-Allow-Origin`이 빈 값에 가깝게 동작할 수 있으므로 배포 시 반드시 설정 권장.
 
 ---

@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
 
     const rawId = req.query.orderId;
     const orderId = typeof rawId === 'string' ? rawId.trim() : '';
-    if (!orderId) {
+    if (!orderId || orderId.length > 64 || !/^[A-Za-z0-9_-]+$/.test(orderId)) {
       return apiResponse(res, 400, { error: '주문 번호가 필요합니다.' });
     }
 

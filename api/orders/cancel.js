@@ -35,16 +35,6 @@ async function cancelPaymentWithSecret(secretKey, paymentKey) {
   return { ok: cancelRes.ok, status: cancelRes.status, bodyText, bodyJson };
 }
 
-function isRetryableTossKeyMismatch(result) {
-  const code = result?.bodyJson?.code ? String(result.bodyJson.code).trim() : '';
-  return (
-    code === 'UNAUTHORIZED_KEY' ||
-    code === 'FORBIDDEN_REQUEST' ||
-    result?.status === 401 ||
-    result?.status === 403
-  );
-}
-
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
     return apiResponse(res, 200, {});
@@ -105,21 +95,7 @@ module.exports = async (req, res) => {
       if (!TOSS_SECRET_KEY) {
         return apiResponse(res, 503, { error: '결제 설정을 찾을 수 없습니다.' });
       }
-      const TOSS_API_SECRET_KEY = (process.env.PAYKEY_BZCAT_API_SECRET || '').trim();
-      let cancelResult = await cancelPaymentWithSecret(TOSS_SECRET_KEY, paymentKey);
-      if (
-        !cancelResult.ok &&
-        TOSS_API_SECRET_KEY &&
-        TOSS_API_SECRET_KEY !== TOSS_SECRET_KEY &&
-        isRetryableTossKeyMismatch(cancelResult)
-      ) {
-        console.warn(
-          'Toss payment cancel: retry with PAYKEY_BZCAT_API_SECRET',
-          cancelResult.status,
-          cancelResult.bodyJson?.code || ''
-        );
-        cancelResult = await cancelPaymentWithSecret(TOSS_API_SECRET_KEY, paymentKey);
-      }
+      const cancelResult = await cancelPaymentWithSecret(TOSS_SECRET_KEY, paymentKey);
       const cancelData = cancelResult.bodyJson || {};
       if (!cancelResult.ok) {
         const errMsg = cancelData.message || cancelData.error?.message || cancelData.msg || '결제 취소에 실패했습니다.';
