@@ -34,16 +34,6 @@ async function confirmPaymentWithSecret(secretKey, payload) {
   return { ok: confirmRes.ok, status: confirmRes.status, bodyText, bodyJson };
 }
 
-function isRetryableKeyMismatch(result) {
-  const code = result?.bodyJson?.code ? String(result.bodyJson.code).trim() : '';
-  return (
-    code === 'UNAUTHORIZED_KEY' ||
-    code === 'FORBIDDEN_REQUEST' ||
-    result?.status === 401 ||
-    result?.status === 403
-  );
-}
-
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -70,11 +60,10 @@ module.exports = async (req, res) => {
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
 
-  const TOSS_SECRET_KEY = await getTossSecretKeyForOrder(order);
-  if (!TOSS_SECRET_KEY) {
+  const tossSecretKey = await getTossSecretKeyForOrder(order);
+  if (!tossSecretKey) {
     return res.redirect(302, `${redirectBase}?payment=error`);
   }
-  const TOSS_API_SECRET_KEY = (process.env.PAYKEY_BZCAT_API_SECRET || '').trim();
 
   try {
     const amountNum = Number(amount);
@@ -83,20 +72,7 @@ module.exports = async (req, res) => {
       orderId: orderIdStr,
       amount: amountNum,
     };
-    let confirmResult = await confirmPaymentWithSecret(TOSS_SECRET_KEY, confirmPayload);
-    if (
-      !confirmResult.ok &&
-      TOSS_API_SECRET_KEY &&
-      TOSS_API_SECRET_KEY !== TOSS_SECRET_KEY &&
-      isRetryableKeyMismatch(confirmResult)
-    ) {
-      console.warn(
-        'Payment success: retry confirm with PAYKEY_BZCAT_API_SECRET',
-        confirmResult.status,
-        confirmResult.bodyJson?.code || ''
-      );
-      confirmResult = await confirmPaymentWithSecret(TOSS_API_SECRET_KEY, confirmPayload);
-    }
+    const confirmResult = await confirmPaymentWithSecret(tossSecretKey, confirmPayload);
 
     if (!confirmResult.ok) {
       console.error('Payment success: confirm failed', confirmResult.status, confirmResult.bodyText);

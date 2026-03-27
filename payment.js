@@ -1,5 +1,5 @@
 /**
- * 토스 결제위젯 전용 페이지 (payment.html)
+ * 토스 API 개별 연동 결제 페이지 (payment.html)
  */
 
 (function () {
@@ -85,79 +85,8 @@
     return String(s || '').replace(/\D/g, '');
   }
 
-  function resolveDirectEasyPay(selectedPm) {
-    if (!selectedPm || typeof selectedPm !== 'object') return '';
-    var fields = [
-      selectedPm.code,
-      selectedPm.easyPay,
-      selectedPm.easyPayCode,
-      selectedPm.methodKey,
-      selectedPm.key,
-      selectedPm.name,
-    ];
-    for (var i = 0; i < fields.length; i++) {
-      var raw = fields[i];
-      if (raw == null) continue;
-      var normalized = String(raw).trim().toUpperCase().replace(/\s+/g, '');
-      if (normalized === 'NAVERPAY' || normalized === '네이버페이') return 'NAVERPAY';
-      if (normalized === 'KAKAOPAY' || normalized === '카카오페이') return 'KAKAOPAY';
-      if (normalized === 'TOSSPAY' || normalized === '토스페이') return 'TOSSPAY';
-    }
-    return '';
-  }
-
-  /** 토스 약관: 렌더 직후 체크는 보이는데 agreementStatusChange가 안 오는 경우가 있어, SDK/지연/DOM으로 보완 */
-  function syncAgreementInitialState(agreementWidget, btnPayEl, setAgreementOk) {
-    if (!agreementWidget || typeof setAgreementOk !== 'function') return;
-
-    function applyAgreementStatus(agreementStatus) {
-      var ok = !!(agreementStatus && agreementStatus.agreedRequiredTerms);
-      setAgreementOk(ok);
-      if (btnPayEl) btnPayEl.disabled = !ok;
-    }
-
-    if (typeof agreementWidget.on === 'function') {
-      agreementWidget.on('agreementStatusChange', applyAgreementStatus);
-    } else {
-      setAgreementOk(true);
-      if (btnPayEl) btnPayEl.disabled = false;
-      return;
-    }
-
-    function trySdkStatus() {
-      var fn = agreementWidget.getAgreementStatus;
-      if (typeof fn !== 'function') return;
-      Promise.resolve(fn.call(agreementWidget))
-        .then(applyAgreementStatus)
-        .catch(function () {});
-    }
-
-    trySdkStatus();
-    setTimeout(trySdkStatus, 0);
-    setTimeout(trySdkStatus, 100);
-    setTimeout(trySdkStatus, 300);
-
-    setTimeout(function domFallbackIfStillDisabled() {
-      if (!btnPayEl || !btnPayEl.disabled) return;
-      var root = document.getElementById('agreement');
-      if (!root) return;
-      var boxes = root.querySelectorAll('input[type="checkbox"]');
-      if (!boxes.length) return;
-      var allChecked = true;
-      for (var i = 0; i < boxes.length; i++) {
-        if (!boxes[i].checked) {
-          allChecked = false;
-          break;
-        }
-      }
-      if (allChecked) {
-        applyAgreementStatus({ agreedRequiredTerms: true });
-      }
-    }, 50);
-  }
-
-  /** 토스 SDK가 던지는 PublicError 등에서 사용자/지원용 문구 추출 */
-  function formatWidgetPaymentError(err) {
+  /** 토스 SDK 오류에서 사용자/지원용 문구 추출 */
+  function formatPaymentError(err) {
     if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
     var nested = err.error && typeof err.error === 'object' ? err.error : null;
     var code =
@@ -224,16 +153,11 @@
       config = await configRes.json();
     } catch (_) {}
 
-    var clientKey = (config && config.tossWidgetClientKey) ? String(config.tossWidgetClientKey).trim() : '';
-    if (!clientKey) {
+    var apiClientKey = (config && config.tossApiClientKey) ? String(config.tossApiClientKey).trim() : '';
+    if (!apiClientKey) {
       showError('결제(클라이언트 키) 설정이 되어 있지 않습니다. 관리자에게 문의해 주세요.');
       return;
     }
-    var apiClientKey = (config && config.tossApiClientKey) ? String(config.tossApiClientKey).trim() : '';
-    var variantPayment = (config && config.tossWidgetVariantPayment)
-      ? String(config.tossWidgetVariantPayment).trim()
-      : 'DEFAULT';
-    if (!variantPayment) variantPayment = 'DEFAULT';
 
     var orderData = {};
     try {
@@ -271,46 +195,16 @@
       summaryEl.appendChild(span);
     }
 
-    var selectedPaymentMethodFromEvent = null;
     var tossPayments;
-    var widgets;
-    var paymentMethodWidget;
-    var directPayment = null;
-    var agreementOk = false;
+    var paymentClient;
     var customerKey = getOrCreateCustomerKey();
     try {
-      tossPayments = TossPayments(clientKey);
-      widgets = tossPayments.widgets({ customerKey: customerKey });
-
-      await widgets.setAmount({
-        currency: 'KRW',
-        value: payAmount,
-      });
-
-      paymentMethodWidget = await widgets.renderPaymentMethods({
-        selector: '#payment-method',
-        variantKey: variantPayment,
-      });
-      if (paymentMethodWidget && typeof paymentMethodWidget.on === 'function') {
-        paymentMethodWidget.on('paymentMethodSelect', function (selectedPaymentMethod) {
-          selectedPaymentMethodFromEvent = selectedPaymentMethod || null;
-        });
-      }
-
-      var agreementWidget = await widgets.renderAgreement({
-        selector: '#agreement',
-      });
-      if (agreementWidget) {
-        syncAgreementInitialState(agreementWidget, btnPay, function (ok) {
-          agreementOk = ok;
-        });
-      } else {
-        agreementOk = true;
-        if (btnPay) btnPay.disabled = false;
-      }
-    } catch (widgetErr) {
-      console.error('payment widget init:', widgetErr);
-      showError('결제 화면을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      tossPayments = TossPayments(apiClientKey);
+      paymentClient = tossPayments.payment({ customerKey: customerKey });
+      if (btnPay) btnPay.disabled = false;
+    } catch (initErr) {
+      console.error('payment init:', initErr);
+      showError('결제 모듈 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       return;
     }
 
@@ -322,66 +216,14 @@
 
     if (btnPay) {
       btnPay.addEventListener('click', async function () {
-        if (!agreementOk) return;
         try {
-          var selectedPm = null;
-          try {
-            if (paymentMethodWidget && typeof paymentMethodWidget.getSelectedPaymentMethod === 'function') {
-              selectedPm = await paymentMethodWidget.getSelectedPaymentMethod();
-            }
-          } catch (selErr) {
-            console.warn('getSelectedPaymentMethod', selErr);
-          }
-          var selectedPmForFlow = selectedPm || selectedPaymentMethodFromEvent || null;
-          var code =
-            selectedPmForFlow && selectedPmForFlow.code != null
-              ? String(selectedPmForFlow.code).trim()
-              : '';
-          if (!code) {
-            alert('결제 수단을 선택해 주세요.');
-            return;
-          }
-          var directEasyPay = resolveDirectEasyPay(selectedPmForFlow);
-          if (directEasyPay) {
-            if (!apiClientKey) {
-              alert('직연동 간편결제 설정이 필요합니다. 관리자에게 문의해 주세요.');
-              return;
-            }
-            if (!directPayment) {
-              try {
-                directPayment = TossPayments(apiClientKey).payment({ customerKey: customerKey });
-              } catch (initDirectErr) {
-                console.error('direct payment init:', initDirectErr);
-                alert('직연동 결제 모듈을 초기화하지 못했습니다. 설정을 확인해 주세요.');
-                return;
-              }
-            }
-            await directPayment.requestPayment({
-              method: 'CARD',
-              amount: { currency: 'KRW', value: payAmount },
-              orderId: String(orderData.orderId),
-              orderName: String(orderData.orderName),
-              successUrl: successUrl,
-              failUrl: failUrl,
-              windowTarget: 'self',
-              customerEmail: orderData.customerEmail || undefined,
-              customerName: orderData.customerName || undefined,
-              customerMobilePhone: orderData.customerMobilePhone
-                ? digitsOnly(orderData.customerMobilePhone)
-                : undefined,
-              card: {
-                flowMode: 'DIRECT',
-                easyPay: directEasyPay,
-              },
-            });
-            return;
-          }
-          await widgets.requestPayment({
+          await paymentClient.requestPayment({
+            method: 'CARD',
+            amount: { currency: 'KRW', value: payAmount },
             orderId: String(orderData.orderId),
             orderName: String(orderData.orderName),
             successUrl: successUrl,
             failUrl: failUrl,
-            // PC 기본 iframe이면 리다이렉트 결과 페이지로 이동이 막힐 수 있어 전체 창(self)으로 통일
             windowTarget: 'self',
             customerEmail: orderData.customerEmail || undefined,
             customerName: orderData.customerName || undefined,
@@ -391,7 +233,7 @@
           });
         } catch (payErr) {
           console.error('requestPayment', payErr);
-          alert(formatWidgetPaymentError(payErr));
+          alert(formatPaymentError(payErr));
         }
       });
     }
