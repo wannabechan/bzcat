@@ -85,6 +85,24 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  function buildClientKeyCandidates(rawKey) {
+    var key = String(rawKey || '').trim();
+    if (!key) return [];
+    var out = [];
+    if (key.startsWith('live_sk_')) {
+      out.push('live_ck_' + key.slice('live_sk_'.length));
+      out.push(key);
+      return out;
+    }
+    if (key.startsWith('test_sk_')) {
+      out.push('test_ck_' + key.slice('test_sk_'.length));
+      out.push(key);
+      return out;
+    }
+    out.push(key);
+    return out;
+  }
+
   /** 토스 SDK 오류에서 사용자/지원용 문구 추출 */
   function formatPaymentError(err) {
     if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
@@ -195,16 +213,10 @@
       summaryEl.appendChild(span);
     }
 
-    var tossPayments;
-    var paymentClient;
     var customerKey = getOrCreateCustomerKey();
-    try {
-      tossPayments = TossPayments(apiClientKey);
-      paymentClient = tossPayments.payment({ customerKey: customerKey });
-      if (btnPay) btnPay.disabled = false;
-    } catch (initErr) {
-      console.error('payment init:', initErr);
-      showError('결제 모듈 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    var keyCandidates = buildClientKeyCandidates(apiClientKey);
+    if (keyCandidates.length === 0) {
+      showError('결제 키 설정이 올바르지 않습니다.');
       return;
     }
 
@@ -214,9 +226,15 @@
     var successUrl = origin + '/api/payment/success';
     var failUrl = origin + '/api/payment/fail';
 
-    if (btnPay) {
-      btnPay.addEventListener('click', async function () {
+    var requested = false;
+    async function requestPaymentNow() {
+      if (requested) return;
+      requested = true;
+      if (btnPay) btnPay.disabled = true;
+      for (var i = 0; i < keyCandidates.length; i++) {
         try {
+          var tossPayments = TossPayments(keyCandidates[i]);
+          var paymentClient = tossPayments.payment({ customerKey: customerKey });
           await paymentClient.requestPayment({
             method: 'CARD',
             amount: { currency: 'KRW', value: payAmount },
@@ -230,13 +248,29 @@
             customerMobilePhone: orderData.customerMobilePhone
               ? digitsOnly(orderData.customerMobilePhone)
               : undefined,
+            card: {
+              flowMode: 'DEFAULT',
+            },
           });
+          return;
         } catch (payErr) {
           console.error('requestPayment', payErr);
-          alert(formatPaymentError(payErr));
+          if (i === keyCandidates.length - 1) {
+            requested = false;
+            if (btnPay) btnPay.disabled = false;
+            alert(formatPaymentError(payErr));
+            return;
+          }
         }
-      });
+      }
     }
+
+    if (btnPay) {
+      btnPay.disabled = false;
+      btnPay.addEventListener('click', requestPaymentNow);
+    }
+    // 내 주문에서 결제 클릭 시 중간 단계 없이 즉시 결제창으로 이동
+    requestPaymentNow();
 
     if (btnCancel) {
       btnCancel.addEventListener('click', function () {
