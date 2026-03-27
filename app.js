@@ -72,6 +72,111 @@ async function fetchIsEmailAdmin() {
   }
 }
 
+let tossSdkLoadPromise = null;
+let activePaymentOrderId = null;
+
+function loadTossPaymentsSdk() {
+  if (typeof window.TossPayments === 'function') return Promise.resolve();
+  if (tossSdkLoadPromise) return tossSdkLoadPromise;
+  tossSdkLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://js.tosspayments.com/v2/standard';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('결제 모듈을 불러오지 못했습니다.'));
+    document.head.appendChild(script);
+  });
+  return tossSdkLoadPromise;
+}
+
+function getOrCreateTossCustomerKey() {
+  try {
+    let k = sessionStorage.getItem('bzcat_toss_customer_key');
+    if (k && typeof k === 'string' && k.length >= 2) return k;
+    k = crypto.randomUUID();
+    sessionStorage.setItem('bzcat_toss_customer_key', k);
+    return k;
+  } catch (_) {
+    return `bzcat-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
+
+function formatTossPaymentError(err) {
+  if (!err) return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
+  const nested = err.error && typeof err.error === 'object' ? err.error : null;
+  const code = err.code != null
+    ? String(err.code)
+    : (nested && nested.code != null ? String(nested.code) : '');
+  const msg = (typeof err.message === 'string' && err.message.trim())
+    || (nested && typeof nested.message === 'string' && nested.message.trim())
+    || (typeof err.reason === 'string' && err.reason.trim())
+    || '';
+  if (msg && code) return `${msg}\n(${code})`;
+  if (msg) return msg;
+  if (code) return `결제 요청에 실패했습니다. (${code})`;
+  return '결제 요청에 실패했습니다. 다시 시도해 주세요.';
+}
+
+async function startOrderPayment(orderId) {
+  if (!orderId) return;
+  if (activePaymentOrderId === orderId) return;
+  activePaymentOrderId = orderId;
+  try {
+    try {
+      sessionStorage.setItem('bzcat_pay_return_open_profile', '1');
+    } catch (_) {}
+
+    const [configRes, orderRes] = await Promise.all([
+      fetch('/api/config'),
+      fetch(`/api/payment/prepare?orderId=${encodeURIComponent(orderId)}`, {
+        credentials: 'include',
+        headers: window.BzCatAuth.authFetchHeaders(),
+      }),
+    ]);
+
+    const config = await configRes.json().catch(() => ({}));
+    const orderData = await orderRes.json().catch(() => ({}));
+    if (!orderRes.ok) {
+      alert(orderData.error || '주문 정보를 불러올 수 없습니다.');
+      return;
+    }
+
+    const clientKey = String(config.tossApiClientKey || '').trim();
+    if (!/^((live|test)_ck_)/.test(clientKey)) {
+      alert('결제 키 설정이 올바르지 않습니다. PAYKEY_BZCAT_API_CLIENT를 확인해 주세요.');
+      return;
+    }
+
+    const amountValue = Math.floor(Number(orderData.amount));
+    if (!Number.isFinite(amountValue) || amountValue < 100) {
+      alert('유효한 결제 금액이 아닙니다.');
+      return;
+    }
+
+    await loadTossPaymentsSdk();
+    const tossPayments = window.TossPayments(clientKey);
+    const payment = tossPayments.payment({ customerKey: getOrCreateTossCustomerKey() });
+    await payment.requestPayment({
+      method: 'CARD',
+      amount: { currency: 'KRW', value: amountValue },
+      orderId: String(orderData.orderId),
+      orderName: String(orderData.orderName || `BzCat 주문 #${orderId}`),
+      successUrl: `${window.location.origin}/api/payment/success`,
+      failUrl: `${window.location.origin}/api/payment/fail`,
+      windowTarget: 'self',
+      customerEmail: orderData.customerEmail || undefined,
+      customerName: orderData.customerName || undefined,
+      customerMobilePhone: orderData.customerMobilePhone || undefined,
+      card: { flowMode: 'DEFAULT' },
+    });
+  } catch (err) {
+    console.error('startOrderPayment error:', err);
+    alert(formatTossPaymentError(err));
+  } finally {
+    activePaymentOrderId = null;
+  }
+}
+
 /** 메뉴 로드 시 세션과 동기화. EMAIL_ADMIN이면 배송비 0원 처리에 사용 */
 let cachedOrderPageIsEmailAdmin = false;
 
@@ -1420,10 +1525,7 @@ function init() {
         alert('로그인이 필요합니다.');
         return;
       }
-      try {
-        sessionStorage.setItem('bzcat_pay_return_open_profile', '1');
-      } catch (_) {}
-      window.location.href = '/payment.html?orderId=' + encodeURIComponent(orderId);
+      startOrderPayment(orderId);
       return;
     }
     
