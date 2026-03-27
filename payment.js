@@ -85,22 +85,15 @@
     return String(s || '').replace(/\D/g, '');
   }
 
-  function buildClientKeyCandidates(rawKey) {
+  function buildApiClientKey(rawKey) {
     var key = String(rawKey || '').trim();
-    if (!key) return [];
-    var out = [];
-    if (key.startsWith('live_sk_')) {
-      out.push('live_ck_' + key.slice('live_sk_'.length));
-      out.push(key);
-      return out;
-    }
-    if (key.startsWith('test_sk_')) {
-      out.push('test_ck_' + key.slice('test_sk_'.length));
-      out.push(key);
-      return out;
-    }
-    out.push(key);
-    return out;
+    if (!key) return '';
+    if (key.startsWith('live_ck_') || key.startsWith('test_ck_')) return key;
+    if (key.startsWith('live_sk_')) return 'live_ck_' + key.slice('live_sk_'.length);
+    if (key.startsWith('test_sk_')) return 'test_ck_' + key.slice('test_sk_'.length);
+    // 결제위젯 키(gck/gsk)는 API 개별 연동 SDK에서 사용할 수 없음
+    if (key.startsWith('live_gck_') || key.startsWith('test_gck_') || key.startsWith('live_gsk_') || key.startsWith('test_gsk_')) return '';
+    return '';
   }
 
   /** 토스 SDK 오류에서 사용자/지원용 문구 추출 */
@@ -171,7 +164,7 @@
       config = await configRes.json();
     } catch (_) {}
 
-    var apiClientKey = (config && config.tossApiClientKey) ? String(config.tossApiClientKey).trim() : '';
+    var apiClientKey = buildApiClientKey((config && config.tossApiClientKey) ? String(config.tossApiClientKey).trim() : '');
     if (!apiClientKey) {
       showError('결제(클라이언트 키) 설정이 되어 있지 않습니다. 관리자에게 문의해 주세요.');
       return;
@@ -214,11 +207,6 @@
     }
 
     var customerKey = getOrCreateCustomerKey();
-    var keyCandidates = buildClientKeyCandidates(apiClientKey);
-    if (keyCandidates.length === 0) {
-      showError('결제 키 설정이 올바르지 않습니다.');
-      return;
-    }
 
     var origin = window.location.origin;
     // successUrl·failUrl에는 쿼리를 붙이지 않음. 토스가 인증 후 orderId·amount·paymentKey 등을 붙임.
@@ -231,37 +219,31 @@
       if (requested) return;
       requested = true;
       if (btnPay) btnPay.disabled = true;
-      for (var i = 0; i < keyCandidates.length; i++) {
-        try {
-          var tossPayments = TossPayments(keyCandidates[i]);
-          var paymentClient = tossPayments.payment({ customerKey: customerKey });
-          await paymentClient.requestPayment({
-            method: 'CARD',
-            amount: { currency: 'KRW', value: payAmount },
-            orderId: String(orderData.orderId),
-            orderName: String(orderData.orderName),
-            successUrl: successUrl,
-            failUrl: failUrl,
-            windowTarget: 'self',
-            customerEmail: orderData.customerEmail || undefined,
-            customerName: orderData.customerName || undefined,
-            customerMobilePhone: orderData.customerMobilePhone
-              ? digitsOnly(orderData.customerMobilePhone)
-              : undefined,
-            card: {
-              flowMode: 'DEFAULT',
-            },
-          });
-          return;
-        } catch (payErr) {
-          console.error('requestPayment', payErr);
-          if (i === keyCandidates.length - 1) {
-            requested = false;
-            if (btnPay) btnPay.disabled = false;
-            alert(formatPaymentError(payErr));
-            return;
-          }
-        }
+      try {
+        var tossPayments = TossPayments(apiClientKey);
+        var paymentClient = tossPayments.payment({ customerKey: customerKey });
+        await paymentClient.requestPayment({
+          method: 'CARD',
+          amount: { currency: 'KRW', value: payAmount },
+          orderId: String(orderData.orderId),
+          orderName: String(orderData.orderName),
+          successUrl: successUrl,
+          failUrl: failUrl,
+          windowTarget: 'self',
+          customerEmail: orderData.customerEmail || undefined,
+          customerName: orderData.customerName || undefined,
+          customerMobilePhone: orderData.customerMobilePhone
+            ? digitsOnly(orderData.customerMobilePhone)
+            : undefined,
+          card: {
+            flowMode: 'DEFAULT',
+          },
+        });
+      } catch (payErr) {
+        console.error('requestPayment', payErr);
+        requested = false;
+        if (btnPay) btnPay.disabled = false;
+        alert(formatPaymentError(payErr));
       }
     }
 
