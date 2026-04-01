@@ -1,9 +1,10 @@
 /**
  * NHN Cloud 알림톡(KakaoTalk Bizmessage) v2.3 치환 발송
  * @see https://docs.nhncloud.com/ko/Notification/KakaoTalk%20Bizmessage/ko/alimtalk-api-guide/
+ * API 베이스: 구 toast.com 도메인은 2026-06-01 지원 종료 → kakaotalk-bizmessage.api.nhncloudservice.com 사용
  */
 
-const ALIMTALK_BASE = 'https://api-alimtalk.cloud.toast.com';
+const ALIMTALK_BASE = 'https://kakaotalk-bizmessage.api.nhncloudservice.com';
 
 /**
  * 수신번호 정규화: 숫자만 추출, 010으로 시작하는 11자리만 허용
