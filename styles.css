@@ -739,34 +739,6 @@ body {
   .menu-card-name { font-size: 0.796875rem; }
   .menu-card-price { font-size: 0.85rem; }
   .category-tab { padding: 9px 14px; font-size: 0.844rem; }
-  /* 카테고리 메뉴 1~2개일 때: 한 줄에 메뉴 1개, 메뉴명·가격·수량·담기를 한 라인 배치 */
-  .menu-grid:has(.menu-card:only-child),
-  .menu-grid:has(.menu-card:nth-last-child(2):first-child) {
-    grid-template-columns: 1fr;
-  }
-  .menu-grid:has(.menu-card:only-child) .menu-card-body,
-  .menu-grid:has(.menu-card:nth-last-child(2):first-child) .menu-card-body {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: nowrap;
-  }
-  .menu-grid:has(.menu-card:only-child) .menu-card-info,
-  .menu-grid:has(.menu-card:nth-last-child(2):first-child) .menu-card-info {
-    margin-top: 0;
-    flex: 1;
-    min-width: 0;
-  }
-  .menu-grid:has(.menu-card:only-child) .menu-card-name,
-  .menu-grid:has(.menu-card:nth-last-child(2):first-child) .menu-card-name {
-    -webkit-line-clamp: 1;
-  }
-  .menu-grid:has(.menu-card:only-child) .menu-card-actions,
-  .menu-grid:has(.menu-card:nth-last-child(2):first-child) .menu-card-actions {
-    margin-top: 0;
-    flex-shrink: 0;
-    justify-content: flex-end;
-  }
 }
 
 .menu-card-info {
