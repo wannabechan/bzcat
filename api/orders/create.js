@@ -4,7 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
-const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest, getStoreNotificationEmailRecipients } = require('../_utils');
 const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, getMenus, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
@@ -166,8 +166,8 @@ module.exports = async (req, res) => {
     // 신규 주문 접수 시 해당 매장 담당자에게 이메일/알림톡 발송
     if (stores.length > 0) {
       const store = getStoreForOrder(order, stores);
-      const toEmail = store ? (store.storeContactEmail || '').trim() : null;
-      if (process.env.RESEND_API_KEY && toEmail) {
+      const toList = store ? getStoreNotificationEmailRecipients(store.storeContactEmail) : [];
+      if (process.env.RESEND_API_KEY && store && toList.length > 0) {
         try {
           const acceptToken = crypto.randomBytes(24).toString('hex');
           await updateOrderAcceptToken(order.id, acceptToken);
@@ -185,7 +185,7 @@ module.exports = async (req, res) => {
           const html = buildOrderNotificationHtml(order, stores, { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther });
           await resend.emails.send({
             from: `${fromName} <${fromEmail}>`,
-            to: toEmail,
+            to: toList.length === 1 ? toList[0] : toList,
             subject: `[BzCat 신규 주문] ${storeBrand} #${order.id}`,
             html,
           });

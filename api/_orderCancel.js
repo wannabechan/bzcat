@@ -4,6 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
+const { getStoreNotificationEmailRecipients } = require('./_utils');
 const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
 const { getStoreForOrder, getStoreDisplayName, buildOrderCancellationHtml } = require('./orders/_order-email');
@@ -89,8 +90,8 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason, actor) {
   try {
     let storesForEmail = stores && stores.length ? stores : (await getStores()) || [];
     const store = getStoreForOrder(order, storesForEmail);
-    const toEmail = store ? (store.storeContactEmail || '').trim() : null;
-    if (process.env.RESEND_API_KEY && toEmail) {
+    const toList = store ? getStoreNotificationEmailRecipients(store.storeContactEmail) : [];
+    if (process.env.RESEND_API_KEY && store && toList.length > 0) {
       const { Resend } = require('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
       const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
@@ -99,7 +100,7 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason, actor) {
       const html = buildOrderCancellationHtml(order, storesForEmail);
       await resend.emails.send({
         from: `${fromName} <${fromEmail}>`,
-        to: toEmail,
+        to: toList.length === 1 ? toList[0] : toList,
         subject: `[BzCat 주문 취소] ${storeBrand} #${order.id}`,
         html,
       });
