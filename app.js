@@ -198,6 +198,7 @@ function applyMenuDataForOrderPage(rawData, isEmailAdmin) {
   if (!rawData || typeof rawData !== 'object') return;
   cachedOrderPageIsEmailAdmin = !!isEmailAdmin;
   MENU_DATA = isEmailAdmin ? rawData : filterMenuDataForOrderPage(rawData);
+  pruneSoldOutFromCartAndPending();
 }
 
 /** 로그인/로그아웃 후 카테고리 노출 갱신 */
@@ -241,6 +242,22 @@ async function loadMenuData() {
 let cart = {};
 // 메뉴 카드에 설정한 담을 수량 (담기 버튼으로 이만큼 담음)
 let pendingQty = {};
+
+/** 품절로 바뀐 메뉴는 대기 수량·장바구니에서 제거 */
+function pruneSoldOutFromCartAndPending() {
+  const soldOutIds = new Set();
+  for (const data of Object.values(MENU_DATA)) {
+    for (const it of data.items || []) {
+      if (it.soldOut) soldOutIds.add(it.id);
+    }
+  }
+  for (const id of Object.keys(pendingQty)) {
+    if (soldOutIds.has(id)) delete pendingQty[id];
+  }
+  for (const id of Object.keys(cart)) {
+    if (soldOutIds.has(id)) delete cart[id];
+  }
+}
 
 // DOM 요소
 const categoryTabs = document.getElementById('categoryTabs');
@@ -567,6 +584,7 @@ function updateCartCount() {
 
 // 카드에서 설정한 수량만 변경 (담기 전)
 function setPendingQty(itemId, delta) {
+  if (findItemById(itemId)?.soldOut) return;
   const current = pendingQty[itemId] || 0;
   const next = Math.max(0, current + delta);
   if (next === 0) delete pendingQty[itemId];
@@ -576,6 +594,8 @@ function setPendingQty(itemId, delta) {
 
 // 장바구니 수량 변경 (장바구니 내 +/- 버튼용)
 function updateCartQty(itemId, delta) {
+  const item = findItemById(itemId);
+  if (item?.soldOut && delta > 0) return;
   const current = cart[itemId] || 0;
   const next = Math.max(0, current + delta);
   if (next === 0) delete cart[itemId];
@@ -587,6 +607,7 @@ function updateCartQty(itemId, delta) {
 
 // 담기: 카드에 설정한 수량만큼 장바구니에 추가 (1카테고리만 허용)
 function addToCartFromPending(itemId) {
+  if (findItemById(itemId)?.soldOut) return;
   const qty = pendingQty[itemId] || 0;
   if (qty <= 0) return;
   const cartCategory = getCartCategory();
@@ -647,9 +668,10 @@ function renderMenuCards() {
 
   menuGrid.innerHTML = items
     .map((item) => {
-      const qty = canAddFromCategory ? (pendingQty[item.id] || 0) : 0;
-      const addDisabled = canAddFromCategory ? qty === 0 : false;
-      const qtyDisabled = !canAddFromCategory;
+      const soldOut = !!item.soldOut;
+      const qty = soldOut || !canAddFromCategory ? 0 : (pendingQty[item.id] || 0);
+      const addDisabled = soldOut || (canAddFromCategory ? qty === 0 : false);
+      const qtyDisabled = soldOut || !canAddFromCategory;
       const idEsc = escapeHtml(item.id);
       const nameEsc = escapeHtml(item.name);
       const descEsc = escapeHtml(item.description || '상세 설명이 없습니다.');
@@ -658,8 +680,26 @@ function renderMenuCards() {
       const imgContent = imgSrc
         ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
+      const actionsHtml = soldOut
+        ? `<div class="menu-card-actions menu-card-actions--soldout">
+              <div class="menu-qty-soldout" aria-live="polite">준비중</div>
+            </div>`
+        : `<div class="menu-card-actions">
+              <div class="menu-qty-controls">
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${idEsc}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
+                <span class="menu-qty-value">${qty}</span>
+                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${idEsc}" ${qtyDisabled ? '' : ''}>+</button>
+              </div>
+              <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${idEsc}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
+                <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </button>
+            </div>`;
       return `
-        <article class="menu-card" data-id="${idEsc}">
+        <article class="menu-card${soldOut ? ' menu-card--soldout' : ''}" data-id="${idEsc}">
           <div class="menu-card-image-wrapper" role="button" tabindex="0" aria-label="상세 정보 보기">
             ${imgContent}
             <div class="menu-info-overlay" data-id="${idEsc}">
@@ -676,20 +716,7 @@ function renderMenuCards() {
               <h3 class="menu-card-name">${nameEsc}</h3>
               <p class="menu-card-price">${formatPrice(item.price)}</p>
             </div>
-            <div class="menu-card-actions">
-              <div class="menu-qty-controls">
-                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${idEsc}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
-                <span class="menu-qty-value">${qty}</span>
-                <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${idEsc}" ${qtyDisabled ? '' : ''}>+</button>
-              </div>
-              <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${idEsc}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
-                <svg class="menu-add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                  <line x1="3" y1="6" x2="21" y2="6"/>
-                  <path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
-              </button>
-            </div>
+            ${actionsHtml}
           </div>
         </article>
       `;

@@ -297,6 +297,9 @@ function renderMenuItem(storeId, item, index) {
           <label>원산지</label>
           <input type="text" data-field="origin" value="${escapeHtml(item.origin || '')}" placeholder="예: 국내산(쌀)">
         </div>
+        <div class="admin-form-field admin-form-field-soldout">
+          <label class="admin-soldout-label"><input type="checkbox" data-field="soldOut" ${item.soldOut ? 'checked' : ''}> 품절</label>
+        </div>
       </div>
       <div class="admin-menu-actions">
         <button type="button" class="admin-btn admin-btn-danger" data-remove-menu data-store-id="${escapeHtml(storeId)}" data-index="${index}">삭제</button>
@@ -351,6 +354,7 @@ function collectData() {
       const priceInput = itemEl.querySelector('input[data-field="price"]');
       const descInput = itemEl.querySelector('textarea[data-field="description"]');
       const originInput = itemEl.querySelector('input[data-field="origin"]');
+      const soldOutInput = itemEl.querySelector('input[data-field="soldOut"]');
       const imageInput = itemEl.querySelector('input[data-field="imageUrl"]');
       const name = nameInput?.value?.trim();
       if (!name) return;
@@ -361,6 +365,7 @@ function collectData() {
         description: descInput?.value?.trim() || '',
         origin: originInput?.value?.trim() || '',
         imageUrl: imageInput?.value?.trim() || '',
+        soldOut: !!soldOutInput?.checked,
       });
     });
     menus[storeId] = items;

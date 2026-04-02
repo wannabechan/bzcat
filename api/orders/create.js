@@ -6,7 +6,7 @@
 const { put } = require('@vercel/blob');
 const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest } = require('../_utils');
 const crypto = require('crypto');
-const { createOrder, updateOrderPdfUrl, getStores, updateOrderAcceptToken } = require('../_redis');
+const { createOrder, updateOrderPdfUrl, getStores, getMenus, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 const { getAppOrigin } = require('../payment/_helpers');
 const { getStoreForOrder, getStoreDisplayName, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
@@ -90,6 +90,22 @@ module.exports = async (req, res) => {
         return apiResponse(res, 400, { error: '주문 메뉴 수량/가격이 올바르지 않습니다.' });
       }
       orderItems[i] = { ...it, id: idStr, name: nameStr };
+    }
+
+    const storesForSoldOut = await getStores();
+    const soldOutMenuIds = new Set();
+    for (const s of storesForSoldOut) {
+      const menus = await getMenus(s.id);
+      if (!Array.isArray(menus)) continue;
+      for (const m of menus) {
+        if (m && m.soldOut && m.id != null) soldOutMenuIds.add(String(m.id).trim());
+      }
+    }
+    for (let i = 0; i < orderItems.length; i++) {
+      const oid = String(orderItems[i].id || '').trim();
+      if (soldOutMenuIds.has(oid)) {
+        return apiResponse(res, 400, { error: '품절된 메뉴가 포함되어 있습니다. 메뉴를 새로고침한 뒤 다시 시도해 주세요.' });
+      }
     }
 
     const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
