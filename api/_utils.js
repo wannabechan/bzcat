@@ -52,29 +52,14 @@ function getUserLevel(email) {
 }
 
 /**
- * 매장 담당자 메일 + EMAIL_OPERATOR(쉼표 구분) 동일 발송용 수신 목록. 대소문자 무시 중복 제거.
- * @param {string} [storeContactEmail] 매장 storeContactEmail
+ * EMAIL_OPERATOR 환경변수(쉼표 구분) 파싱
  * @returns {string[]}
  */
-function getStoreNotificationEmailRecipients(storeContactEmail) {
-  const primary = (storeContactEmail || '').trim();
-  const operators = (process.env.EMAIL_OPERATOR || '')
+function getEmailOperatorList() {
+  return (process.env.EMAIL_OPERATOR || '')
     .split(',')
     .map((e) => e.trim())
     .filter(Boolean);
-  const seen = new Set();
-  const out = [];
-  const add = (addr) => {
-    const a = (addr || '').trim();
-    if (!a) return;
-    const key = a.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(a);
-  };
-  add(primary);
-  operators.forEach(add);
-  return out;
 }
 
 /** admin 또는 operator(보조 관리자) 여부 */
@@ -220,7 +205,7 @@ module.exports = {
   generateToken,
   verifyToken,
   getUserLevel,
-  getStoreNotificationEmailRecipients,
+  getEmailOperatorList,
   isAdminOrOperator,
   withResolvedLevel,
   generateCode,

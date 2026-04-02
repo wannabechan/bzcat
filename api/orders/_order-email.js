@@ -72,13 +72,15 @@ function getStoreEmailForOrder(order, stores) {
  * 주문 내역: 매장 브랜드명 + 해당 주문 메뉴 리스트
  * @param {object} order - 주문 객체
  * @param {object[]} stores - 매장 목록
- * @param {object} [options] - { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther }
+ * @param {object} [options] - { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther, includeActionButtons }
+ *   includeActionButtons: false 이면 주문 수령·거부 링크 제거 (EMAIL_OPERATOR용)
  */
 function buildOrderNotificationHtml(order, stores, options = {}) {
   const acceptUrl = (options.acceptUrl || '').trim() || '#';
   const rejectUrlSchedule = (options.rejectUrlSchedule || '').trim() || '#';
   const rejectUrlCooking = (options.rejectUrlCooking || '').trim() || '#';
   const rejectUrlOther = (options.rejectUrlOther || '').trim() || '#';
+  const includeActionButtons = options.includeActionButtons !== false;
 
   const slugToBrandName = buildSlugToBrandName(stores);
   const getBrandName = (slug) => slugToBrandName[slug] || slugToBrandName[String(slug || '').toLowerCase()] || slug || '기타';
@@ -171,12 +173,16 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
       <tr><td style="padding:10px 12px;">배송 주소</td><td style="padding:10px 12px;">${deliveryAddress}</td></tr>
     </table>
 
-    <div style="margin-top:7px; margin-bottom:16px;">
+    ${
+      includeActionButtons
+        ? `<div style="margin-top:7px; margin-bottom:16px;">
       <a href="${acceptUrl.replace(/"/g, '&quot;')}" style="display:inline-block; padding:12px 24px; background:#e67b19; color:#fff; font-weight:600; text-decoration:none; border-radius:8px; font-size:0.9375rem;">주문 수령하기</a>
     </div>
     <div style="margin-bottom:20px; font-size:0.75rem; color:#999;">
       <a href="${rejectUrlSchedule.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:스케줄문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${rejectUrlCooking.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:조리문제</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${rejectUrlOther.replace(/"/g, '&quot;')}" style="color:#999; text-decoration:underline; display:inline;">거부:기타</a>
-    </div>
+    </div>`
+        : ''
+    }
 
     <p style="margin:0; color:#999; font-size:12px;">BzCat - 비즈니스 케이터링</p>
   </div>

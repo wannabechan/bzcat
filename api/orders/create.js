@@ -4,7 +4,7 @@
  */
 
 const { put } = require('@vercel/blob');
-const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest, getStoreNotificationEmailRecipients } = require('../_utils');
+const { verifyToken, apiResponse, getUserLevel, getTokenFromRequest, getEmailOperatorList } = require('../_utils');
 const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, getMenus, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
@@ -166,8 +166,9 @@ module.exports = async (req, res) => {
     // 신규 주문 접수 시 해당 매장 담당자에게 이메일/알림톡 발송
     if (stores.length > 0) {
       const store = getStoreForOrder(order, stores);
-      const toList = store ? getStoreNotificationEmailRecipients(store.storeContactEmail) : [];
-      if (process.env.RESEND_API_KEY && store && toList.length > 0) {
+      const storeContactEmail = store ? (store.storeContactEmail || '').trim() : '';
+      const operatorEmails = getEmailOperatorList();
+      if (process.env.RESEND_API_KEY && store && (storeContactEmail || operatorEmails.length > 0)) {
         try {
           const acceptToken = crypto.randomBytes(24).toString('hex');
           await updateOrderAcceptToken(order.id, acceptToken);
@@ -176,19 +177,38 @@ module.exports = async (req, res) => {
           const rejectUrlSchedule = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=schedule`;
           const rejectUrlCooking = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=cooking`;
           const rejectUrlOther = `${origin}/api/orders/reject?orderId=${encodeURIComponent(order.id)}&token=${encodeURIComponent(acceptToken)}&reason=other`;
+          const urlOpts = { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther };
 
           const { Resend } = require('resend');
           const resend = new Resend(process.env.RESEND_API_KEY);
           const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
           const fromName = process.env.RESEND_FROM_NAME || 'BzCat';
           const storeBrand = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
-          const html = buildOrderNotificationHtml(order, stores, { acceptUrl, rejectUrlSchedule, rejectUrlCooking, rejectUrlOther });
-          await resend.emails.send({
-            from: `${fromName} <${fromEmail}>`,
-            to: toList.length === 1 ? toList[0] : toList,
-            subject: `[BzCat 신규 주문] ${storeBrand} #${order.id}`,
-            html,
-          });
+          const subject = `[BzCat 신규 주문] ${storeBrand} #${order.id}`;
+          const fromHeader = `${fromName} <${fromEmail}>`;
+
+          const htmlStore = buildOrderNotificationHtml(order, stores, { ...urlOpts, includeActionButtons: true });
+          const htmlOperator = buildOrderNotificationHtml(order, stores, { ...urlOpts, includeActionButtons: false });
+
+          if (storeContactEmail) {
+            await resend.emails.send({
+              from: fromHeader,
+              to: storeContactEmail,
+              subject,
+              html: htmlStore,
+            });
+          }
+          const storeLower = storeContactEmail.toLowerCase();
+          for (const op of operatorEmails) {
+            const addr = (op || '').trim();
+            if (!addr || addr.toLowerCase() === storeLower) continue;
+            await resend.emails.send({
+              from: fromHeader,
+              to: addr,
+              subject,
+              html: htmlOperator,
+            });
+          }
         } catch (emailErr) {
           console.error('Order notification email error:', emailErr);
           // 이메일 실패해도 주문 접수 응답은 성공으로 반환
