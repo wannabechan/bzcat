@@ -150,6 +150,7 @@ async function initAuth() {
   const loginCodeSection = document.getElementById('loginCodeSection');
   const loginCodeHint = document.getElementById('loginCodeHint');
   const loginCodeTimer = document.getElementById('loginCodeTimer');
+  const loginNotice = document.getElementById('loginNotice');
   const btnSendCode = document.getElementById('btnSendCode');
   const btnLogout = document.getElementById('btnLogout');
   const loginLogo = document.getElementById('loginLogo');
@@ -182,6 +183,10 @@ async function initAuth() {
     }
   });
 
+  const LOGIN_NOTICE_STEP_EMAIL = '※ 이메일로 로그인하세요.';
+  const LOGIN_NOTICE_CODE_STEP =
+    '메일이 오지 않으면 스팸함을 확인하거나\n잠시 후 다시 로그인 코드 생성을 시도하세요.';
+
   function resetToStep1() {
     if (codeCountdownInterval) {
       clearInterval(codeCountdownInterval);
@@ -192,6 +197,7 @@ async function initAuth() {
     loginCodeTimer.textContent = '';
     loginCodeTimer.classList.remove('expiring');
     loginCodeHint.textContent = '이메일로 발송된 인증 코드를 입력하세요.';
+    if (loginNotice) loginNotice.textContent = LOGIN_NOTICE_STEP_EMAIL;
     pendingEmail = null;
     btnSendCode.style.display = '';
     btnSendCode.disabled = false;
@@ -260,6 +266,7 @@ async function initAuth() {
       loginCode.value = '';
       loginCode.focus();
       btnSendCode.style.display = 'none';
+      if (loginNotice) loginNotice.textContent = LOGIN_NOTICE_CODE_STEP;
       startCodeCountdown();
       history.pushState({ loginStep: 'code' }, '', window.location.pathname + (window.location.search || ''));
 

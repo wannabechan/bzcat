@@ -118,7 +118,7 @@ module.exports = async (req, res) => {
     }
 
     // 주문 금액 검증 (최소 주문 금액 환경변수, 최대 1억 원)
-    const envMinOrderPrice = Number(process.env.MIN_ORDERRPICE);
+    const envMinOrderPrice = Number(process.env.MIN_ORDERPRICE);
     const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
       ? Math.floor(envMinOrderPrice)
       : 100;
