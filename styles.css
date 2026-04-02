@@ -736,23 +736,17 @@ body {
 }
 
 @media (max-width: 768px) {
-  .menu-grid > .menu-card {
-    height: 100%;
-  }
   .menu-card-name { font-size: 0.796875rem; }
   .menu-card-price { font-size: 0.85rem; }
   .category-tab { padding: 9px 14px; font-size: 0.844rem; }
   .menu-card-actions--soldout {
     justify-content: flex-start;
-    align-items: center;
-    min-height: 36px;
   }
   .menu-qty-soldout {
-    font-size: calc(0.9375rem * 0.95);
-    min-height: calc(36px * 0.95);
-    min-width: calc(88px * 0.95);
-    padding: 0 calc(12px * 0.95);
-    justify-content: flex-start;
+    min-height: 32.4px;
+    min-width: 79.2px;
+    padding: 0 10.8px;
+    font-size: 0.84375rem;
   }
 }
 
