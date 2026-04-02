@@ -6,7 +6,7 @@
 const { put } = require('@vercel/blob');
 const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
-const { getStoreForOrder, getStoreDisplayName } = require('./orders/_order-email');
+const { getStoreForOrder, getStoreDisplayName, buildOrderCancellationHtml } = require('./orders/_order-email');
 const { sendAlimtalk } = require('./_alimtalk');
 
 /** 배송 희망일 문자열을 (배송일 - 4일) 23:59 KST Date로 변환 */
@@ -83,6 +83,29 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason, actor) {
     }
   } catch (alimErr) {
     console.error('Alimtalk cancel notification error:', alimErr);
+  }
+
+  // 주문 취소 시 매장 담당자 이메일 (신규 주문 메일과 동일 레이아웃, 취소 문구·취소선)
+  try {
+    let storesForEmail = stores && stores.length ? stores : (await getStores()) || [];
+    const store = getStoreForOrder(order, storesForEmail);
+    const toEmail = store ? (store.storeContactEmail || '').trim() : null;
+    if (process.env.RESEND_API_KEY && toEmail) {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
+      const fromName = process.env.RESEND_FROM_NAME || 'BzCat';
+      const storeBrand = (store.brand || store.title || store.id || store.slug || '').trim() || '주문';
+      const html = buildOrderCancellationHtml(order, storesForEmail);
+      await resend.emails.send({
+        from: `${fromName} <${fromEmail}>`,
+        to: toEmail,
+        subject: `[BzCat 주문 취소] ${storeBrand} #${order.id}`,
+        html,
+      });
+    }
+  } catch (emailErr) {
+    console.error('Order cancel notification email error:', emailErr);
   }
 
   // 주문 취소 시 주문자(고객) 알림톡: cancelReason, storeName, orderId, deliveryDate, deliveryAddress, detailAddress
