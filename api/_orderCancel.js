@@ -5,6 +5,7 @@
 
 const { put } = require('@vercel/blob');
 const { getEmailOperatorList } = require('./_utils');
+const { resendEmailsSend } = require('./_resend');
 const { getOrderById, updateOrderStatus, updateOrderCancelReason, updateOrderPdfUrl, getStores } = require('./_redis');
 const { generateOrderPdf } = require('./_pdf');
 const { getStoreForOrder, getStoreDisplayName, buildOrderCancellationHtml } = require('./orders/_order-email');
@@ -103,23 +104,31 @@ async function cancelOrderAndRegeneratePdf(orderId, cancelReason, actor) {
       const fromHeader = `${fromName} <${fromEmail}>`;
 
       if (storeContactEmail) {
-        await resend.emails.send({
-          from: fromHeader,
-          to: storeContactEmail,
-          subject,
-          html,
-        });
+        await resendEmailsSend(
+          resend,
+          {
+            from: fromHeader,
+            to: storeContactEmail,
+            subject,
+            html,
+          },
+          `order-cancel notify store #${order.id}`,
+        );
       }
       const storeLower = storeContactEmail.toLowerCase();
       for (const op of operatorEmails) {
         const addr = (op || '').trim();
         if (!addr || addr.toLowerCase() === storeLower) continue;
-        await resend.emails.send({
-          from: fromHeader,
-          to: addr,
-          subject,
-          html,
-        });
+        await resendEmailsSend(
+          resend,
+          {
+            from: fromHeader,
+            to: addr,
+            subject,
+            html,
+          },
+          `order-cancel notify operator #${order.id} ${addr}`,
+        );
       }
     }
   } catch (emailErr) {

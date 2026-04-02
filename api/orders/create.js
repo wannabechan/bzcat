@@ -10,6 +10,7 @@ const { createOrder, updateOrderPdfUrl, getStores, getMenus, updateOrderAcceptTo
 const { generateOrderPdf } = require('../_pdf');
 const { getAppOrigin } = require('../payment/_helpers');
 const { getStoreForOrder, getStoreDisplayName, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
+const { resendEmailsSend } = require('../_resend');
 const { sendAlimtalk } = require('../_alimtalk');
 
 module.exports = async (req, res) => {
@@ -191,23 +192,31 @@ module.exports = async (req, res) => {
           const htmlOperator = buildOrderNotificationHtml(order, stores, { ...urlOpts, includeActionButtons: false });
 
           if (storeContactEmail) {
-            await resend.emails.send({
-              from: fromHeader,
-              to: storeContactEmail,
-              subject,
-              html: htmlStore,
-            });
+            await resendEmailsSend(
+              resend,
+              {
+                from: fromHeader,
+                to: storeContactEmail,
+                subject,
+                html: htmlStore,
+              },
+              `orders/create notify store #${order.id}`,
+            );
           }
           const storeLower = storeContactEmail.toLowerCase();
           for (const op of operatorEmails) {
             const addr = (op || '').trim();
             if (!addr || addr.toLowerCase() === storeLower) continue;
-            await resend.emails.send({
-              from: fromHeader,
-              to: addr,
-              subject,
-              html: htmlOperator,
-            });
+            await resendEmailsSend(
+              resend,
+              {
+                from: fromHeader,
+                to: addr,
+                subject,
+                html: htmlOperator,
+              },
+              `orders/create notify operator #${order.id} ${addr}`,
+            );
           }
         } catch (emailErr) {
           console.error('Order notification email error:', emailErr);

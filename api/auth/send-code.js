@@ -5,6 +5,7 @@
 
 const { Resend } = require('resend');
 const { generateCode, apiResponse } = require('../_utils');
+const { resendEmailsSend } = require('../_resend');
 const { saveAuthCode } = require('../_redis');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -46,7 +47,9 @@ module.exports = async (req, res) => {
 
     // 이메일 발송
     try {
-      await resend.emails.send({
+      await resendEmailsSend(
+        resend,
+        {
         from: `${fromName} <${fromEmail}>`,
         to: normalizedEmail,
         subject: '[BzCat] 로그인 인증 코드',
@@ -64,10 +67,12 @@ module.exports = async (req, res) => {
             <p style="color: #999; font-size: 12px;">BzCat - 비즈니스 케이터링</p>
           </div>
         `,
-      });
+        },
+        'auth/send-code',
+      );
     } catch (emailError) {
       console.error('Resend error:', emailError);
-      return apiResponse(res, 500, { error: '이메일 발송에 실패했습니다.' });
+      return apiResponse(res, 500, { error: '이메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.' });
     }
 
     return apiResponse(res, 200, {
