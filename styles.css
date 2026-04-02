@@ -842,15 +842,6 @@ body {
   border: 1px solid var(--color-border);
 }
 
-@media (max-width: 768px) {
-  .menu-qty-soldout {
-    min-height: 32.4px;
-    min-width: 79.2px;
-    padding: 0 10.8px;
-    font-size: 0.84375rem;
-  }
-}
-
 @keyframes menu-add-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
