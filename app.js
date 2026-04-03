@@ -19,7 +19,7 @@ function updateMinOrderNoticeText() {
   if (!cartMinOrderNotice) return;
   cartMinOrderNotice.textContent = `※ 최소 주문 금액은 ${formatPrice(MIN_ORDER_PRICE)} 입니다.`;
   if (cartFreeShippingNotice) {
-    cartFreeShippingNotice.textContent = `※ 음식 금액 합이 ${formatPrice(MIN_ORDER_PRICE)} 이상이면 배송비는 무료입니다.`;
+    cartFreeShippingNotice.textContent = `※ 음식 금액이 ${formatPrice(MIN_ORDER_PRICE)} 이상이면 무료 배송입니다.`;
   }
 }
 
