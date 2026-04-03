@@ -401,12 +401,18 @@ function getCartTotalCount() {
 }
 
 // 장바구니 총 금액
-function calculateTotal() {
+/** 장바구니 메뉴 금액 합계 (배송비 제외) */
+function getCartGoodsSubtotal() {
   let total = 0;
   for (const [itemId, qty] of Object.entries(cart)) {
     const item = findItemById(itemId);
     if (item) total += item.price * qty;
   }
+  return total;
+}
+
+function calculateTotal() {
+  let total = getCartGoodsSubtotal();
   if (getCartTotalCount() > 0) total += getCartDeliveryFee();
   return total;
 }
@@ -435,6 +441,7 @@ function getDisplayCategoryTitle(slug) {
 
 function getCartDeliveryFee() {
   if (cachedOrderPageIsEmailAdmin) return 0;
+  if (getCartGoodsSubtotal() >= MIN_ORDER_PRICE) return 0;
   const cartCategory = getCartCategory();
   if (!cartCategory) return 0;
   const fee = Number(MENU_DATA[cartCategory]?.deliveryFee);

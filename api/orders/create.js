@@ -109,6 +109,11 @@ module.exports = async (req, res) => {
       }
     }
 
+    const envMinOrderPrice = Number(process.env.MIN_ORDERPRICE);
+    const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
+      ? Math.floor(envMinOrderPrice)
+      : 100;
+
     const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
     if (isEmailAdmin) {
       for (let i = 0; i < orderItems.length; i++) {
@@ -118,14 +123,28 @@ module.exports = async (req, res) => {
       }
     }
 
+    // 상품 금액(배송비 제외)이 MIN_ORDERPRICE 이상이면 배송비(etc-fee) 면제
+    const goodsSubtotal = orderItems
+      .filter((it) => String(it.id || '') !== 'etc-fee')
+      .reduce((sum, it) => sum + Number(it.price) * Number(it.quantity), 0);
+    if (goodsSubtotal >= TOTAL_MIN) {
+      for (let i = 0; i < orderItems.length; i++) {
+        if (String(orderItems[i].id || '') === 'etc-fee') {
+          orderItems[i] = { ...orderItems[i], price: 0 };
+        }
+      }
+    }
+
     // 주문 금액 검증 (최소 주문 금액 환경변수, 최대 1억 원)
-    const envMinOrderPrice = Number(process.env.MIN_ORDERPRICE);
-    const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
-      ? Math.floor(envMinOrderPrice)
-      : 100;
     const TOTAL_MAX = 100_000_000;
     const computedFromItems = orderItems.reduce((sum, it) => sum + Number(it.price) * Number(it.quantity), 0);
-    const orderTotal = isEmailAdmin ? computedFromItems : (Number(totalAmount) || 0);
+    const orderTotal = computedFromItems;
+    if (!isEmailAdmin) {
+      const clientTotal = Number(totalAmount);
+      if (!Number.isFinite(clientTotal) || clientTotal !== computedFromItems) {
+        return apiResponse(res, 400, { error: '주문 금액이 일치하지 않습니다. 장바구니를 새로고침한 뒤 다시 시도해 주세요.' });
+      }
+    }
     if (!Number.isFinite(orderTotal) || orderTotal < TOTAL_MIN) {
       return apiResponse(res, 400, { error: `최소 주문 금액은 ${TOTAL_MIN}원입니다.` });
     }
