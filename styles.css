@@ -1187,11 +1187,19 @@ body {
   background: var(--color-border);
 }
 
-.cart-min-order-notice {
+.cart-min-order-notices {
+  margin-bottom: 12px;
+}
+
+.cart-min-order-notices .cart-min-order-notice {
+  margin: 0;
   font-size: 0.8125rem;
   color: #b0b0b0;
-  margin-bottom: 12px;
   line-height: 1.4;
+}
+
+.cart-min-order-notices .cart-min-order-notice + .cart-min-order-notice {
+  margin-top: 4px;
 }
 
 @keyframes notice-blink {

@@ -18,6 +18,9 @@ let MIN_ORDER_PRICE = 100;
 function updateMinOrderNoticeText() {
   if (!cartMinOrderNotice) return;
   cartMinOrderNotice.textContent = `※ 최소 주문 금액은 ${formatPrice(MIN_ORDER_PRICE)} 입니다.`;
+  if (cartFreeShippingNotice) {
+    cartFreeShippingNotice.textContent = `※ 음식 금액 합이 ${formatPrice(MIN_ORDER_PRICE)} 이상이면 배송비는 무료입니다.`;
+  }
 }
 
 async function loadPublicConfig() {
@@ -260,6 +263,7 @@ const cartItems = document.getElementById('cartItems');
 const cartFooter = document.getElementById('cartFooter');
 const cartTotal = document.getElementById('cartTotal');
 const cartMinOrderNotice = document.getElementById('cartMinOrderNotice');
+const cartFreeShippingNotice = document.getElementById('cartFreeShippingNotice');
 const btnCheckout = document.getElementById('btnCheckout');
 const checkoutModal = document.getElementById('checkoutModal');
 const checkoutClose = document.getElementById('checkoutClose');
