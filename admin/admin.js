@@ -1210,7 +1210,7 @@ function getPeriodForSettlementDate(settlementDateStr) {
 const SAMPLE_FIRST_ORDER_DATE = '2026-02-01';
 const SAMPLE_FIRST_DELIVERY_DATE = '2026-02-09';
 
-var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '' };
+var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '', packagingFee: 0 };
 
 function getMockSettlementByBrandForPeriod(startDateStr, endDateStr) {
   const SAMPLE_AMOUNT_PER_ORDER = 50000;
@@ -1256,29 +1256,45 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
       totalOrderCount: 0,
       totalSales: 0,
       totalFee: 0,
+      totalPackaging: 0,
+      totalDeliveryFee: 0,
       totalSettlement: 0,
+      packagingFeePerOrder: _mockFirstCategory.packagingFee || 0,
       commissionPercent: BZCAT_COMMISSION_PERCENT,
     };
   }
   const rangeStart = startDateStr < SAMPLE_FIRST_DELIVERY_DATE ? SAMPLE_FIRST_DELIVERY_DATE : startDateStr;
   const rangeEnd = endDateStr;
+  const pkgPer = Number.isFinite(Number(_mockFirstCategory.packagingFee)) && Number(_mockFirstCategory.packagingFee) >= 0
+    ? Math.floor(Number(_mockFirstCategory.packagingFee))
+    : 0;
   const days = [];
   const start = new Date(rangeStart + 'T12:00:00+09:00');
   const end = new Date(rangeEnd + 'T12:00:00+09:00');
   for (let t = start.getTime(); t <= end.getTime(); t += 86400000) {
     const dayKst = new Date(t + KST_OFFSET_MS).getUTCDay();
     if (dayKst === 6) continue;
-    const d = new Date(t);
     const dateKey = getKSTDateStr(t);
     const sales = SAMPLE_AMOUNT_PER_ORDER;
+    const orderCount = 1;
     const fee = settlementFeeFromSales(sales);
-    const settlement = sales - fee;
-    days.push({ date: dateKey, orderCount: 1, totalAmount: sales, fee, settlement });
+    const packaging = orderCount * pkgPer;
+    const deliveryFee = 0;
+    const settlement = sales - fee - packaging - deliveryFee;
+    days.push({ date: dateKey, orderCount, totalAmount: sales, fee, packaging, deliveryFee, settlement });
   }
   const totalOrderCount = days.length;
   const totalSales = totalOrderCount * SAMPLE_AMOUNT_PER_ORDER;
-  const totalFee = settlementFeeFromSales(totalSales);
-  const totalSettlement = totalSales - totalFee;
+  let totalFee = 0;
+  let totalPackaging = 0;
+  let totalDeliveryFee = 0;
+  let totalSettlement = 0;
+  days.forEach((r) => {
+    totalFee += r.fee;
+    totalPackaging += r.packaging;
+    totalDeliveryFee += r.deliveryFee;
+    totalSettlement += r.settlement;
+  });
   return {
     brandTitle,
     slug,
@@ -1290,7 +1306,10 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     totalOrderCount,
     totalSales,
     totalFee,
+    totalPackaging,
+    totalDeliveryFee,
     totalSettlement,
+    packagingFeePerOrder: pkgPer,
     commissionPercent: BZCAT_COMMISSION_PERCENT,
   };
 }
@@ -1324,6 +1343,8 @@ function renderSettlementStatementContent(data) {
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
   const commissionPctRaw = data.commissionPercent != null && data.commissionPercent !== '' ? Number(data.commissionPercent) : BZCAT_COMMISSION_PERCENT;
   const pctForFooter = Number.isFinite(commissionPctRaw) ? commissionPctRaw : BZCAT_COMMISSION_PERCENT;
+  const packagingFeePerOrderRaw = data.packagingFeePerOrder != null && data.packagingFeePerOrder !== '' ? Number(data.packagingFeePerOrder) : 0;
+  const packagingPerOrderForFooter = Number.isFinite(packagingFeePerOrderRaw) ? packagingFeePerOrderRaw : 0;
   const brandName = escapeHtml(data.brandTitle || data.slug || '');
   const periodText = (data.startDate || '') + ' ~ ' + (data.endDate || '');
   const contactEmail = escapeHtml(data.storeContactEmail || '');
@@ -1348,17 +1369,20 @@ function renderSettlementStatementContent(data) {
 
   html += '<div class="admin-settlement-statement-body">';
   html += '<br><p><strong>정산 내역</strong></p><br>';
-  html += '<table class="admin-stats-table admin-settlement-statement-table"><thead><tr><th>일자</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
+  html += '<table class="admin-stats-table admin-settlement-statement-table"><thead><tr><th>일자</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>포장비</th><th>배송비</th><th>정산금액</th></tr></thead><tbody>';
   (data.days || []).forEach((row) => {
-    html += '<tr><td>' + escapeHtml(row.date) + '</td><td>' + (row.orderCount || 0) + '</td><td>' + formatMoney(row.totalAmount) + '</td><td>' + formatMoney(row.fee) + '</td><td>' + formatMoney(row.settlement) + '</td></tr>';
+    const pkg = row.packaging != null ? row.packaging : (Number(row.orderCount) || 0) * packagingPerOrderForFooter;
+    const del = row.deliveryFee != null ? row.deliveryFee : 0;
+    html += '<tr><td>' + escapeHtml(row.date) + '</td><td>' + (row.orderCount || 0) + '</td><td>' + formatMoney(row.totalAmount) + '</td><td>' + formatMoney(row.fee) + '</td><td>' + formatMoney(pkg) + '</td><td>' + formatMoney(del) + '</td><td>' + formatMoney(row.settlement) + '</td></tr>';
   });
-  html += '<tr class="admin-settlement-statement-total"><td>합계</td><td>' + (data.totalOrderCount || 0) + '</td><td>' + formatMoney(data.totalSales) + '</td><td>' + formatMoney(data.totalFee) + '</td><td>' + formatMoney(data.totalSettlement) + '</td></tr>';
+  html += '<tr class="admin-settlement-statement-total"><td>합계</td><td>' + (data.totalOrderCount || 0) + '</td><td>' + formatMoney(data.totalSales) + '</td><td>' + formatMoney(data.totalFee) + '</td><td>' + formatMoney(data.totalPackaging) + '</td><td>' + formatMoney(data.totalDeliveryFee) + '</td><td>' + formatMoney(data.totalSettlement) + '</td></tr>';
   html += '</tbody></table>';
   html += '<br><hr class="admin-settlement-statement-hr admin-settlement-statement-hr--footer"><br>';
   html += '</div>';
 
   html += '<div class="admin-settlement-statement-footer">';
-  html += '<p>* 수수료는 판매금액의 ' + escapeHtml(String(pctForFooter)) + '%이며, 정산금액 = 판매금액 − 수수료입니다.</p>';
+  html += '<p>* 수수료는 판매금액의 ' + escapeHtml(String(pctForFooter)) + '%이며, 포장비는 개당 ' + formatMoney(packagingPerOrderForFooter) + '입니다.</p>';
+  html += '<p>* 정산금액 = 판매금액 − 수수료 - 포장비 - 배송비입니다.</p>';
   html += '<p>* 정산서 확인 후, 본사의 지정된 이메일 주소로 전자세금계산서 발행 부탁드립니다.</p>';
   html += '<p>* 정산금액은 귀사의 지정된 입금 계좌로 현금 지급됩니다.</p>';
   html += '</div>';
@@ -1420,7 +1444,10 @@ async function runSettlementStatementSearch() {
         totalOrderCount: 0,
         totalSales: 0,
         totalFee: 0,
+        totalPackaging: 0,
+        totalDeliveryFee: 0,
         totalSettlement: 0,
+        packagingFeePerOrder: 0,
         commissionPercent: BZCAT_COMMISSION_PERCENT,
       };
       _showStatementSpinner(false);
@@ -1593,6 +1620,7 @@ async function loadSettlement() {
         brandTitle: (first.brand || first.title || first.id || first.slug || '').toString().trim() || _mockFirstCategory.slug,
         storeContactEmail: (first.storeContactEmail || '').toString().trim(),
         representative: (first.representative || '').toString().trim(),
+        packagingFee: Number.isFinite(Number(first.packagingFee)) && Number(first.packagingFee) >= 0 ? Math.floor(Number(first.packagingFee)) : 0,
       };
     }
     const sorted = stores.slice().sort((a, b) => (a.brand || a.title || a.id || '').toString().localeCompare((b.brand || b.title || b.id || '').toString(), 'ko'));

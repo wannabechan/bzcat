@@ -17,6 +17,20 @@ function normalizeDeliveryDate(str) {
   return '';
 }
 
+/** 주문 항목 중 배송비(etc-fee) 합계 */
+function deliveryFeeFromOrder(o) {
+  const items = o.order_items || o.orderItems || [];
+  let sum = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (String(it.id || '') !== 'etc-fee') continue;
+    const q = Number(it.quantity);
+    const qty = Number.isFinite(q) && q >= 1 ? q : 1;
+    sum += (Number(it.price) || 0) * qty;
+  }
+  return Math.round(sum);
+}
+
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
   if (req.method !== 'GET') return apiResponse(res, 405, { error: 'Method not allowed' });
@@ -59,12 +73,17 @@ module.exports = async (req, res) => {
     const storeContactEmail = (store?.storeContactEmail || '').trim();
     const representative = (store?.representative || '').trim();
 
+    const packagingFeePerOrder = Number.isFinite(Number(store?.packagingFee)) && Number(store.packagingFee) >= 0
+      ? Math.floor(Number(store.packagingFee))
+      : 0;
+
     const byDate = {};
     filtered.forEach((o) => {
       const d = normalizeDeliveryDate(o.delivery_date);
-      if (!byDate[d]) byDate[d] = { date: d, orderCount: 0, totalAmount: 0 };
+      if (!byDate[d]) byDate[d] = { orderCount: 0, totalAmount: 0, deliveryFee: 0 };
       byDate[d].orderCount += 1;
       byDate[d].totalAmount += Number(o.total_amount) || 0;
+      byDate[d].deliveryFee += deliveryFeeFromOrder(o);
     });
 
     const days = Object.keys(byDate)
@@ -73,18 +92,32 @@ module.exports = async (req, res) => {
         const row = byDate[d];
         const sales = row.totalAmount;
         const fee = commissionFeeFromSales(sales);
-        const settlement = sales - fee;
-        return { date: d, orderCount: row.orderCount, totalAmount: sales, fee, settlement };
+        const packaging = row.orderCount * packagingFeePerOrder;
+        const delivery = row.deliveryFee;
+        const settlement = sales - fee - packaging - delivery;
+        return {
+          date: d,
+          orderCount: row.orderCount,
+          totalAmount: sales,
+          fee,
+          packaging,
+          deliveryFee: delivery,
+          settlement,
+        };
       });
 
     let totalOrderCount = 0;
     let totalSales = 0;
     let totalFee = 0;
+    let totalPackaging = 0;
+    let totalDeliveryFee = 0;
     let totalSettlement = 0;
     days.forEach((r) => {
       totalOrderCount += r.orderCount;
       totalSales += r.totalAmount;
       totalFee += r.fee;
+      totalPackaging += r.packaging;
+      totalDeliveryFee += r.deliveryFee;
       totalSettlement += r.settlement;
     });
 
@@ -99,7 +132,10 @@ module.exports = async (req, res) => {
       totalOrderCount,
       totalSales,
       totalFee,
+      totalPackaging,
+      totalDeliveryFee,
       totalSettlement,
+      packagingFeePerOrder,
       commissionPercent: getCommissionPercent(),
     });
   } catch (error) {
