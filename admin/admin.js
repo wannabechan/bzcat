@@ -1210,7 +1210,7 @@ function getPeriodForSettlementDate(settlementDateStr) {
 const SAMPLE_FIRST_ORDER_DATE = '2026-02-01';
 const SAMPLE_FIRST_DELIVERY_DATE = '2026-02-09';
 
-var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '', packagingFee: 0 };
+var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '', packagingFee: 0, deliveryFee: 50000 };
 
 function getMockSettlementByBrandForPeriod(startDateStr, endDateStr) {
   const SAMPLE_AMOUNT_PER_ORDER = 50000;
@@ -1260,6 +1260,9 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
       totalDeliveryFee: 0,
       totalSettlement: 0,
       packagingFeePerOrder: _mockFirstCategory.packagingFee || 0,
+      deliveryFeePerOrder: Number.isFinite(Number(_mockFirstCategory.deliveryFee)) && Number(_mockFirstCategory.deliveryFee) >= 0
+        ? Math.floor(Number(_mockFirstCategory.deliveryFee))
+        : 50000,
       commissionPercent: BZCAT_COMMISSION_PERCENT,
     };
   }
@@ -1268,6 +1271,9 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
   const pkgPer = Number.isFinite(Number(_mockFirstCategory.packagingFee)) && Number(_mockFirstCategory.packagingFee) >= 0
     ? Math.floor(Number(_mockFirstCategory.packagingFee))
     : 0;
+  const delPer = Number.isFinite(Number(_mockFirstCategory.deliveryFee)) && Number(_mockFirstCategory.deliveryFee) >= 0
+    ? Math.floor(Number(_mockFirstCategory.deliveryFee))
+    : 50000;
   const days = [];
   const start = new Date(rangeStart + 'T12:00:00+09:00');
   const end = new Date(rangeEnd + 'T12:00:00+09:00');
@@ -1277,11 +1283,13 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     const dateKey = getKSTDateStr(t);
     const sales = SAMPLE_AMOUNT_PER_ORDER;
     const orderCount = 1;
+    const MOCK_MENU_UNITS_PER_ORDER = 5;
+    const menuQtySum = orderCount * MOCK_MENU_UNITS_PER_ORDER;
     const fee = settlementFeeFromSales(sales);
-    const packaging = orderCount * pkgPer;
-    const deliveryFee = 0;
+    const packaging = menuQtySum * pkgPer;
+    const deliveryFee = orderCount * delPer;
     const settlement = sales - fee - packaging - deliveryFee;
-    days.push({ date: dateKey, orderCount, totalAmount: sales, fee, packaging, deliveryFee, settlement });
+    days.push({ date: dateKey, orderCount, menuQtySum, totalAmount: sales, fee, packaging, deliveryFee, settlement });
   }
   const totalOrderCount = days.length;
   const totalSales = totalOrderCount * SAMPLE_AMOUNT_PER_ORDER;
@@ -1310,6 +1318,7 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     totalDeliveryFee,
     totalSettlement,
     packagingFeePerOrder: pkgPer,
+    deliveryFeePerOrder: delPer,
     commissionPercent: BZCAT_COMMISSION_PERCENT,
   };
 }
@@ -1345,6 +1354,8 @@ function renderSettlementStatementContent(data) {
   const pctForFooter = Number.isFinite(commissionPctRaw) ? commissionPctRaw : BZCAT_COMMISSION_PERCENT;
   const packagingFeePerOrderRaw = data.packagingFeePerOrder != null && data.packagingFeePerOrder !== '' ? Number(data.packagingFeePerOrder) : 0;
   const packagingPerOrderForFooter = Number.isFinite(packagingFeePerOrderRaw) ? packagingFeePerOrderRaw : 0;
+  const deliveryFeePerOrderRaw = data.deliveryFeePerOrder != null && data.deliveryFeePerOrder !== '' ? Number(data.deliveryFeePerOrder) : 50000;
+  const deliveryPerOrderForRow = Number.isFinite(deliveryFeePerOrderRaw) ? deliveryFeePerOrderRaw : 50000;
   const brandName = escapeHtml(data.brandTitle || data.slug || '');
   const periodText = (data.startDate || '') + ' ~ ' + (data.endDate || '');
   const contactEmail = escapeHtml(data.storeContactEmail || '');
@@ -1371,8 +1382,8 @@ function renderSettlementStatementContent(data) {
   html += '<br><p><strong>정산 내역</strong></p><br>';
   html += '<table class="admin-stats-table admin-settlement-statement-table"><thead><tr><th>일자</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>포장비</th><th>배송비</th><th>정산금액</th></tr></thead><tbody>';
   (data.days || []).forEach((row) => {
-    const pkg = row.packaging != null ? row.packaging : (Number(row.orderCount) || 0) * packagingPerOrderForFooter;
-    const del = row.deliveryFee != null ? row.deliveryFee : 0;
+    const pkg = row.packaging != null ? row.packaging : (Number(row.menuQtySum) || 0) * packagingPerOrderForFooter;
+    const del = row.deliveryFee != null ? row.deliveryFee : (Number(row.orderCount) || 0) * deliveryPerOrderForRow;
     html += '<tr><td>' + escapeHtml(row.date) + '</td><td>' + (row.orderCount || 0) + '</td><td>' + formatMoney(row.totalAmount) + '</td><td>' + formatMoney(row.fee) + '</td><td>' + formatMoney(pkg) + '</td><td>' + formatMoney(del) + '</td><td>' + formatMoney(row.settlement) + '</td></tr>';
   });
   html += '<tr class="admin-settlement-statement-total"><td>합계</td><td>' + (data.totalOrderCount || 0) + '</td><td>' + formatMoney(data.totalSales) + '</td><td>' + formatMoney(data.totalFee) + '</td><td>' + formatMoney(data.totalPackaging) + '</td><td>' + formatMoney(data.totalDeliveryFee) + '</td><td>' + formatMoney(data.totalSettlement) + '</td></tr>';
@@ -1448,6 +1459,7 @@ async function runSettlementStatementSearch() {
         totalDeliveryFee: 0,
         totalSettlement: 0,
         packagingFeePerOrder: 0,
+        deliveryFeePerOrder: 0,
         commissionPercent: BZCAT_COMMISSION_PERCENT,
       };
       _showStatementSpinner(false);
@@ -1621,6 +1633,7 @@ async function loadSettlement() {
         storeContactEmail: (first.storeContactEmail || '').toString().trim(),
         representative: (first.representative || '').toString().trim(),
         packagingFee: Number.isFinite(Number(first.packagingFee)) && Number(first.packagingFee) >= 0 ? Math.floor(Number(first.packagingFee)) : 0,
+        deliveryFee: Number.isFinite(Number(first.deliveryFee)) && Number(first.deliveryFee) >= 0 ? Math.floor(Number(first.deliveryFee)) : 50000,
       };
     }
     const sorted = stores.slice().sort((a, b) => (a.brand || a.title || a.id || '').toString().localeCompare((b.brand || b.title || b.id || '').toString(), 'ko'));

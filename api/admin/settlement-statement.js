@@ -17,18 +17,17 @@ function normalizeDeliveryDate(str) {
   return '';
 }
 
-/** 주문 항목 중 배송비(etc-fee) 합계 */
-function deliveryFeeFromOrder(o) {
+/** 배송비(etc-fee) 제외 메뉴 항목 quantity 합 */
+function menuQuantitySumFromOrder(o) {
   const items = o.order_items || o.orderItems || [];
   let sum = 0;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
-    if (String(it.id || '') !== 'etc-fee') continue;
+    if (String(it.id || '') === 'etc-fee') continue;
     const q = Number(it.quantity);
-    const qty = Number.isFinite(q) && q >= 1 ? q : 1;
-    sum += (Number(it.price) || 0) * qty;
+    if (Number.isFinite(q) && q >= 1) sum += Math.floor(q);
   }
-  return Math.round(sum);
+  return sum;
 }
 
 module.exports = async (req, res) => {
@@ -76,14 +75,17 @@ module.exports = async (req, res) => {
     const packagingFeePerOrder = Number.isFinite(Number(store?.packagingFee)) && Number(store.packagingFee) >= 0
       ? Math.floor(Number(store.packagingFee))
       : 0;
+    const deliveryFeePerOrder = Number.isFinite(Number(store?.deliveryFee)) && Number(store.deliveryFee) >= 0
+      ? Math.floor(Number(store.deliveryFee))
+      : 50000;
 
     const byDate = {};
     filtered.forEach((o) => {
       const d = normalizeDeliveryDate(o.delivery_date);
-      if (!byDate[d]) byDate[d] = { orderCount: 0, totalAmount: 0, deliveryFee: 0 };
+      if (!byDate[d]) byDate[d] = { orderCount: 0, totalAmount: 0, menuQtySum: 0 };
       byDate[d].orderCount += 1;
       byDate[d].totalAmount += Number(o.total_amount) || 0;
-      byDate[d].deliveryFee += deliveryFeeFromOrder(o);
+      byDate[d].menuQtySum += menuQuantitySumFromOrder(o);
     });
 
     const days = Object.keys(byDate)
@@ -92,12 +94,14 @@ module.exports = async (req, res) => {
         const row = byDate[d];
         const sales = row.totalAmount;
         const fee = commissionFeeFromSales(sales);
-        const packaging = row.orderCount * packagingFeePerOrder;
-        const delivery = row.deliveryFee;
+        const menuQtySum = row.menuQtySum;
+        const packaging = menuQtySum * packagingFeePerOrder;
+        const delivery = row.orderCount * deliveryFeePerOrder;
         const settlement = sales - fee - packaging - delivery;
         return {
           date: d,
           orderCount: row.orderCount,
+          menuQtySum,
           totalAmount: sales,
           fee,
           packaging,
@@ -136,6 +140,7 @@ module.exports = async (req, res) => {
       totalDeliveryFee,
       totalSettlement,
       packagingFeePerOrder,
+      deliveryFeePerOrder,
       commissionPercent: getCommissionPercent(),
     });
   } catch (error) {
