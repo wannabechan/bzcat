@@ -38,6 +38,23 @@ let storeOrdersIdleListenersAttached = false;
 let storeOrdersStatsMenuFilter = 'top10';
 let storeOrdersStatsLastData = null;
 
+/** 정산 수수료율(%). `/api/config`의 `commissionPercent`(환경변수 BZCAT_COMMISSION)로 갱신 */
+let BZCAT_COMMISSION_PERCENT = 18;
+
+async function loadCommissionPercentFromConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const p = Number(data.commissionPercent);
+    if (Number.isFinite(p) && p >= 0 && p <= 100) BZCAT_COMMISSION_PERCENT = p;
+  } catch (_) {}
+}
+
+function settlementFeeFromSales(sales) {
+  return Math.round((Number(sales) || 0) * BZCAT_COMMISSION_PERCENT / 100);
+}
+
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -870,7 +887,7 @@ function renderStoreSettlementTable(byBrand) {
   let html = '<table class="' + tableClass + '"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
   byBrand.forEach((b) => {
     const sales = Number(b.totalAmount) || 0;
-    const fee = Math.round(sales * 0.18);
+    const fee = settlementFeeFromSales(sales);
     const settlement = sales - fee;
     html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
   });
@@ -1023,8 +1040,11 @@ function setupStoreOrdersTabs() {
   }
 }
 
-setupStoreOrdersTabs();
-storeOrdersPeriod = '45days';
-storeOrdersSortBy = 'created_at';
-storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
-loadStoreOrders();
+(async function bootstrapStoreOrders() {
+  await loadCommissionPercentFromConfig();
+  setupStoreOrdersTabs();
+  storeOrdersPeriod = '45days';
+  storeOrdersSortBy = 'created_at';
+  storeOrdersSortDir = { created_at: 'desc', delivery_date: 'desc' };
+  loadStoreOrders();
+})();

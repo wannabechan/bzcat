@@ -1,9 +1,10 @@
 /**
  * GET /api/admin/settlement-statement?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&slug=xxx
- * 기간·브랜드별 정산서 데이터 (일별 집계, 수수료 18%, admin 전용)
+ * 기간·브랜드별 정산서 데이터 (일별 집계, 수수료율 BZCAT_COMMISSION%, admin 전용)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
+const { getCommissionPercent, commissionFeeFromSales } = require('../_commission');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
 const { getAdminSampleOrders } = require('./_sample-orders');
@@ -71,7 +72,7 @@ module.exports = async (req, res) => {
       .map((d) => {
         const row = byDate[d];
         const sales = row.totalAmount;
-        const fee = Math.round(sales * 0.18);
+        const fee = commissionFeeFromSales(sales);
         const settlement = sales - fee;
         return { date: d, orderCount: row.orderCount, totalAmount: sales, fee, settlement };
       });
@@ -99,6 +100,7 @@ module.exports = async (req, res) => {
       totalSales,
       totalFee,
       totalSettlement,
+      commissionPercent: getCommissionPercent(),
     });
   } catch (error) {
     console.error('Admin settlement-statement error:', error);

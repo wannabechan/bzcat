@@ -4,9 +4,11 @@
  * emailAdmin: 문의용 이메일 (환경변수 EMAIL_ADMIN)
  * minOrderPrice: 최소 주문 금액 (환경변수 MIN_ORDERPRICE)
  * tossApiClientKey: API 개별 연동 클라이언트 키 (환경변수 PAYKEY_BZCAT_API_CLIENT)
+ * commissionPercent: 정산 수수료율 % (환경변수 BZCAT_COMMISSION)
  */
 
 const { apiResponse } = require('./_utils');
+const { getCommissionPercent } = require('./_commission');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -28,6 +30,7 @@ module.exports = async (req, res) => {
       emailAdmin,
       minOrderPrice,
       tossApiClientKey,
+      commissionPercent: getCommissionPercent(),
     });
   } catch (error) {
     console.error('Config error:', error);
@@ -35,6 +38,7 @@ module.exports = async (req, res) => {
       emailAdmin: '',
       minOrderPrice: 100,
       tossApiClientKey: '',
+      commissionPercent: 18,
     });
   }
 };

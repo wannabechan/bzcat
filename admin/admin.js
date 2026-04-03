@@ -37,6 +37,23 @@ const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:0
 /** 정산관리 탭: false = 실제 DB 데이터 사용, true = 테스트용 샘플(DB 미반영, 화면만) */
 const SETTLEMENT_MOCK_FOR_TEST = false;
 
+/** 정산 수수료율(%). `/api/config`의 `commissionPercent`(환경변수 BZCAT_COMMISSION)로 갱신 */
+let BZCAT_COMMISSION_PERCENT = 18;
+
+async function loadCommissionPercentFromConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const p = Number(data.commissionPercent);
+    if (Number.isFinite(p) && p >= 0 && p <= 100) BZCAT_COMMISSION_PERCENT = p;
+  } catch (_) {}
+}
+
+function settlementFeeFromSales(sales) {
+  return Math.round((Number(sales) || 0) * BZCAT_COMMISSION_PERCENT / 100);
+}
+
 // KST(한국 표준시) 기준 날짜 (프로젝트 시간 판단 통일)
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 function getKSTDateStr(ts) {
@@ -1128,7 +1145,7 @@ function renderSettlementTable(byBrand) {
   let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
   byBrand.forEach((b) => {
     const sales = Number(b.totalAmount) || 0;
-    const fee = Math.round(sales * 0.18);
+    const fee = settlementFeeFromSales(sales);
     const settlement = sales - fee;
     html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
   });
@@ -1236,6 +1253,7 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
       totalSales: 0,
       totalFee: 0,
       totalSettlement: 0,
+      commissionPercent: BZCAT_COMMISSION_PERCENT,
     };
   }
   const rangeStart = startDateStr < SAMPLE_FIRST_DELIVERY_DATE ? SAMPLE_FIRST_DELIVERY_DATE : startDateStr;
@@ -1249,13 +1267,13 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     const d = new Date(t);
     const dateKey = getKSTDateStr(t);
     const sales = SAMPLE_AMOUNT_PER_ORDER;
-    const fee = Math.round(sales * 0.18);
+    const fee = settlementFeeFromSales(sales);
     const settlement = sales - fee;
     days.push({ date: dateKey, orderCount: 1, totalAmount: sales, fee, settlement });
   }
   const totalOrderCount = days.length;
   const totalSales = totalOrderCount * SAMPLE_AMOUNT_PER_ORDER;
-  const totalFee = Math.round(totalSales * 0.18);
+  const totalFee = settlementFeeFromSales(totalSales);
   const totalSettlement = totalSales - totalFee;
   return {
     brandTitle,
@@ -1269,6 +1287,7 @@ function getMockSettlementStatementData(startDateStr, endDateStr) {
     totalSales,
     totalFee,
     totalSettlement,
+    commissionPercent: BZCAT_COMMISSION_PERCENT,
   };
 }
 
@@ -1299,6 +1318,8 @@ function getStatementDefaultRange() {
 function renderSettlementStatementContent(data) {
   if (!data || !data.days) return '';
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
+  const commissionPctRaw = data.commissionPercent != null && data.commissionPercent !== '' ? Number(data.commissionPercent) : BZCAT_COMMISSION_PERCENT;
+  const pctForFooter = Number.isFinite(commissionPctRaw) ? commissionPctRaw : BZCAT_COMMISSION_PERCENT;
   const brandName = escapeHtml(data.brandTitle || data.slug || '');
   const periodText = (data.startDate || '') + ' ~ ' + (data.endDate || '');
   const contactEmail = escapeHtml(data.storeContactEmail || '');
@@ -1333,7 +1354,7 @@ function renderSettlementStatementContent(data) {
   html += '</div>';
 
   html += '<div class="admin-settlement-statement-footer">';
-  html += '<p>* 수수료는 판매금액의 18%이며, 정산금액 = 판매금액 − 수수료입니다.</p>';
+  html += '<p>* 수수료는 판매금액의 ' + escapeHtml(String(pctForFooter)) + '%이며, 정산금액 = 판매금액 − 수수료입니다.</p>';
   html += '<p>* 정산서 확인 후, 본사의 지정된 이메일 주소로 전자세금계산서 발행 부탁드립니다.</p>';
   html += '<p>* 정산금액은 귀사의 지정된 입금 계좌로 현금 지급됩니다.</p>';
   html += '</div>';
@@ -1396,6 +1417,7 @@ async function runSettlementStatementSearch() {
         totalSales: 0,
         totalFee: 0,
         totalSettlement: 0,
+        commissionPercent: BZCAT_COMMISSION_PERCENT,
       };
       _showStatementSpinner(false);
       resultBox.innerHTML = renderSettlementStatementContent(emptyData);
@@ -2068,7 +2090,9 @@ async function init() {
     showLoadingError(authResult.error || '접근할 수 없습니다.');
     return;
   }
-  
+
+  await loadCommissionPercentFromConfig();
+
   adminUserLevel = authResult.user?.level || 'admin';
   const pageTitleEl = document.getElementById('adminPageTitle');
   if (pageTitleEl) pageTitleEl.textContent = adminUserLevel === 'operator' ? 'Operator' : 'Admin';
