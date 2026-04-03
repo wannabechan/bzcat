@@ -411,6 +411,9 @@ async function getMenuDataForApp() {
       businessHours,
       storeContactEmail: (stores[i].storeContactEmail || ''),
       deliveryFee: stores[i].deliveryFee,
+      packagingFee: Number.isFinite(Number(stores[i].packagingFee)) && Number(stores[i].packagingFee) >= 0
+        ? Math.floor(Number(stores[i].packagingFee))
+        : 0,
     };
   }
   return result;
