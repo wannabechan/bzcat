@@ -1146,12 +1146,16 @@ function renderSettlementTable(byBrand) {
     return _settlementEmptyParagraph;
   }
   const formatMoney = (n) => Number(n || 0).toLocaleString() + '원';
-  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>정산금액</th></tr></thead><tbody>';
+  let html = '<table class="admin-stats-table"><thead><tr><th>브랜드</th><th>주문 수</th><th>판매금액</th><th>수수료</th><th>포장비</th><th>배송비</th><th>정산금액</th></tr></thead><tbody>';
   byBrand.forEach((b) => {
     const sales = Number(b.totalAmount) || 0;
-    const fee = settlementFeeFromSales(sales);
-    const settlement = sales - fee;
-    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
+    const fee = b.fee != null && b.fee !== '' ? Number(b.fee) : settlementFeeFromSales(sales);
+    const packaging = b.packaging != null && b.packaging !== '' ? Number(b.packaging) : 0;
+    const deliveryFee = b.deliveryFee != null && b.deliveryFee !== '' ? Number(b.deliveryFee) : 0;
+    const settlement = b.settlement != null && b.settlement !== ''
+      ? Number(b.settlement)
+      : sales - fee - packaging - deliveryFee;
+    html += '<tr><td>' + escapeHtml(b.brandTitle || b.slug || '') + '</td><td>' + (b.orderCount || 0) + '</td><td>' + formatMoney(sales) + '</td><td>' + formatMoney(fee) + '</td><td>' + formatMoney(packaging) + '</td><td>' + formatMoney(deliveryFee) + '</td><td>' + formatMoney(settlement) + '</td></tr>';
   });
   html += '</tbody></table>';
   return html;
@@ -1230,12 +1234,38 @@ function getMockSettlementByBrandForPeriod(startDateStr, endDateStr) {
     if (dayKst === 6) notExecutedCount += 1;
     else executedCount += 1;
   }
-  const executed = executedCount > 0
-    ? [{ ...MOCK_BRAND, orderCount: executedCount, totalAmount: executedCount * SAMPLE_AMOUNT_PER_ORDER }]
-    : [];
-  const notExecuted = notExecutedCount > 0
-    ? [{ ...MOCK_BRAND, orderCount: notExecutedCount, totalAmount: notExecutedCount * SAMPLE_AMOUNT_PER_ORDER }]
-    : [];
+  const pkgPer = Number.isFinite(Number(_mockFirstCategory.packagingFee)) && Number(_mockFirstCategory.packagingFee) >= 0
+    ? Math.floor(Number(_mockFirstCategory.packagingFee))
+    : 0;
+  const delPer = Number.isFinite(Number(_mockFirstCategory.deliveryFee)) && Number(_mockFirstCategory.deliveryFee) >= 0
+    ? Math.floor(Number(_mockFirstCategory.deliveryFee))
+    : 50000;
+  const MOCK_MENU_UNITS_PER_ORDER = 5;
+
+  function mockBrandRow(orderCount) {
+    if (orderCount <= 0) return null;
+    const totalAmount = orderCount * SAMPLE_AMOUNT_PER_ORDER;
+    const menuQtySum = orderCount * MOCK_MENU_UNITS_PER_ORDER;
+    const packaging = menuQtySum * pkgPer;
+    const deliveryFee = orderCount * delPer;
+    const fee = settlementFeeFromSales(totalAmount);
+    const settlement = totalAmount - fee - packaging - deliveryFee;
+    return {
+      ...MOCK_BRAND,
+      orderCount,
+      totalAmount,
+      menuQtySum,
+      packaging,
+      deliveryFee,
+      fee,
+      settlement,
+    };
+  }
+
+  const executedRow = mockBrandRow(executedCount);
+  const notExecutedRow = mockBrandRow(notExecutedCount);
+  const executed = executedRow ? [executedRow] : [];
+  const notExecuted = notExecutedRow ? [notExecutedRow] : [];
   return { executed, notExecuted };
 }
 
@@ -1565,7 +1595,7 @@ async function loadSettlementPeriod(settlementDateStr) {
       return;
     }
     if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
-    _applySettlementPeriodResult(renderMockSettlementTwoLists(data.byBrand || [], []));
+    _applySettlementPeriodResult(renderMockSettlementTwoLists(data.executed || data.byBrand || [], data.notExecuted || []));
   } catch (e) {
     if (document.getElementById('adminSettlementDateSelect')?.value !== requestedDate) {
       if (periodSpinnerEl) { periodSpinnerEl.innerHTML = ''; periodSpinnerEl.style.display = 'none'; }
