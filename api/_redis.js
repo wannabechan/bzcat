@@ -2,7 +2,7 @@
  * Redis (Upstash) 데이터 레이어
  * Key 구조:
  * - user:{email} = JSON 사용자 정보
- * - auth:code:{email} = 6자리 코드 (TTL 10분)
+ * - auth:code:{email} = 6자리 코드 (TTL 2분, CODE_TTL_SECONDS)
  * - orders:count:{yymmdd} = 해당일 주문 건수 (INCR)
  * - order:{id} = JSON 주문 정보 (id = yymmdd000 형식)
  * - orders:by_user:{email} = Sorted Set (score=timestamp, member=orderId)
