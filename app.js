@@ -460,9 +460,9 @@ function getCartCategory() {
   return getCategoryForItem(itemIds[0]);
 }
 
-/** 매장별 1회 주문 메뉴 수량 상한(0 = 제한 없음). 관리자 이메일은 제한 없음. */
+/** 매장별 1회 주문 메뉴 수량 상한(0 = 제한 없음). */
 function getMaxOrderQtyCapForSlug(slug) {
-  if (!slug || cachedOrderPageIsEmailAdmin) return null;
+  if (!slug) return null;
   const raw = MENU_DATA[slug]?.maxOrderQuantity;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return null;
