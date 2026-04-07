@@ -5,12 +5,18 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+const crypto = require('crypto');
 const { put } = require('@vercel/blob');
 const formidable = require('formidable-serverless');
-const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel } = require('../_utils');
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const EXT_BY_MIME = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 
 function isAdmin(user) {
@@ -43,7 +49,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(sessionToken);
+    const decoded = verifyToken(sessionToken);
+    const user = withResolvedLevel(decoded);
     if (!user || !isAdmin(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
@@ -62,11 +69,16 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: 'JPEG, PNG, WebP, GIF 이미지만 업로드할 수 있습니다.' });
     }
 
-    const originalName = file.originalFilename || file.name || '';
-    const ext = path.extname(originalName) || '.jpg';
-    const pathname = `menu/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const ext = EXT_BY_MIME[mimetype] || '.jpg';
+    const pathname = `menu/${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
 
     const fileBuffer = fs.readFileSync(filepath);
+    try {
+      fs.unlinkSync(filepath);
+    } catch (_) {
+      /* 임시 파일 삭제 실패는 업로드 성공에 영향 없음 */
+    }
+
     const blob = await put(pathname, fileBuffer, {
       access: 'public',
       addRandomSuffix: true,

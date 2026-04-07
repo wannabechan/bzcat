@@ -93,9 +93,9 @@ module.exports = async (req, res) => {
       orderItems[i] = { ...it, id: idStr, name: nameStr };
     }
 
-    const storesForSoldOut = await getStores();
+    const stores = await getStores();
     const soldOutMenuIds = new Set();
-    for (const s of storesForSoldOut) {
+    for (const s of stores) {
       const menus = await getMenus(s.id);
       if (!Array.isArray(menus)) continue;
       for (const m of menus) {
@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
 
     const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
 
-    const storeForLimit = getStoreForOrder({ order_items: orderItems }, storesForSoldOut);
+    const storeForLimit = getStoreForOrder({ order_items: orderItems }, stores);
     if (storeForLimit) {
       const maxQ = Number(storeForLimit.maxOrderQuantity);
       if (Number.isFinite(maxQ) && maxQ > 0) {
@@ -181,10 +181,8 @@ module.exports = async (req, res) => {
       total_amount: orderTotal,
     });
 
-    // 주문서 PDF 생성 및 Vercel Blob 저장
-    let stores = [];
+    // 주문서 PDF 생성 및 Vercel Blob 저장 (stores는 위에서 1회 로드한 목록 재사용)
     try {
-      stores = await getStores();
       const pdfBuffer = await generateOrderPdf(order, stores);
       const pathname = `orders/order-${order.id}.pdf`;
       const blob = await put(pathname, pdfBuffer, {
