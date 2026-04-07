@@ -854,6 +854,18 @@ input.menu-qty-input.menu-qty-value:disabled {
   cursor: not-allowed;
 }
 
+/* 모바일: 숫자 영역 8% 축소, 그 절반씩 −/+ 버튼 너비에 반영 (전체 폭 유지) */
+@media (max-width: 768px) {
+  .menu-qty-btn {
+    width: calc(36px + 52px * 0.04);
+  }
+  input.menu-qty-input.menu-qty-value {
+    width: calc(52px * 0.92);
+    min-width: calc(44px * 0.92);
+    max-width: calc(72px * 0.92);
+  }
+}
+
 /* 품절: 모바일은 왼쪽(기본), 데스크톱은 위 미디어쿼리에서 flex-end */
 .menu-card-actions--soldout {
   justify-content: flex-start;
