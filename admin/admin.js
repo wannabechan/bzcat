@@ -192,6 +192,7 @@ function generateStoreId() {
 function renderStore(store, menus) {
   const deliveryFee = Number.isFinite(Number(store.deliveryFee)) && Number(store.deliveryFee) >= 0 ? Math.floor(Number(store.deliveryFee)) : 50000;
   const packagingFee = Number.isFinite(Number(store.packagingFee)) && Number(store.packagingFee) >= 0 ? Math.floor(Number(store.packagingFee)) : 0;
+  const maxOrderQty = Number.isFinite(Number(store.maxOrderQuantity)) && Number(store.maxOrderQuantity) >= 0 ? Math.floor(Number(store.maxOrderQuantity)) : 0;
   const items = menus || [];
   const storeIdEsc = escapeHtml(store.id || '');
 
@@ -224,6 +225,7 @@ function renderStore(store, menus) {
           <input type="hidden" data-field="businessHours" value="${(store.businessHours && Array.isArray(store.businessHours) ? store.businessHours : BUSINESS_HOURS_SLOTS).join(',')}">
           <input type="hidden" data-field="deliveryFee" value="${deliveryFee}">
           <input type="hidden" data-field="packagingFee" value="${packagingFee}">
+          <input type="hidden" data-field="maxOrderQuantity" value="${maxOrderQty}">
         </div>
         <div class="admin-section">
           <div class="admin-section-title">브랜드</div>
@@ -359,13 +361,16 @@ function collectData() {
     const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl.querySelector('input[data-field="deliveryFee"]');
     const packagingFeeInput = storeEl.querySelector('input[data-field="packagingFee"]');
+    const maxOrderQuantityInput = storeEl.querySelector('input[data-field="maxOrderQuantity"]');
     const businessDaysStr = businessDaysInput?.value?.trim() || '0,1,2,3,4,5,6';
     const businessDays = businessDaysStr.split(',').map((d) => parseInt(d, 10)).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
     const businessHoursStr = businessHoursInput?.value?.trim() || BUSINESS_HOURS_SLOTS.join(',');
     const businessHours = businessHoursStr.split(',').map((s) => s.trim()).filter((s) => BUSINESS_HOURS_SLOTS.includes(s));
     const deliveryFee = parseInt(deliveryFeeInput?.value || '50000', 10);
     const packagingFee = parseInt(packagingFeeInput?.value || '0', 10);
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, packagingFee: Number.isFinite(packagingFee) && packagingFee >= 0 ? packagingFee : 0 };
+    const maxOrderQ = parseInt(maxOrderQuantityInput?.value || '0', 10);
+    const maxOrderQuantity = Number.isFinite(maxOrderQ) && maxOrderQ >= 0 ? Math.min(maxOrderQ, 999999) : 0;
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, packagingFee: Number.isFinite(packagingFee) && packagingFee >= 0 ? packagingFee : 0, maxOrderQuantity };
     stores.push(store);
 
     const menuList = storeEl.querySelector('.admin-menu-list');
@@ -2196,6 +2201,7 @@ async function init() {
     const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
     const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
     const packagingFeeModalInput = document.getElementById('adminApiSettingsPackagingFee');
+    const maxOrderQtyModalInput = document.getElementById('adminApiSettingsMaxOrderQty');
     const storeId = modal?.dataset?.currentStoreId;
     if (!storeId) return;
     const storeEl = Array.from(document.querySelectorAll('.admin-store')).find((el) => el.dataset.storeId === storeId);
@@ -2203,6 +2209,7 @@ async function init() {
     const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
     const packagingFeeInput = storeEl?.querySelector('input[data-field="packagingFee"]');
+    const maxOrderQuantityInput = storeEl?.querySelector('input[data-field="maxOrderQuantity"]');
     if (businessDaysContainer && businessDaysInput) {
       const checked = Array.from(businessDaysContainer.querySelectorAll('input[data-day]:checked'))
         .map((cb) => parseInt(cb.dataset.day, 10))
@@ -2223,6 +2230,10 @@ async function init() {
       const parsedPack = parseInt(packagingFeeModalInput.value || '0', 10);
       packagingFeeInput.value = Number.isFinite(parsedPack) && parsedPack >= 0 ? String(parsedPack) : '0';
     }
+    if (maxOrderQuantityInput && maxOrderQtyModalInput) {
+      const parsedMax = parseInt(maxOrderQtyModalInput.value || '0', 10);
+      maxOrderQuantityInput.value = Number.isFinite(parsedMax) && parsedMax >= 0 ? String(Math.min(parsedMax, 999999)) : '0';
+    }
     closeApiSettingsModal();
   }
   document.getElementById('adminApiSettingsModalClose')?.addEventListener('click', closeApiSettingsModal);
@@ -2236,7 +2247,7 @@ async function init() {
       if (!modal) return;
       const tabId = tab.dataset.settingsTab;
       modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.toggle('active', t.dataset.settingsTab === tabId));
-      const panelMap = { 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours', 'delivery-fee': 'adminSettingsPanelDeliveryFee', 'packaging-fee': 'adminSettingsPanelPackagingFee' };
+      const panelMap = { 'business-days': 'adminSettingsPanelBusinessDays', 'business-hours': 'adminSettingsPanelBusinessHours', 'delivery-fee': 'adminSettingsPanelDeliveryFee', 'packaging-fee': 'adminSettingsPanelPackagingFee', 'max-order-qty': 'adminSettingsPanelMaxOrderQty' };
       const panelId = panelMap[tabId];
       modal.querySelectorAll('.admin-modal-panel').forEach((p) => p.classList.remove('active'));
       if (panelId) document.getElementById(panelId)?.classList.add('active');
@@ -2277,9 +2288,11 @@ async function init() {
         const businessHoursInput = storeEl?.querySelector('input[data-field="businessHours"]');
         const deliveryFeeInput = storeEl?.querySelector('input[data-field="deliveryFee"]');
         const packagingFeeInput = storeEl?.querySelector('input[data-field="packagingFee"]');
+        const maxOrderQuantityInput = storeEl?.querySelector('input[data-field="maxOrderQuantity"]');
         const modal = document.getElementById('adminApiSettingsModal');
         const deliveryFeeModalInput = document.getElementById('adminApiSettingsDeliveryFee');
         const packagingFeeModalInput = document.getElementById('adminApiSettingsPackagingFee');
+        const maxOrderQtyModalInput = document.getElementById('adminApiSettingsMaxOrderQty');
         const modalTitle = document.getElementById('adminApiSettingsStoreTitle');
         const businessDaysContainer = document.getElementById('adminApiSettingsBusinessDays');
         const businessHoursContainer = document.getElementById('adminApiSettingsBusinessHours');
@@ -2303,6 +2316,10 @@ async function init() {
           if (packagingFeeModalInput) {
             const parsedPackagingFee = parseInt(packagingFeeInput?.value || '0', 10);
             packagingFeeModalInput.value = Number.isFinite(parsedPackagingFee) && parsedPackagingFee >= 0 ? String(parsedPackagingFee) : '0';
+          }
+          if (maxOrderQtyModalInput) {
+            const parsedMax = parseInt(maxOrderQuantityInput?.value || '0', 10);
+            maxOrderQtyModalInput.value = Number.isFinite(parsedMax) && parsedMax >= 0 ? String(parsedMax) : '0';
           }
           modal.querySelectorAll('.admin-modal-tab').forEach((t) => t.classList.remove('active'));
           modal.querySelector('[data-settings-tab="business-days"]')?.classList.add('active');
@@ -2338,6 +2355,7 @@ async function init() {
           businessHours: [...BUSINESS_HOURS_SLOTS],
           deliveryFee: 50000,
           packagingFee: 0,
+          maxOrderQuantity: 0,
         };
         const div = document.createElement('div');
         div.innerHTML = renderStore(newStore, []);

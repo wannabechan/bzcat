@@ -460,6 +460,28 @@ function getCartCategory() {
   return getCategoryForItem(itemIds[0]);
 }
 
+/** 매장별 1회 주문 메뉴 수량 상한(0 = 제한 없음). 관리자 이메일은 제한 없음. */
+function getMaxOrderQtyCapForSlug(slug) {
+  if (!slug || cachedOrderPageIsEmailAdmin) return null;
+  const raw = MENU_DATA[slug]?.maxOrderQuantity;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
+}
+
+/** 해당 매장(slug) 기준 장바구니+담기 대기 수량 합 */
+function getTotalMenuPiecesForSlug(slug) {
+  if (!slug) return 0;
+  let n = 0;
+  for (const [id, q] of Object.entries(cart)) {
+    if (q > 0 && getCategoryForItem(id) === slug) n += q;
+  }
+  for (const [id, q] of Object.entries(pendingQty)) {
+    if (q > 0 && getCategoryForItem(id) === slug) n += q;
+  }
+  return n;
+}
+
 const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 function getBusinessDaysHint(categorySlug) {
@@ -582,6 +604,15 @@ function updateCartCount() {
 // 카드에서 설정한 수량만 변경 (담기 전)
 function setPendingQty(itemId, delta) {
   if (findItemById(itemId)?.soldOut) return;
+  const slug = getCategoryForItem(itemId);
+  const cap = getMaxOrderQtyCapForSlug(slug);
+  if (cap != null && delta > 0) {
+    const total = getTotalMenuPiecesForSlug(slug);
+    if (total + delta > cap) {
+      alert(`1회 주문당 최대 ${cap}개까지 주문할 수 있습니다.`);
+      return;
+    }
+  }
   const current = pendingQty[itemId] || 0;
   const next = Math.max(0, current + delta);
   if (next === 0) delete pendingQty[itemId];
@@ -593,6 +624,15 @@ function setPendingQty(itemId, delta) {
 function updateCartQty(itemId, delta) {
   const item = findItemById(itemId);
   if (item?.soldOut && delta > 0) return;
+  const slug = getCategoryForItem(itemId);
+  const cap = getMaxOrderQtyCapForSlug(slug);
+  if (cap != null && delta > 0) {
+    const total = getTotalMenuPiecesForSlug(slug);
+    if (total + delta > cap) {
+      alert(`1회 주문당 최대 ${cap}개까지 주문할 수 있습니다.`);
+      return;
+    }
+  }
   const current = cart[itemId] || 0;
   const next = Math.max(0, current + delta);
   if (next === 0) delete cart[itemId];

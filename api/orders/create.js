@@ -109,12 +109,27 @@ module.exports = async (req, res) => {
       }
     }
 
+    const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
+    if (!isEmailAdmin) {
+      const storeForLimit = getStoreForOrder({ order_items: orderItems }, storesForSoldOut);
+      if (storeForLimit) {
+        const maxQ = Number(storeForLimit.maxOrderQuantity);
+        if (Number.isFinite(maxQ) && maxQ > 0) {
+          const goodsQty = orderItems
+            .filter((it) => String(it.id || '') !== 'etc-fee')
+            .reduce((sum, it) => sum + Number(it.quantity || 0), 0);
+          if (goodsQty > maxQ) {
+            return apiResponse(res, 400, { error: `1회 주문당 최대 ${maxQ}개까지 주문할 수 있습니다.` });
+          }
+        }
+      }
+    }
+
     const envMinOrderPrice = Number(process.env.MIN_ORDERPRICE);
     const TOTAL_MIN = Number.isFinite(envMinOrderPrice) && envMinOrderPrice >= 1
       ? Math.floor(envMinOrderPrice)
       : 100;
 
-    const isEmailAdmin = getUserLevel((user.email || '').toLowerCase().trim()) === 'admin';
     if (isEmailAdmin) {
       for (let i = 0; i < orderItems.length; i++) {
         if (String(orderItems[i].id || '') === 'etc-fee') {

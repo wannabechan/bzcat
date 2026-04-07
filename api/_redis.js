@@ -414,6 +414,9 @@ async function getMenuDataForApp() {
       packagingFee: Number.isFinite(Number(stores[i].packagingFee)) && Number(stores[i].packagingFee) >= 0
         ? Math.floor(Number(stores[i].packagingFee))
         : 0,
+      maxOrderQuantity: Number.isFinite(Number(stores[i].maxOrderQuantity)) && Number(stores[i].maxOrderQuantity) > 0
+        ? Math.floor(Number(stores[i].maxOrderQuantity))
+        : 0,
     };
   }
   return result;

@@ -404,6 +404,7 @@
           <button type="button" class="admin-modal-tab" data-settings-tab="business-hours">영업 시간</button>
           <button type="button" class="admin-modal-tab" data-settings-tab="delivery-fee">배송비</button>
           <button type="button" class="admin-modal-tab" data-settings-tab="packaging-fee">포장비</button>
+          <button type="button" class="admin-modal-tab" data-settings-tab="max-order-qty">최대수량</button>
         </div>
         <div class="admin-modal-body">
           <div class="admin-modal-panel active" id="adminSettingsPanelBusinessDays">
@@ -445,6 +446,13 @@
             <div class="admin-form-field">
               <label class="admin-form-label" for="adminApiSettingsPackagingFee">포장비 (원)</label>
               <input type="number" id="adminApiSettingsPackagingFee" class="admin-form-input" placeholder="0" min="0" step="100">
+            </div>
+          </div>
+          <div class="admin-modal-panel" id="adminSettingsPanelMaxOrderQty">
+            <p class="admin-modal-hint">1회 주문 시 이 매장 메뉴 수량 합의 상한입니다. 0이면 제한 없음.</p>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="adminApiSettingsMaxOrderQty">최대 수량 (개)</label>
+              <input type="number" id="adminApiSettingsMaxOrderQty" class="admin-form-input" placeholder="0" min="0" step="1">
             </div>
           </div>
         </div>
