@@ -482,6 +482,16 @@ function getTotalMenuPiecesForSlug(slug) {
   return n;
 }
 
+/** 메뉴 카드에서 이 품목에 설정 가능한 담기 대기 수량 상한 (주문 전체 상한·한 줄 999 반영) */
+function getMaxAllowedPendingForItem(itemId) {
+  const slug = getCategoryForItem(itemId);
+  const cap = getMaxOrderQtyCapForSlug(slug);
+  const total = getTotalMenuPiecesForSlug(slug);
+  const current = pendingQty[itemId] || 0;
+  const roomForOrder = cap == null ? MAX_MENU_LINE_QTY : Math.max(0, cap - total + current);
+  return Math.min(MAX_MENU_LINE_QTY, roomForOrder);
+}
+
 const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 function getBusinessDaysHint(categorySlug) {
@@ -503,6 +513,9 @@ function isBusinessDay(dateStr, categorySlug) {
 }
 
 const DELIVERY_TIME_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
+
+/** 서버 주문 한 줄당 수량 상한과 동일 (api/orders/create.js) */
+const MAX_MENU_LINE_QTY = 999;
 
 function setDeliveryTimeOptions(allowedSlots) {
   if (!inputDeliveryTime) return;
@@ -599,6 +612,32 @@ function updateCartCount() {
   const count = getCartTotalCount();
   cartCount.textContent = count;
   cartCount.style.display = count > 0 ? 'flex' : 'none';
+}
+
+/**
+ * 메뉴 카드 숫자 직접 입력 확정 (장바구니 제외)
+ * @param {string} rawValue
+ */
+function setPendingQtyFromMenuInput(itemId, rawValue) {
+  if (findItemById(itemId)?.soldOut) return;
+  const slug = getCategoryForItem(itemId);
+  const cartCategory = getCartCategory();
+  if (cartCategory !== null && slug !== cartCategory) return;
+
+  const cleaned = String(rawValue ?? '').replace(/\D/g, '');
+  let n = cleaned === '' ? 0 : parseInt(cleaned, 10);
+  if (!Number.isFinite(n) || n < 0) n = 0;
+
+  const maxAllowed = getMaxAllowedPendingForItem(itemId);
+  const orderCap = getMaxOrderQtyCapForSlug(slug);
+  let next = Math.min(n, maxAllowed);
+  if (n > maxAllowed && orderCap != null) {
+    alert(`1회 주문당 최대 ${orderCap}개까지 주문할 수 있습니다.`);
+  }
+
+  if (next === 0) delete pendingQty[itemId];
+  else pendingQty[itemId] = next;
+  renderMenuCards();
 }
 
 // 카드에서 설정한 수량만 변경 (담기 전)
@@ -724,7 +763,7 @@ function renderMenuCards() {
         : `<div class="menu-card-actions">
               <div class="menu-qty-controls">
                 <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="decrease" data-id="${idEsc}" ${!qtyDisabled && qty === 0 ? 'disabled' : ''}>−</button>
-                <span class="menu-qty-value">${qty}</span>
+                <input type="text" class="menu-qty-input menu-qty-value" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="수량" data-id="${idEsc}" value="${qty}" ${qtyDisabled ? 'readonly disabled tabindex="-1"' : ''}>
                 <button type="button" class="menu-qty-btn${qtyDisabled ? ' menu-qty-btn--other-category' : ''}" data-action="increase" data-id="${idEsc}" ${qtyDisabled ? '' : ''}>+</button>
               </div>
               <button class="menu-add-btn ${!canAddFromCategory ? 'menu-add-btn-other-category' : ''}" data-id="${idEsc}" ${addDisabled && canAddFromCategory ? 'disabled' : ''} aria-label="장바구니 담기">
@@ -1488,6 +1527,16 @@ function closeChatIntroModal() {
   setModalVisible(chatIntroModal, false);
 }
 
+/** 같은 카드의 수량 입력에 포커스가 있으면 먼저 확정 (+/−/담기와 불일치 방지) */
+function flushActiveMenuQtyInputNear(anchorBtn, itemId) {
+  const actions = anchorBtn?.closest?.('.menu-card-actions');
+  const inp = actions?.querySelector?.('.menu-qty-input');
+  if (!inp || inp.dataset.id !== itemId) return;
+  if (document.activeElement !== inp) return;
+  if (!window.BzCatAuth?.isLoggedIn?.()) return;
+  setPendingQtyFromMenuInput(itemId, inp.value);
+}
+
 // 메뉴 그리드 클릭 위임 (이벤트 리스너 최소화)
 function handleMenuGridClick(e) {
   const qtyBtn = e.target.closest('.menu-qty-btn');
@@ -1497,6 +1546,7 @@ function handleMenuGridClick(e) {
       return;
     }
     const id = qtyBtn.dataset.id;
+    flushActiveMenuQtyInputNear(qtyBtn, id);
     const cartCategory = getCartCategory();
     const itemCategory = getCategoryForItem(id);
     if (cartCategory !== null && itemCategory !== cartCategory) {
@@ -1519,6 +1569,7 @@ function handleMenuGridClick(e) {
       return;
     }
     const itemId = addBtn.dataset.id;
+    flushActiveMenuQtyInputNear(addBtn, itemId);
     const cartCategory = getCartCategory();
     const itemCategory = getCategoryForItem(itemId);
     if (cartCategory !== null && itemCategory !== cartCategory) {
@@ -1559,6 +1610,31 @@ function init() {
   window.BzCatAppReloadMenu = reloadMenuDataForOrderPage;
   categoryTabs.addEventListener('click', handleCategoryClick);
   menuGrid.addEventListener('click', handleMenuGridClick);
+  menuGrid.addEventListener(
+    'focusout',
+    (e) => {
+      const t = e.target;
+      if (!t || !t.classList?.contains('menu-qty-input')) return;
+      if (!menuGrid.contains(t)) return;
+      const itemId = t.dataset.id;
+      if (!itemId) return;
+      if (!window.BzCatAuth?.isLoggedIn?.()) {
+        openLoginRequiredModal();
+        t.value = String(pendingQty[itemId] || 0);
+        return;
+      }
+      setPendingQtyFromMenuInput(itemId, t.value);
+    },
+    true
+  );
+  menuGrid.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const t = e.target;
+    if (!t.classList?.contains('menu-qty-input')) return;
+    if (!menuGrid.contains(t)) return;
+    e.preventDefault();
+    t.blur();
+  });
   cartItems.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (btn) {
