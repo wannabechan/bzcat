@@ -743,7 +743,7 @@ function renderMenuCards() {
   const canAddFromCategory = cartCategory === null || category === cartCategory;
 
   menuGrid.innerHTML = items
-    .map((item) => {
+    .map((item, index) => {
       const soldOut = !!item.soldOut;
       const qty = soldOut || !canAddFromCategory ? 0 : (pendingQty[item.id] || 0);
       const addDisabled = soldOut || (canAddFromCategory ? qty === 0 : false);
@@ -753,8 +753,15 @@ function renderMenuCards() {
       const descEsc = escapeHtml(item.description || '상세 설명이 없습니다.');
       const originEsc = escapeHtml(item.origin || '원산지 정보가 없습니다.');
       const imgSrc = safeImageUrl(item.imageUrl);
+      // 첫 카드: LCP 후보 → eager + high. 두 번째 칸(2열 그리드 첫 행): eager. 나머지: lazy로 초기 대역폭 절약.
+      const imgLoadAttrs =
+        index === 0
+          ? ' loading="eager" fetchpriority="high"'
+          : index === 1
+            ? ' loading="eager"'
+            : ' loading="lazy"';
       const imgContent = imgSrc
-        ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="" class="menu-card-img" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
+        ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="${nameEsc}" class="menu-card-img"${imgLoadAttrs} decoding="async" width="400" height="400" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
       const actionsHtml = soldOut
         ? `<div class="menu-card-actions menu-card-actions--soldout">
