@@ -31,16 +31,29 @@ function nextWeekdayAfter(fromYmd, weekday) {
 }
 
 /** 배송 희망일·시각 기준으로 현재 시각이 지났는지에 따라 진행 단계 결정 (배송완료는 희망일시+1시간 이후만) */
-function sampleOrderStatusAndFields(deliveryDate, deliveryTime, nowMs, idPrefix, index) {
+function sampleOrderStatusAndFields(deliveryDate, deliveryTime, nowMs, idPrefix, index, storeDefaultDeliveryFee) {
   const timeStr = (deliveryTime || '00:00').toString().trim();
   const shippingNumberAt = new Date(deliveryDate + 'T09:00:00+09:00').getTime();
   const deliveryCompletedAt = new Date(deliveryDate + 'T' + timeStr.replace(/^(\d{1,2}):(\d{2})$/, (_, h, m) => `${h.padStart(2, '0')}:${m}:00`) + '+09:00').getTime() + 60 * 60 * 1000;
   const idx = String(index).padStart(4, '0');
+  const fee = Number.isFinite(Number(storeDefaultDeliveryFee)) && Number(storeDefaultDeliveryFee) >= 0
+    ? Math.floor(Number(storeDefaultDeliveryFee))
+    : 50000;
   if (nowMs >= deliveryCompletedAt) {
-    return { status: 'delivery_completed', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx };
+    return {
+      status: 'delivery_completed',
+      payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index),
+      tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx,
+      actual_delivery_fee: fee,
+    };
   }
   if (nowMs >= shippingNumberAt) {
-    return { status: 'shipping', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx };
+    return {
+      status: 'shipping',
+      payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index),
+      tracking_number: 'SAMPLE-' + idPrefix.toUpperCase() + '-' + idx,
+      actual_delivery_fee: fee,
+    };
   }
   return { status: 'payment_completed', payment_link: 'https://payment.tosspayments.com/sample/' + idPrefix + '-' + (index), tracking_number: '' };
 }
@@ -67,7 +80,8 @@ async function getAdminSampleOrders() {
     const orderDate = addDays(firstMonday, i * 7);
     const deliveryDate = addDays(orderDate, 8);
     const totalAmount = (menu1.price || 0) * 5;
-    const { status, payment_link, tracking_number } = sampleOrderStatusAndFields(deliveryDate, '19:00', nowMs, 'u1', i + 1);
+    const sampleFields = sampleOrderStatusAndFields(deliveryDate, '19:00', nowMs, 'u1', i + 1, firstStore.deliveryFee);
+    const { status, payment_link, tracking_number, actual_delivery_fee: sampleActualFee } = sampleFields;
     const order = {
       id: `sample-u1-${i + 1}`,
       user_email: 'sample@test.local',
@@ -86,6 +100,7 @@ async function getAdminSampleOrders() {
       payment_link,
     };
     if (tracking_number) order.tracking_number = tracking_number;
+    if (sampleActualFee != null && sampleActualFee !== '') order.actual_delivery_fee = sampleActualFee;
     orders.push(order);
   }
 
@@ -95,7 +110,8 @@ async function getAdminSampleOrders() {
     const orderDate = addDays(firstWednesday, i * 7);
     const deliveryDate = addDays(orderDate, 8);
     const totalAmount = (menu2.price || 0) * 5;
-    const { status, payment_link, tracking_number } = sampleOrderStatusAndFields(deliveryDate, '17:00', nowMs, 'u2', i + 1);
+    const sampleFields2 = sampleOrderStatusAndFields(deliveryDate, '17:00', nowMs, 'u2', i + 1, firstStore.deliveryFee);
+    const { status, payment_link, tracking_number, actual_delivery_fee: sampleActualFee2 } = sampleFields2;
     const order = {
       id: `sample-u2-${i + 1}`,
       user_email: 'sample@test.local',
@@ -114,6 +130,7 @@ async function getAdminSampleOrders() {
       payment_link,
     };
     if (tracking_number) order.tracking_number = tracking_number;
+    if (sampleActualFee2 != null && sampleActualFee2 !== '') order.actual_delivery_fee = sampleActualFee2;
     orders.push(order);
   }
 

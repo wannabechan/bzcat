@@ -9,6 +9,7 @@ const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getToken
 const { commissionFeeFromSales } = require('../_commission');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
+const { settlementDeliveryFeeForOrder } = require('../orders/_settlement-delivery');
 const { getAdminSampleOrders } = require('./_sample-orders');
 
 function normalizeDeliveryDate(str) {
@@ -49,7 +50,10 @@ function enrichBrandRow(row, stores) {
   const orderCount = Number(row.orderCount) || 0;
   const totalAmount = Number(row.totalAmount) || 0;
   const packaging = menuQtySum * packagingFeePerOrder;
-  const deliveryFee = orderCount * deliveryFeePerOrder;
+  const deliveryFeeSum = Number(row.deliveryFeeSum);
+  const deliveryFee = Number.isFinite(deliveryFeeSum) && deliveryFeeSum >= 0
+    ? Math.floor(deliveryFeeSum)
+    : orderCount * deliveryFeePerOrder;
   const fee = commissionFeeFromSales(totalAmount);
   const settlement = totalAmount - fee - packaging - deliveryFee;
   return {
@@ -73,11 +77,13 @@ function aggregateOrdersBySlug(orders, stores) {
         orderCount: 0,
         totalAmount: 0,
         menuQtySum: 0,
+        deliveryFeeSum: 0,
       };
     }
     bySlug[slug].orderCount += 1;
     bySlug[slug].totalAmount += Number(o.total_amount) || 0;
     bySlug[slug].menuQtySum += menuQuantitySumFromOrder(o);
+    bySlug[slug].deliveryFeeSum += settlementDeliveryFeeForOrder(o, store);
   });
   return Object.values(bySlug)
     .map((row) => enrichBrandRow(row, stores))

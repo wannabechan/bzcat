@@ -17,6 +17,8 @@ let adminPaymentSortDir = { created_at: 'desc', delivery_date: 'desc' }; // 'asc
 let adminPaymentSubFilter = 'all'; // 'all' | 'new' | 'payment_wait' | 'delivery_wait' | 'shipping' | 'delivery_completed'
 let adminPaymentPeriod = '45days'; // 'thisMonth' | '45days' | '90days' (주문시간 기준 조회 기간, 기본 45일)
 let adminStoresMap = {};
+/** 결제관리: 매장 설정 배송비 기본값·매장 매칭용 (전체 store 객체) */
+let adminPaymentStores = [];
 let adminStoreOrder = []; // slug order for order detail
 let adminStatsLastData = null;
 let adminStatsMenuFilter = 'top10'; // 'top10' | 'all'
@@ -83,6 +85,40 @@ function escapeHtml(s) {
   if (s == null || s === '') return '';
   const t = String(s);
   return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getAdminStoreForOrder(order) {
+  const items = order.order_items || order.orderItems || [];
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const firstId = String(items[0].id || '').toLowerCase();
+  if (!firstId) return null;
+  const match = (st) => {
+    const id = String(st.id || '').toLowerCase();
+    const slug = String(st.slug || '').toLowerCase();
+    if (!id && !slug) return false;
+    const prefix = id || slug;
+    return firstId === prefix || firstId.startsWith(prefix + '-');
+  };
+  const candidates = adminPaymentStores.filter(match);
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  candidates.sort((a, b) => String(b.id || b.slug || '').length - String(a.id || a.slug || '').length);
+  return candidates[0];
+}
+
+function defaultStoreDeliveryFee(store) {
+  const n = Number(store?.deliveryFee);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 50000;
+}
+
+function actualDeliveryFeeInputValue(order, store) {
+  const def = defaultStoreDeliveryFee(store);
+  if (order.status === 'payment_completed') return String(def);
+  const v = order.actual_delivery_fee;
+  if (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v)) && Number(v) >= 0) {
+    return String(Math.floor(Number(v)));
+  }
+  return String(def);
 }
 
 /** img src에 쓸 수 있는 URL만 허용 (http/https 또는 / 로 시작) */
@@ -599,6 +635,9 @@ function renderPaymentList() {
     const paymentLinkEsc = escapeHtml(order.payment_link || '');
     const shippingValueEsc = escapeHtml(shippingValue || '');
     const deliveryInputValueEsc = order.status === 'delivery_completed' ? escapeHtml(`주문 #${order.id}`) : '';
+    const storeForOrderPay = getAdminStoreForOrder(order);
+    const actualFeeInputVal = actualDeliveryFeeInputValue(order, storeForOrderPay);
+    const actualFeeEsc = escapeHtml(actualFeeInputVal);
 
     return `
       <div class="admin-payment-order ${isCancelled ? 'admin-payment-order-cancelled' : ''}" data-order-id="${orderIdEsc}">
@@ -630,16 +669,29 @@ function renderPaymentList() {
             ${paymentLinkRowDisabled ? 'disabled' : ''}
           >저장</button>
         </div>
-        <div class="admin-payment-link-row">
-          <input 
-            type="text" 
-            class="admin-payment-link-input admin-shipping-input" 
-            value="${shippingValueEsc}" 
-            data-order-id="${orderIdEsc}"
-            data-shipping-input="${orderIdEsc}"
-            placeholder="배송 번호 입력"
-            ${shippingRowDisabled ? 'readonly disabled' : ''}
-          >
+        <div class="admin-payment-link-row admin-shipping-fee-row">
+          <div class="admin-shipping-fee-split">
+            <input 
+              type="text" 
+              class="admin-payment-link-input admin-shipping-input" 
+              value="${shippingValueEsc}" 
+              data-order-id="${orderIdEsc}"
+              data-shipping-input="${orderIdEsc}"
+              placeholder="배송 번호 입력"
+              ${shippingRowDisabled ? 'readonly disabled' : ''}
+            >
+            <input
+              type="text"
+              class="admin-payment-link-input admin-actual-delivery-fee-input"
+              value="${actualFeeEsc}"
+              data-order-id="${orderIdEsc}"
+              data-actual-delivery-fee-input="${orderIdEsc}"
+              placeholder="실제배송비"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              ${shippingRowDisabled ? 'readonly disabled' : ''}
+            >
+          </div>
           <button 
             type="button" 
             class="admin-btn admin-btn-primary admin-payment-link-btn" 
@@ -779,6 +831,12 @@ function renderPaymentList() {
     });
   });
 
+  content.querySelectorAll('.admin-actual-delivery-fee-input').forEach((feeInput) => {
+    feeInput.addEventListener('input', () => {
+      feeInput.value = feeInput.value.replace(/\D/g, '');
+    });
+  });
+
   content.querySelectorAll('[data-save-shipping]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const orderId = btn.dataset.saveShipping;
@@ -792,6 +850,18 @@ function renderPaymentList() {
         return;
       }
 
+      const feeInput = content.querySelector(`.admin-actual-delivery-fee-input[data-order-id="${orderId}"]`);
+      const feeDigits = (feeInput?.value || '').trim();
+      if (feeDigits === '') {
+        alert('실제 배송비를 입력하세요.');
+        return;
+      }
+      const actualDeliveryFee = parseInt(feeDigits, 10);
+      if (!Number.isFinite(actualDeliveryFee) || actualDeliveryFee < 0) {
+        alert('실제 배송비는 0 이상의 숫자만 입력할 수 있습니다.');
+        return;
+      }
+
       btn.disabled = true;
       btn.textContent = '저장 중...';
 
@@ -800,7 +870,7 @@ function renderPaymentList() {
           method: 'POST',
           credentials: 'include',
           headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ orderId, trackingNumber }),
+          body: JSON.stringify({ orderId, trackingNumber, actualDeliveryFee }),
         });
 
         if (!res.ok) {
@@ -812,6 +882,7 @@ function renderPaymentList() {
         if (order) {
           order.status = 'shipping';
           order.tracking_number = trackingNumber;
+          order.actual_delivery_fee = actualDeliveryFee;
         }
         alert('저장되었습니다.');
         renderPaymentList();
@@ -972,6 +1043,7 @@ async function loadPaymentManagement() {
       const storesRes = await fetchWithTimeout(`${API_BASE}/api/admin/stores`, {});
       if (storesRes.ok) {
         const { stores } = await storesRes.json();
+        adminPaymentStores = stores || [];
         adminStoresMap = {};
         adminStoreOrder = [];
         (stores || []).forEach(s => {
@@ -1428,7 +1500,7 @@ function renderSettlementStatementContent(data) {
 
   html += '<div class="admin-settlement-statement-footer">';
   html += '<p>* 수수료는 판매금액의 ' + escapeHtml(String(pctForFooter)) + '%이며, 포장비는 개당 ' + formatMoney(packagingPerOrderForFooter) + '입니다.</p>';
-  html += '<p>* 정산금액 = 판매금액 − 수수료 - 포장비 - 배송비입니다.</p>';
+  html += '<p>* 정산금액 = 판매금액 − 수수료 - 포장비 - 배송비입니다. 배송비는 배송 번호 저장 시 등록한 주문별 실제 배송비 합계이며, 미등록된 구 주문은 매장 설정 배송비로 계산됩니다.</p>';
   html += '<p>* 정산서 확인 후, 본사의 지정된 이메일 주소로 전자세금계산서 발행 부탁드립니다.</p>';
   html += '<p>* 정산금액은 귀사의 지정된 입금 계좌로 현금 지급됩니다.</p>';
   html += '</div>';

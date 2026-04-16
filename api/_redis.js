@@ -233,11 +233,15 @@ async function updateOrderPaymentLink(orderId, paymentLink) {
   return order;
 }
 
-async function updateOrderShippingNumber(orderId, trackingNumber, actor) {
+async function updateOrderShippingNumber(orderId, trackingNumber, actor, actualDeliveryFee) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
   if (!order) return null;
   order.tracking_number = (trackingNumber || '').trim();
+  const feeNum = Number(actualDeliveryFee);
+  if (Number.isFinite(feeNum) && feeNum >= 0) {
+    order.actual_delivery_fee = Math.floor(feeNum);
+  }
   if (order.status === 'payment_completed') {
     appendStatusHistory(order, 'shipping', actor === undefined || actor === null ? 'system' : String(actor));
     order.status = 'shipping';

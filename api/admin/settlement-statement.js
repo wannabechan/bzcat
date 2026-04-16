@@ -7,6 +7,7 @@ const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getToken
 const { getCommissionPercent, commissionFeeFromSales } = require('../_commission');
 const { getAllOrders, getStores } = require('../_redis');
 const { getStoreForOrder } = require('../orders/_order-email');
+const { settlementDeliveryFeeForOrder } = require('../orders/_settlement-delivery');
 const { getAdminSampleOrders } = require('./_sample-orders');
 
 function normalizeDeliveryDate(str) {
@@ -82,10 +83,12 @@ module.exports = async (req, res) => {
     const byDate = {};
     filtered.forEach((o) => {
       const d = normalizeDeliveryDate(o.delivery_date);
-      if (!byDate[d]) byDate[d] = { orderCount: 0, totalAmount: 0, menuQtySum: 0 };
+      if (!byDate[d]) byDate[d] = { orderCount: 0, totalAmount: 0, menuQtySum: 0, deliveryFeeSum: 0 };
       byDate[d].orderCount += 1;
       byDate[d].totalAmount += Number(o.total_amount) || 0;
       byDate[d].menuQtySum += menuQuantitySumFromOrder(o);
+      const st = getStoreForOrder(o, stores);
+      byDate[d].deliveryFeeSum += settlementDeliveryFeeForOrder(o, st);
     });
 
     const days = Object.keys(byDate)
@@ -96,7 +99,7 @@ module.exports = async (req, res) => {
         const fee = commissionFeeFromSales(sales);
         const menuQtySum = row.menuQtySum;
         const packaging = menuQtySum * packagingFeePerOrder;
-        const delivery = row.orderCount * deliveryFeePerOrder;
+        const delivery = Number(row.deliveryFeeSum) || 0;
         const settlement = sales - fee - packaging - delivery;
         return {
           date: d,

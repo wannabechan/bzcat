@@ -1,6 +1,6 @@
 /**
  * POST /api/admin/shipping-number
- * 배송 번호(전화번호 형식) 저장 및 주문 상태를 배송중으로 변경 (admin 전용)
+ * 배송 번호(전화번호 형식)·실제 배송비(0 이상 정수) 저장 및 주문 상태를 배송중으로 변경 (admin 전용)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');
@@ -38,9 +38,21 @@ module.exports = async (req, res) => {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 
-    const { orderId, trackingNumber } = req.body || {};
+    const { orderId, trackingNumber, actualDeliveryFee } = req.body || {};
     if (!orderId || typeof orderId !== 'string') {
       return apiResponse(res, 400, { error: '주문 번호가 필요합니다.' });
+    }
+
+    const feeStr = actualDeliveryFee === undefined || actualDeliveryFee === null ? '' : String(actualDeliveryFee).trim();
+    if (feeStr === '') {
+      return apiResponse(res, 400, { error: '실제 배송비를 입력하세요.' });
+    }
+    if (!/^\d+$/.test(feeStr)) {
+      return apiResponse(res, 400, { error: '실제 배송비는 0 이상의 숫자만 입력할 수 있습니다.' });
+    }
+    const feeParsed = parseInt(feeStr, 10);
+    if (!Number.isFinite(feeParsed) || feeParsed < 0) {
+      return apiResponse(res, 400, { error: '실제 배송비는 0 이상의 숫자만 입력할 수 있습니다.' });
     }
 
     if (!isValidTrackingNumber(trackingNumber)) {
@@ -56,7 +68,12 @@ module.exports = async (req, res) => {
       return apiResponse(res, 400, { error: '결제 완료된 주문만 배송 번호를 등록할 수 있습니다.' });
     }
 
-    const updatedOrder = await updateOrderShippingNumber(orderId.trim(), String(trackingNumber).replace(/\D/g, '').trim(), user.email);
+    const updatedOrder = await updateOrderShippingNumber(
+      orderId.trim(),
+      String(trackingNumber).replace(/\D/g, '').trim(),
+      user.email,
+      feeParsed,
+    );
     if (updatedOrder) {
       const userGoingCode = (process.env.NHN_ALIMTALK_TEMPLATE_CODE_USER_GOING_ORDER || '').trim();
       const orderContact = (updatedOrder.contact || '').trim();
