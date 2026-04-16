@@ -17,6 +17,10 @@ let MIN_ORDER_PRICE = 100;
 
 function updateMinOrderNoticeText() {
   if (!cartMinOrderNotice) return;
+  if (cachedOrderPageIsEmailAdmin) {
+    cartMinOrderNotice.textContent = '※ 관리자 계정(EMAIL_ADMIN)으로는 최소 주문 금액 제한이 적용되지 않습니다.';
+    return;
+  }
   cartMinOrderNotice.textContent = `※ 최소 주문 금액은 ${formatPrice(MIN_ORDER_PRICE)} 입니다.`;
 }
 
@@ -185,6 +189,7 @@ function applyMenuDataForOrderPage(rawData, isEmailAdmin) {
   cachedOrderPageIsEmailAdmin = !!isEmailAdmin;
   MENU_DATA = rawData;
   pruneSoldOutFromCartAndPending();
+  updateMinOrderNoticeText();
 }
 
 /** 로그인/로그아웃 후 카테고리 노출 갱신 */
@@ -832,7 +837,7 @@ function renderCartItems() {
     byCategory[slug].sort((a, b) => (a.item.name || '').localeCompare(b.item.name || '', 'ko'));
   }
 
-  const TOTAL_MIN = MIN_ORDER_PRICE;
+  const TOTAL_MIN = cachedOrderPageIsEmailAdmin ? 0 : MIN_ORDER_PRICE;
   const categoryTotals = {};
   for (const slug of Object.keys(byCategory)) {
     categoryTotals[slug] = byCategory[slug].reduce((sum, { item, qty }) => sum + item.price * qty, 0);
@@ -1703,7 +1708,7 @@ function init() {
   });
   btnCheckout.addEventListener('click', (e) => {
     const total = calculateTotal();
-    const TOTAL_MIN = MIN_ORDER_PRICE;
+    const TOTAL_MIN = cachedOrderPageIsEmailAdmin ? 0 : MIN_ORDER_PRICE;
     if (total < TOTAL_MIN) {
       cartMinOrderNotice.classList.remove('notice-blink');
       cartMinOrderNotice.offsetHeight;

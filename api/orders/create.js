@@ -159,7 +159,7 @@ module.exports = async (req, res) => {
         return apiResponse(res, 400, { error: '주문 금액이 일치하지 않습니다. 장바구니를 새로고침한 뒤 다시 시도해 주세요.' });
       }
     }
-    if (!Number.isFinite(orderTotal) || orderTotal < TOTAL_MIN) {
+    if (!Number.isFinite(orderTotal) || (!isEmailAdmin && orderTotal < TOTAL_MIN)) {
       return apiResponse(res, 400, { error: `최소 주문 금액은 ${TOTAL_MIN}원입니다.` });
     }
     if (orderTotal > TOTAL_MAX) {
