@@ -730,10 +730,14 @@ function renderMenuCards() {
     return;
   }
 
-  const brand = escapeHtml(data.brand || '');
-  const bizNo = escapeHtml(data.bizNo || '');
-  if (brand || bizNo) {
-    menuSectionTitle.innerHTML = '<span class="menu-section-madeby">cooked by ' + brand + ' (' + bizNo + ')</span>';
+  const nameEsc = escapeHtml((data.brand || data.title || '').trim());
+  const cap = getMaxOrderQtyCapForSlug(category);
+  const maxOrderSuffix =
+    cap != null ? `최대주문수: ${cap}개` : '최대주문수: 제한 없음';
+  const maxOrderSuffixEsc = escapeHtml(maxOrderSuffix);
+  if (nameEsc) {
+    menuSectionTitle.innerHTML =
+      '<span class="menu-section-madeby">cooked by ' + nameEsc + ' (' + maxOrderSuffixEsc + ')</span>';
   } else {
     menuSectionTitle.textContent = '';
   }
