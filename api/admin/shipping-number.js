@@ -1,6 +1,6 @@
 /**
  * POST /api/admin/shipping-number
- * 배송 번호(전화번호 형식)·실제 배송비(0 이상 정수) 저장 및 주문 상태를 배송중으로 변경 (admin 전용)
+ * 배송 번호(전화번호 형식)·실제 배송비(0 이상 정수) 저장 및 주문 상태를 배송진행으로 변경 (admin 전용)
  */
 
 const { verifyToken, apiResponse, isAdminOrOperator, withResolvedLevel, getTokenFromRequest } = require('../_utils');

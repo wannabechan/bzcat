@@ -1306,7 +1306,7 @@ function renderProfileOrdersList() {
       const paymentLinkActive = isPaymentLinkActive(o);
       const cancelled = isCancelled(o.status);
       const currentIdx = cancelled ? -1 : stepIndex(o.status);
-      const step4Label = o.status === 'delivery_completed' ? '배송완료' : '배송중';
+      const step4Label = o.status === 'delivery_completed' ? '배송완료' : '배송진행';
       let stepsHtml;
       if (cancelled) {
         stepsHtml = ORDER_STATUS_STEPS.slice(0, CANCELABLE_STEP_COUNT)

@@ -11,7 +11,7 @@ const STATUS_LABELS = {
   order_accepted: '결제준비중',
   payment_link_issued: '결제하기',
   payment_completed: '결제완료',
-  shipping: '배송중',
+  shipping: '배송진행',
   delivery_completed: '배송완료',
   cancelled: '주문취소',
 };

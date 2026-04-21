@@ -99,7 +99,7 @@ function getStatusLabel(status, cancelReason) {
     order_accepted: '결제준비중',
     payment_link_issued: '결제 링크 발급',
     payment_completed: '결제 완료',
-    shipping: '배송중',
+    shipping: '배송진행',
     delivery_completed: '배송 완료',
     cancelled: '주문취소',
   };
@@ -484,7 +484,7 @@ function renderList() {
       </div>
       <div class="admin-payment-subfilter-row">
         <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'delivery_wait' ? 'active' : ''}" data-subfilter="delivery_wait" role="button" tabindex="0">배송대기 ${deliveryWaitCount}개</span>
-        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'shipping' ? 'active' : ''}" data-subfilter="shipping" role="button" tabindex="0">배송중 ${shippingCount}개</span>
+        <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'shipping' ? 'active' : ''}" data-subfilter="shipping" role="button" tabindex="0">배송진행 ${shippingCount}개</span>
         <span class="admin-payment-subfilter-item ${storeOrdersSubFilter === 'delivery_completed' ? 'active' : ''}" data-subfilter="delivery_completed" role="button" tabindex="0">배송완료 ${deliveryCompletedCount}개</span>
       </div>
     </div>

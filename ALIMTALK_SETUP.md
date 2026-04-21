@@ -66,4 +66,4 @@
 | `NHN_ALIMTALK_TEMPLATE_CODE_STORE_PAY_ORDER` | 결제 링크로 결제 완료 시 | `#{orderId}`, `#{storeName}`, `#{depositor}`, `#{totalAmount}`, `#{deliveryDate}` |
 | `NHN_ALIMTALK_TEMPLATE_CODE_STORE_PREPARE_ORDER` | 배송일 **하루 전 오전 10시(KST)** 크론 발송 | `#{orderId}`, `#{storeName}`, `#{deliveryDate}`, `#{deliveryTime}`, `#{depositor}`, `#{totalAmount}` |
 
-- **배송 준비**는 Vercel Cron `0 1 * * *`(매일 01:00 UTC = 10:00 KST)에 `/api/cron/alimtalk-delivery-reminder`가 호출되며, 배송 희망일이 **내일**인 주문(결제완료/배송중/배송완료)에 대해 매장 담당자에게만 발송됩니다. `CRON_SECRET`이 설정되어 있어야 합니다.
+- **배송 준비**는 Vercel Cron `0 1 * * *`(매일 01:00 UTC = 10:00 KST)에 `/api/cron/alimtalk-delivery-reminder`가 호출되며, 배송 희망일이 **내일**인 주문(결제완료/배송진행/배송완료)에 대해 매장 담당자에게만 발송됩니다. `CRON_SECRET`이 설정되어 있어야 합니다.

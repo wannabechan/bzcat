@@ -13,7 +13,7 @@ const STATUS_LABELS = {
   order_accepted: '결제준비중',
   payment_link_issued: '결제대기',
   payment_completed: '결제완료',
-  shipping: '배송중',
+  shipping: '배송진행',
   delivery_completed: '배송완료',
   cancelled: '취소',
 };
@@ -275,7 +275,7 @@ module.exports = async (req, res) => {
       new_orders: '신규주문',
       payment_link_issued: '결제대기',
       payment_completed: '배송대기',
-      shipping: '배송중',
+      shipping: '배송진행',
       delivery_completed: '배송완료',
     };
     const orderSummaryByStatus = {};
