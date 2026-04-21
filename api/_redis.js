@@ -277,6 +277,25 @@ async function updateOrderUserAsOrderSent(orderId) {
   return order;
 }
 
+/** 주문 JSON 전체 저장 (PII 익명화 등) */
+async function saveOrderDocument(order) {
+  const redis = getRedis();
+  if (!order || !order.id) throw new Error('saveOrderDocument: order.id required');
+  await redis.set(`order:${order.id}`, JSON.stringify(order));
+  return order;
+}
+
+async function listOrderDeletionRecordsRaw() {
+  const redis = getRedis();
+  const raw = await redis.lrange(ORDER_DELETIONS_KEY, 0, -1);
+  return raw || [];
+}
+
+async function setOrderDeletionRecordAtIndex(index, recordObj) {
+  const redis = getRedis();
+  await redis.lset(ORDER_DELETIONS_KEY, index, JSON.stringify(recordObj));
+}
+
 async function getAllOrders() {
   const redis = getRedis();
   const keys = await redis.keys('order:*');
@@ -447,6 +466,9 @@ module.exports = {
   updateOrderAcceptToken,
   updateOrderTossPaymentKey,
   updateOrderUserAsOrderSent,
+  saveOrderDocument,
+  listOrderDeletionRecordsRaw,
+  setOrderDeletionRecordAtIndex,
   getAllOrders,
   getStores,
   getMenus,

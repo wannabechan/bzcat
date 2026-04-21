@@ -58,6 +58,7 @@ module.exports = async (req, res) => {
         orderItems: o.order_items || [],
         pdfUrl: o.pdf_url || null,
         paymentLink: o.payment_link || null,
+        piiAnonymizedAt: o.pii_anonymized_at || null,
       };
     });
 

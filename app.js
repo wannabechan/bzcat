@@ -1089,24 +1089,29 @@ function openProfileOrderDetail(order) {
 
   const pdfBtn = document.getElementById('orderDetailPdfBtn');
   if (pdfBtn) {
-    pdfBtn.style.display = '';
-    pdfBtn.href = '#';
-    pdfBtn.textContent = order.status === 'cancelled' ? '주문서확인 (취소 건)' : '주문서확인';
-    const orderIdForPdf = order.id;
-    pdfBtn.onclick = async (e) => {
-      e.preventDefault();
-      if (!window.BzCatAuth?.isLoggedIn?.()) return;
-      try {
-        const res = await fetch(`/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
-          credentials: 'include',
-          headers: window.BzCatAuth.authFetchHeaders(),
-        });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } catch (_) {}
-    };
+    if (order.piiAnonymizedAt) {
+      pdfBtn.style.display = 'none';
+      pdfBtn.onclick = null;
+    } else {
+      pdfBtn.style.display = '';
+      pdfBtn.href = '#';
+      pdfBtn.textContent = order.status === 'cancelled' ? '주문서확인 (취소 건)' : '주문서확인';
+      const orderIdForPdf = order.id;
+      pdfBtn.onclick = async (e) => {
+        e.preventDefault();
+        if (!window.BzCatAuth?.isLoggedIn?.()) return;
+        try {
+          const res = await fetch(`/api/orders/pdf?orderId=${encodeURIComponent(orderIdForPdf)}`, {
+            credentials: 'include',
+            headers: window.BzCatAuth.authFetchHeaders(),
+          });
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank', 'noopener,noreferrer');
+        } catch (_) {}
+      };
+    }
   }
 
   const cancelBtn = document.getElementById('orderDetailCancelBtn');
