@@ -337,25 +337,35 @@ const MENU_LIKE_VIRTUAL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const MENU_LIKE_VIRTUAL_MIN = 35;
 const MENU_LIKE_VIRTUAL_MAX = 75;
 const MENU_LIKE_VIRTUAL_SWING = 15;
+let menuLikeVirtualStateCache = null;
 
 function clampLikeVirtualPct(v) {
   return Math.min(MENU_LIKE_VIRTUAL_MAX, Math.max(MENU_LIKE_VIRTUAL_MIN, v));
 }
 
 function getLikeVirtualStateMap() {
+  if (menuLikeVirtualStateCache && typeof menuLikeVirtualStateCache === 'object') {
+    return menuLikeVirtualStateCache;
+  }
   try {
     const raw = localStorage.getItem(MENU_LIKE_VIRTUAL_STORAGE_KEY);
-    if (!raw) return {};
+    if (!raw) {
+      menuLikeVirtualStateCache = {};
+      return menuLikeVirtualStateCache;
+    }
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    menuLikeVirtualStateCache = parsed && typeof parsed === 'object' ? parsed : {};
+    return menuLikeVirtualStateCache;
   } catch (_) {
-    return {};
+    menuLikeVirtualStateCache = {};
+    return menuLikeVirtualStateCache;
   }
 }
 
 function setLikeVirtualStateMap(map) {
+  menuLikeVirtualStateCache = map && typeof map === 'object' ? map : {};
   try {
-    localStorage.setItem(MENU_LIKE_VIRTUAL_STORAGE_KEY, JSON.stringify(map || {}));
+    localStorage.setItem(MENU_LIKE_VIRTUAL_STORAGE_KEY, JSON.stringify(menuLikeVirtualStateCache));
   } catch (_) {}
 }
 
@@ -388,12 +398,19 @@ function formatMenuLikePointsPercentDisplay(itemId, likePoints, orderPoints) {
   if (order > 0) {
     const actualPct = Math.round((like / order) * 100);
     if (key) {
-      map[key] = {
-        lastActualPct: actualPct,
-        virtualPct: null,
-        virtualSetAt: null,
-      };
-      setLikeVirtualStateMap(map);
+      const shouldPersistActual =
+        !prev
+        || Number(prev.lastActualPct) !== actualPct
+        || prev.virtualPct != null
+        || prev.virtualSetAt != null;
+      if (shouldPersistActual) {
+        map[key] = {
+          lastActualPct: actualPct,
+          virtualPct: null,
+          virtualSetAt: null,
+        };
+        setLikeVirtualStateMap(map);
+      }
     }
     return `${actualPct}%`;
   }

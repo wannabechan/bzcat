@@ -181,6 +181,7 @@ async function deleteOrder(orderId, deletedBy) {
   await saveDeletionRecord(order, deletedBy);
   await redis.del(`order:${orderId}`);
   await redis.zrem(`orders:by_user:${order.user_email}`, orderId);
+  if ((order.status || '') === 'delivery_completed') invalidateReorderStatsCache();
   return true;
 }
 
@@ -205,6 +206,12 @@ function uniqueOrderMenuItemIds(order) {
 
 /** 재주문율 집계: 배송완료 시각 기준 최근 365일 */
 const REORDER_STATS_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
+const REORDER_STATS_CACHE_TTL_MS = 5 * 60 * 1000;
+let reorderStatsCache = { at: 0, map: null };
+
+function invalidateReorderStatsCache() {
+  reorderStatsCache = { at: 0, map: null };
+}
 
 function normalizeCustomerEmailForReorderStats(email) {
   return String(email || '').trim().toLowerCase();
@@ -281,6 +288,21 @@ async function computeReorderRatePct365ByMenuItemId() {
   return pctMap;
 }
 
+async function getReorderRatePct365ByMenuItemIdCached() {
+  const now = Date.now();
+  if (
+    reorderStatsCache
+    && reorderStatsCache.map instanceof Map
+    && Number.isFinite(Number(reorderStatsCache.at))
+    && (now - Number(reorderStatsCache.at) < REORDER_STATS_CACHE_TTL_MS)
+  ) {
+    return reorderStatsCache.map;
+  }
+  const map = await computeReorderRatePct365ByMenuItemId();
+  reorderStatsCache = { at: now, map };
+  return map;
+}
+
 function resolveStoreIdForMenuItem(itemId, stores) {
   const slug = getSlugFromItemId(itemId, stores);
   const s = (stores || []).find((st) => String(st.id || st.slug || '').toLowerCase() === slug);
@@ -343,6 +365,9 @@ async function updateOrderStatus(orderId, status, actor) {
   }
 
   await redis.set(`order:${orderId}`, JSON.stringify(order));
+  if (status === 'delivery_completed' || prevStatus === 'delivery_completed') {
+    invalidateReorderStatsCache();
+  }
   return order;
 }
 
@@ -425,6 +450,7 @@ async function saveOrderDocument(order) {
   const redis = getRedis();
   if (!order || !order.id) throw new Error('saveOrderDocument: order.id required');
   await redis.set(`order:${order.id}`, JSON.stringify(order));
+  invalidateReorderStatsCache();
   return order;
 }
 
@@ -602,7 +628,7 @@ async function getMenuDataForApp() {
     };
   }
 
-  const reorderPctMap = await computeReorderRatePct365ByMenuItemId();
+  const reorderPctMap = await getReorderRatePct365ByMenuItemIdCached();
   for (const slug of Object.keys(result)) {
     const entry = result[slug];
     entry.items = (entry.items || []).map((m) => {
