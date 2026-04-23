@@ -1399,7 +1399,7 @@ function renderProfileOrdersList() {
               <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
             </div>
             <div class="profile-order-menu-love${loveLiked ? ' profile-order-menu-love--liked' : ''}${loveLocked ? ' profile-order-menu-love--locked' : ''}">
-              <span class="profile-order-menu-love-text">맛있게 드셨다면${loveHeartInlineSvg} 해주세요!</span>
+              <span class="profile-order-menu-love-text">맛있게 드셨다면 ${loveHeartInlineSvg} 해주세요!</span>
               <button type="button" class="${loveBtnClass}" data-action="menu-love-toggle" data-order-id="${orderIdEsc}" aria-label="${loveLiked ? '사랑 취소' : '사랑 해주기'}" aria-pressed="${loveLiked ? 'true' : 'false'}" ${loveLocked ? 'disabled' : ''}>${loveHeartSvg}</button>
             </div>
           </div>`;
