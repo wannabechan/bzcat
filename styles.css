@@ -777,6 +777,11 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+/* 임시: 재주문율 UI만 숨김(app.js·API 집계 유지, 복구 시 아래 블록 삭제) */
+.menu-card-reorder-stats .menu-card-stat-item:nth-child(2) {
+  display: none !important;
+}
+
 .menu-card-stat-item {
   display: inline-flex;
   align-items: center;

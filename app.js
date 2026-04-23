@@ -332,12 +332,97 @@ function formatPrice(price) {
   return price.toLocaleString() + '원';
 }
 
-/** 주문 페이지 메뉴 카드: likePoints / orderPoints → 반올림 %. orderPoints가 0이면 '-' */
-function formatMenuLikePointsPercentDisplay(likePoints, orderPoints) {
+const MENU_LIKE_VIRTUAL_STORAGE_KEY = 'bzcat_menu_like_virtual_pct_v1';
+const MENU_LIKE_VIRTUAL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+const MENU_LIKE_VIRTUAL_MIN = 35;
+const MENU_LIKE_VIRTUAL_MAX = 75;
+const MENU_LIKE_VIRTUAL_SWING = 15;
+
+function clampLikeVirtualPct(v) {
+  return Math.min(MENU_LIKE_VIRTUAL_MAX, Math.max(MENU_LIKE_VIRTUAL_MIN, v));
+}
+
+function getLikeVirtualStateMap() {
+  try {
+    const raw = localStorage.getItem(MENU_LIKE_VIRTUAL_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function setLikeVirtualStateMap(map) {
+  try {
+    localStorage.setItem(MENU_LIKE_VIRTUAL_STORAGE_KEY, JSON.stringify(map || {}));
+  } catch (_) {}
+}
+
+function randomIntInclusive(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+function pickMenuLikeVirtualPct(basePct) {
+  if (!Number.isFinite(basePct)) {
+    return randomIntInclusive(MENU_LIKE_VIRTUAL_MIN, MENU_LIKE_VIRTUAL_MAX);
+  }
+  const center = clampLikeVirtualPct(Math.round(basePct));
+  const min = Math.max(MENU_LIKE_VIRTUAL_MIN, center - MENU_LIKE_VIRTUAL_SWING);
+  const max = Math.min(MENU_LIKE_VIRTUAL_MAX, center + MENU_LIKE_VIRTUAL_SWING);
+  return randomIntInclusive(min, max);
+}
+
+/** 주문 페이지 메뉴 카드: likePoints / orderPoints → 반올림 %. orderPoints가 0이면 규칙 기반 가상값 */
+function formatMenuLikePointsPercentDisplay(itemId, likePoints, orderPoints) {
   const like = Math.max(0, Math.floor(Number(likePoints)) || 0);
   const order = Math.max(0, Math.floor(Number(orderPoints)) || 0);
-  if (order <= 0) return '-';
-  return `${Math.round((like / order) * 100)}%`;
+  const key = String(itemId || '').trim();
+  const now = Date.now();
+  const map = getLikeVirtualStateMap();
+  const prev = key ? map[key] : null;
+
+  if (order > 0) {
+    const actualPct = Math.round((like / order) * 100);
+    if (key) {
+      map[key] = {
+        lastActualPct: actualPct,
+        virtualPct: null,
+        virtualSetAt: null,
+      };
+      setLikeVirtualStateMap(map);
+    }
+    return `${actualPct}%`;
+  }
+
+  if (!key) {
+    return `${pickMenuLikeVirtualPct(NaN)}%`;
+  }
+
+  const keepCurrent =
+    prev
+    && Number.isFinite(Number(prev.virtualPct))
+    && Number.isFinite(Number(prev.virtualSetAt))
+    && (now - Number(prev.virtualSetAt) < MENU_LIKE_VIRTUAL_KEEP_MS);
+
+  if (keepCurrent) {
+    return `${Math.round(Number(prev.virtualPct))}%`;
+  }
+
+  const baseFromVirtual = prev && Number.isFinite(Number(prev.virtualPct)) ? Number(prev.virtualPct) : NaN;
+  const baseFromActual = prev && Number.isFinite(Number(prev.lastActualPct)) ? Number(prev.lastActualPct) : NaN;
+  const basePct = Number.isFinite(baseFromVirtual) ? baseFromVirtual : baseFromActual;
+  const nextVirtualPct = pickMenuLikeVirtualPct(basePct);
+  map[key] = {
+    lastActualPct: Number.isFinite(baseFromActual) ? Math.round(baseFromActual) : null,
+    virtualPct: nextVirtualPct,
+    virtualSetAt: now,
+  };
+  setLikeVirtualStateMap(map);
+  return `${nextVirtualPct}%`;
 }
 
 /** 재주문율: API에서 계산된 reorderRatePct365(0~100). 없으면 '-' */
@@ -825,7 +910,7 @@ function renderMenuCards() {
       const imgContent = imgSrc
         ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="${nameEsc}" class="menu-card-img"${imgLoadAttrs} decoding="async" width="400" height="400" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
-      const likeStatText = escapeHtml(formatMenuLikePointsPercentDisplay(item.likePoints, item.orderPoints));
+      const likeStatText = escapeHtml(formatMenuLikePointsPercentDisplay(item.id, item.likePoints, item.orderPoints));
       const reorderStatText = escapeHtml(formatMenuReorderRateDisplay(item.reorderRatePct365));
       const actionsHtml = soldOut
         ? `<div class="menu-card-actions menu-card-actions--soldout">
