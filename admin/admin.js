@@ -87,12 +87,12 @@ function escapeHtml(s) {
   return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/** Resend ID 표시: 15번째 문자 이후는 생략(…). */
+/** Resend ID 표시: 10번째 문자 이후는 생략(…). */
 function formatResendIdDisplay(id) {
   const s = String(id ?? '').trim();
   if (!s) return '';
-  if (s.length <= 15) return s;
-  return s.slice(0, 15) + '...';
+  if (s.length <= 10) return s;
+  return s.slice(0, 10) + '...';
 }
 
 function getAdminStoreForOrder(order) {
