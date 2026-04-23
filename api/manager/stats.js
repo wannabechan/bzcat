@@ -90,9 +90,6 @@ module.exports = async (req, res) => {
     const customerFirstOrder = {};
     const customerLastOrder = {};
 
-    let submittedCount = 0;
-    let paymentCompletedCount = 0;
-    let cancelledCount = 0;
     let cancelledBeforePaymentCount = 0;
     let cancelledAfterPaymentCount = 0;
     let deliveryCompletedCount = 0;
@@ -121,9 +118,6 @@ module.exports = async (req, res) => {
         revenueExpectedTotal += amt;
         revenueExpectedByStore[slug] = (revenueExpectedByStore[slug] || 0) + amt;
       }
-      if (status === 'submitted') submittedCount++;
-      if (status === 'payment_completed' || status === 'shipping' || status === 'delivery_completed') paymentCompletedCount++;
-      if (status === 'cancelled') cancelledCount++;
       if (status === 'delivery_completed') deliveryCompletedCount++;
       if (status === 'submitted') unacceptedCount++;
       if (status === 'payment_link_issued') unpaidCount++;

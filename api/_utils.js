@@ -67,6 +67,11 @@ function isAdminOrOperator(user) {
   return user && (user.level === 'admin' || user.level === 'operator');
 }
 
+/** admin 전용(operator 제외). withResolvedLevel 적용 후 사용할 것 */
+function isAdminOnly(user) {
+  return user && user.level === 'admin';
+}
+
 /** JWT decoded에 환경변수 기준 현재 레벨 반영 (세션/API에서 사용) */
 function withResolvedLevel(decoded) {
   if (!decoded || !decoded.email) return null;
@@ -207,6 +212,7 @@ module.exports = {
   getUserLevel,
   getEmailOperatorList,
   isAdminOrOperator,
+  isAdminOnly,
   withResolvedLevel,
   generateCode,
   setCorsHeaders,

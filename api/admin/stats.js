@@ -8,16 +8,6 @@ const { getAllOrders, getStores } = require('../_redis');
 const { getAdminSampleOrders } = require('./_sample-orders');
 const { parseKSTDate, getKSTDateString } = require('../_kst');
 
-const STATUS_LABELS = {
-  submitted: '신청완료',
-  order_accepted: '결제준비중',
-  payment_link_issued: '결제대기',
-  payment_completed: '결제완료',
-  shipping: '배송진행',
-  delivery_completed: '배송완료',
-  cancelled: '취소',
-};
-
 function parseDate(str) {
   return parseKSTDate(str);
 }
@@ -117,9 +107,6 @@ module.exports = async (req, res) => {
     const customerFirstOrder = {};
     const customerLastOrder = {};
 
-    let submittedCount = 0;
-    let paymentCompletedCount = 0;
-    let cancelledCount = 0;
     let cancelledBeforePaymentCount = 0;
     let cancelledAfterPaymentCount = 0;
     let deliveryCompletedCount = 0;
@@ -148,9 +135,6 @@ module.exports = async (req, res) => {
         revenueExpectedTotal += amt;
         revenueExpectedByStore[slug] = (revenueExpectedByStore[slug] || 0) + amt;
       }
-      if (status === 'submitted') submittedCount++;
-      if (status === 'payment_completed' || status === 'shipping' || status === 'delivery_completed') paymentCompletedCount++;
-      if (status === 'cancelled') cancelledCount++;
       if (status === 'delivery_completed') deliveryCompletedCount++;
       if (status === 'submitted') unacceptedCount++;
       if (status === 'payment_link_issued') unpaidCount++;
@@ -197,8 +181,6 @@ module.exports = async (req, res) => {
     });
 
     const totalOrders = orders.length;
-    const conversionRate = submittedCount > 0 ? Math.round((paymentCompletedCount / (totalOrders - cancelledCount)) * 100) : 0;
-    const cancelRate = totalOrders > 0 ? Math.round((cancelledCount / totalOrders) * 100) : 0;
 
     const topMenus = Object.entries(menuOrderCount)
       .filter(([k]) => !k.endsWith(':name'))

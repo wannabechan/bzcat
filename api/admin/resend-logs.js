@@ -3,7 +3,7 @@
  * Resend 발송 목록 (admin 전용). 최근 30일·최대 500건·최대 6페이지(600건) 조회로 부하 제한.
  */
 
-const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel, isAdminOnly } = require('../_utils');
 const { formatDateKST } = require('../_kst');
 
 const RESEND_API = 'https://api.resend.com/emails';
@@ -11,10 +11,6 @@ const MAX_RETURN = 500;
 const MAX_PAGES = 6;
 const PAGE_LIMIT = 100;
 const RETENTION_MS = 30 * 86400000;
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
 
 function classifySubject(subject) {
   const s = (subject || '').toString();
@@ -64,8 +60,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(sessionToken);
-    if (!user || !isAdmin(user)) {
+    const user = withResolvedLevel(verifyToken(sessionToken));
+    if (!user || !isAdminOnly(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

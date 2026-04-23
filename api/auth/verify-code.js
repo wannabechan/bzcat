@@ -4,7 +4,7 @@
  */
 
 const { generateToken, getUserLevel, apiResponse, setSessionCookie } = require('../_utils');
-const { getAndDeleteAuthCode, getUser, createUser, updateUserLogin } = require('../_redis');
+const { getAndDeleteAuthCode, getUser, createUser, updateUserLogin, updateUserLevel } = require('../_redis');
 
 module.exports = async (req, res) => {
   // CORS preflight
@@ -46,14 +46,20 @@ module.exports = async (req, res) => {
       userData = await getUser(normalizedEmail);
     }
 
-    const token = generateToken(normalizedEmail, userData.level);
+    const resolvedLevel = getUserLevel(normalizedEmail);
+    if (userData.level !== resolvedLevel) {
+      await updateUserLevel(normalizedEmail, resolvedLevel);
+      userData = { ...userData, level: resolvedLevel };
+    }
+
+    const token = generateToken(normalizedEmail, resolvedLevel);
     setSessionCookie(res, req, token);
 
     return apiResponse(res, 200, {
       success: true,
       user: {
         email: userData.email,
-        level: userData.level,
+        level: resolvedLevel,
       },
       isFirstLogin: isFirstLogin || userData.is_first_login === true,
     });

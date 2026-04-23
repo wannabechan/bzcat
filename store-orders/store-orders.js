@@ -7,7 +7,6 @@ const API_BASE = '';
 const STORE_ORDERS_TAB_KEY = 'bzcat_store_orders_tab';
 
 let storeOrdersData = [];
-let storeOrdersTotal = 0;
 let storeOrdersStores = [];
 let storeOrdersStoreOrder = [];
 let storeOrdersSortBy = 'created_at';
@@ -17,7 +16,6 @@ let storeOrdersPeriod = '45days'; // 'thisMonth' | '45days' | '90days' (주문�
 let storeOrdersFlashIntervals = [];
 
 const STORE_ORDERS_IDLE_MS = 180000; // 180초 무활동 시 주문 목록 리프레시
-const STORE_ORDERS_PAGE_SIZE = 25;
 
 // KST(한국 표준시) 기준 날짜 (프로젝트 시간 판단 통일)
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -26,11 +24,6 @@ function getKSTDateStr(ts) {
 }
 function getKSTTodayString() {
   return getKSTDateStr(Date.now());
-}
-function getKSTTomorrowString() {
-  const today = getKSTTodayString();
-  const start = new Date(today + 'T00:00:00+09:00');
-  return getKSTDateStr(start.getTime() + 86400000);
 }
 
 let storeOrdersIdleTimerId = null;
@@ -121,9 +114,6 @@ function formatAdminPrice(price) {
   return Number(price || 0).toLocaleString() + '원';
 }
 
-function getStatsDateStr(d) {
-  return getKSTDateStr(d instanceof Date ? d.getTime() : d);
-}
 function getThisWeekMondayKST() {
   const todayStr = getKSTTodayString();
   const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
@@ -136,7 +126,6 @@ function getDefaultStatsRange() {
 }
 function getPresetStatsRange(preset) {
   const todayStr = getKSTTodayString();
-  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
   if (preset === 'today') return { start: todayStr, end: todayStr };
   if (preset === 'this_week') return { start: getThisWeekMondayKST(), end: todayStr };
   if (preset === 'last_week') {
@@ -792,7 +781,6 @@ async function loadStoreOrders() {
 
     const data = await res.json();
     storeOrdersData = data.orders || [];
-    storeOrdersTotal = typeof data.total === 'number' ? data.total : storeOrdersData.length;
     storeOrdersStores = data.stores || [];
     storeOrdersStoreOrder = storeOrdersStores.map(s => (s.slug || s.id || '').toString().toLowerCase()).filter(Boolean);
 
@@ -827,12 +815,6 @@ document.getElementById('storeOrderDetailClose')?.addEventListener('click', clos
 document.getElementById('storeOrderDetailOverlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'storeOrderDetailOverlay') closeOrderDetail();
 });
-
-/** YYYY-MM-DD (KST) */
-function toDateKey(d) {
-  const x = d instanceof Date ? d : new Date(d);
-  return getKSTDateStr(x.getTime());
-}
 
 /** 정산 기준일 목록: 2026-01-01 ~ 오늘(KST), 10일·20일·말일만, 최신순 */
 function getSettlementDatesList() {

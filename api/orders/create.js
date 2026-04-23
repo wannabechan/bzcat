@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const { createOrder, updateOrderPdfUrl, getStores, getMenus, updateOrderAcceptToken } = require('../_redis');
 const { generateOrderPdf } = require('../_pdf');
 const { getAppOrigin } = require('../payment/_helpers');
-const { getStoreForOrder, getStoreDisplayName, getStoreEmailForOrder, buildOrderNotificationHtml } = require('./_order-email');
+const { getStoreForOrder, getStoreDisplayName, buildOrderNotificationHtml } = require('./_order-email');
 const { resendEmailsSend } = require('../_resend');
 const { sendAlimtalk } = require('../_alimtalk');
 

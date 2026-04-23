@@ -64,11 +64,6 @@ function getKSTDateStr(ts) {
 function getKSTTodayString() {
   return getKSTDateStr(Date.now());
 }
-function getKSTTomorrowString() {
-  const today = getKSTTodayString();
-  const start = new Date(today + 'T00:00:00+09:00');
-  return getKSTDateStr(start.getTime() + 86400000);
-}
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -1140,9 +1135,6 @@ function clearPaymentIdleTimer() {
   }
 }
 
-function getStatsDateStr(d) {
-  return getKSTDateStr(d instanceof Date ? d.getTime() : d);
-}
 function getThisWeekMondayKST() {
   const todayStr = getKSTTodayString();
   const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
@@ -1157,7 +1149,6 @@ function getDefaultStatsRange() {
 }
 function getPresetStatsRange(preset) {
   const todayStr = getKSTTodayString();
-  const todayStart = new Date(todayStr + 'T00:00:00+09:00').getTime();
   if (preset === 'today') return { start: todayStr, end: todayStr };
   if (preset === 'this_week') {
     const startStr = getThisWeekMondayKST();
@@ -1227,15 +1218,6 @@ async function loadStats() {
 function toDateKey(d) {
   const x = d instanceof Date ? d : new Date(d);
   return getKSTDateStr(x.getTime());
-}
-
-/** yy/mm/dd hh:mm:ss KST (실시간 시계용) */
-function formatSettlementClock() {
-  const x = new Date();
-  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  const parts = formatter.formatToParts(x);
-  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
-  return `${get('year')}/${get('month')}/${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
 var _settlementEmptyParagraph = '<p class="admin-settlement-empty">내역이 없습니다.</p>';
@@ -1310,7 +1292,6 @@ function getPeriodForSettlementDate(settlementDateStr) {
  * 배송일이 토요일인 주문만 admin이 배송완료 미저장.
  * 샘플 매장 = loadSettlement 시점의 매장 목록(getStores) 첫 번째 = 주문 페이지 첫 카테고리와 동일.
  */
-const SAMPLE_FIRST_ORDER_DATE = '2026-02-01';
 const SAMPLE_FIRST_DELIVERY_DATE = '2026-02-09';
 
 var _mockFirstCategory = { slug: '', brandTitle: '', storeContactEmail: '', representative: '', packagingFee: 0, deliveryFee: 50000 };
@@ -1464,16 +1445,6 @@ function renderMockSettlementTwoLists(executed, notExecuted) {
     '<div class="admin-settlement-mock-table-wrap">' + table2 + '</div>' +
     '</div>'
   );
-}
-
-let settlementClockIntervalId = null;
-
-/** 정산서 출력용 기본 기간 (최근 7일, KST) */
-function getStatementDefaultRange() {
-  const endStr = getKSTTodayString();
-  const endStart = new Date(endStr + 'T00:00:00+09:00').getTime();
-  const startStr = getKSTDateStr(endStart - 6 * 86400000);
-  return { start: startStr, end: endStr };
 }
 
 function renderSettlementStatementContent(data) {
@@ -2021,11 +1992,9 @@ function renderStats(container, data) {
   const orderSummary = data.orderSummary || {};
   const revenue = data.revenue || {};
   const conversion = data.conversion || {};
-  const delivery = data.delivery || {};
   const topMenus = data.topMenus || [];
   const timeSeries = data.timeSeries || [];
   const crm = data.crm || {};
-  const alerts = data.alerts || {};
   const dateRange = data.dateRange || {};
   const defaultRange = getDefaultStatsRange();
   const startVal = dateRange.startDate || defaultRange.start;

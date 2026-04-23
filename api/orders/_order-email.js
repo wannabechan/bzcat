@@ -109,11 +109,9 @@ function buildOrderNotificationHtml(order, stores, options = {}) {
 
   const totalAmount = Number(order.total_amount ?? order.totalAmount) || 0;
   const depositor = escapeHtml(order.depositor || '—');
-  const contact = escapeHtml(order.contact || '—');
   const deliveryDate = escapeHtml(order.delivery_date || order.deliveryDate || '—');
   const deliveryTime = escapeHtml(order.delivery_time || order.deliveryTime || '');
   const deliveryAddress = escapeHtml(order.delivery_address || order.deliveryAddress || '—');
-  const detailAddress = escapeHtml(order.detail_address || order.detailAddress || '');
   const orderId = escapeHtml(order.id || '');
   const createdAt = formatOrderDate(order.created_at || order.createdAt);
 
@@ -226,7 +224,6 @@ function buildOrderCancellationHtml(order, stores) {
 
   const totalAmount = Number(order.total_amount ?? order.totalAmount) || 0;
   const depositor = escapeHtml(order.depositor || '—');
-  const contact = escapeHtml(order.contact || '—');
   const deliveryDate = escapeHtml(order.delivery_date || order.deliveryDate || '—');
   const deliveryTime = escapeHtml(order.delivery_time || order.deliveryTime || '');
   const deliveryAddress = escapeHtml(order.delivery_address || order.deliveryAddress || '—');

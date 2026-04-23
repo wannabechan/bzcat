@@ -4,11 +4,7 @@
  */
 
 const { getAllOrders } = require('../_redis');
-const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
+const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel, isAdminOnly } = require('../_utils');
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
@@ -23,8 +19,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(sessionToken);
-    if (!user || !isAdmin(user)) {
+    const user = withResolvedLevel(verifyToken(sessionToken));
+    if (!user || !isAdminOnly(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "local": "vercel dev",
-    "build": "echo 'Static site - no build needed'"
+    "build": "echo 'Static site - no build needed'",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0"
   },
   "dependencies": {
     "@fontsource/noto-sans-kr": "^5.2.9",
@@ -16,5 +18,10 @@
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.17.2",
     "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0"
   }
 }

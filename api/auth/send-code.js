@@ -6,7 +6,7 @@
 const { Resend } = require('resend');
 const { generateCode, apiResponse } = require('../_utils');
 const { resendEmailsSend } = require('../_resend');
-const { saveAuthCode } = require('../_redis');
+const { saveAuthCode, AUTH_CODE_TTL_SECONDS } = require('../_redis');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
 
     const code = generateCode();
 
-    // Redis에 코드 저장 (TTL 10분, 기존 코드 덮어쓰기)
+    // Redis에 코드 저장 (TTL은 AUTH_CODE_TTL_SECONDS, 기존 코드 덮어쓰기)
     await saveAuthCode(normalizedEmail, code);
 
     // Resend API Key 확인
@@ -44,6 +44,8 @@ module.exports = async (req, res) => {
     // 발신 이메일 (Resend에서 bzcat.co 도메인 인증 후 사용)
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@bzcat.co';
     const fromName = process.env.RESEND_FROM_NAME || 'BzCat';
+
+    const ttlMinutes = Math.max(1, Math.round(AUTH_CODE_TTL_SECONDS / 60));
 
     // 이메일 발송
     try {
@@ -61,7 +63,7 @@ module.exports = async (req, res) => {
             <div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
               <h1 style="margin: 0; font-size: 32px; letter-spacing: 8px; color: #e67b19;">${code}</h1>
             </div>
-            <p style="color: #666; font-size: 14px;">이 코드는 2분간 유효합니다.</p>
+            <p style="color: #666; font-size: 14px;">이 코드는 ${ttlMinutes}분간 유효합니다.</p>
             <p style="color: #666; font-size: 14px;">본인이 요청하지 않은 경우 이 메일을 무시해 주세요.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
             <p style="color: #999; font-size: 12px;">BzCat - 비즈니스 케이터링</p>

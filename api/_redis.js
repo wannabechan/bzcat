@@ -2,7 +2,7 @@
  * Redis (Upstash) 데이터 레이어
  * Key 구조:
  * - user:{email} = JSON 사용자 정보
- * - auth:code:{email} = 6자리 코드 (TTL 2분, CODE_TTL_SECONDS)
+ * - auth:code:{email} = 6자리 코드 (TTL AUTH_CODE_TTL_SECONDS)
  * - orders:count:{yymmdd} = 해당일 주문 건수 (INCR)
  * - order:{id} = JSON 주문 정보 (id = yymmdd000 형식)
  * - orders:by_user:{email} = Sorted Set (score=timestamp, member=orderId)
@@ -25,7 +25,8 @@ function getRedis() {
   return _redisClient;
 }
 
-const CODE_TTL_SECONDS = 120; // 2분
+/** 로그인 인증 코드 Redis TTL (초). send-code 메일 문구와 맞출 것 */
+const AUTH_CODE_TTL_SECONDS = 120;
 const BUSINESS_HOURS_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
 function normalizeCode(input) {
@@ -35,7 +36,7 @@ function normalizeCode(input) {
 async function saveAuthCode(email, code) {
   const redis = getRedis();
   const key = `auth:code:${email}`;
-  await redis.set(key, String(code), { ex: CODE_TTL_SECONDS });
+  await redis.set(key, String(code), { ex: AUTH_CODE_TTL_SECONDS });
 }
 
 async function getAndDeleteAuthCode(email, code) {
@@ -94,6 +95,17 @@ async function updateUserLogin(email) {
   user.is_first_login = false;
   await redis.set(`user:${email}`, JSON.stringify(user));
   return { ...user, is_first_login: isFirstLogin };
+}
+
+/** JWT·권한과 Redis 저장 레벨을 환경변수 기준으로 맞출 때 사용 */
+async function updateUserLevel(email, level) {
+  const redis = getRedis();
+  const raw = await redis.get(`user:${email}`);
+  if (!raw) return null;
+  const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  user.level = level;
+  await redis.set(`user:${email}`, JSON.stringify(user));
+  return user;
 }
 
 async function getNextOrderId() {
@@ -762,12 +774,14 @@ async function getMenuDataForApp() {
 }
 
 module.exports = {
+  AUTH_CODE_TTL_SECONDS,
   saveAuthCode,
   getAndDeleteAuthCode,
   getUser,
   getAllUsers,
   createUser,
   updateUserLogin,
+  updateUserLevel,
   createOrder,
   getOrdersByUser,
   getOrderById,

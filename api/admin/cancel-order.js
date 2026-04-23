@@ -5,13 +5,9 @@
 
 const { getOrderById } = require('../_redis');
 const { cancelOrderAndRegeneratePdf } = require('../_orderCancel');
-const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel, isAdminOnly } = require('../_utils');
 
 const CANCELABLE_STATUSES = ['submitted', 'pending', 'order_accepted', 'payment_link_issued'];
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return apiResponse(res, 200, {});
@@ -26,8 +22,8 @@ module.exports = async (req, res) => {
       return apiResponse(res, 401, { error: '로그인이 필요합니다.' });
     }
 
-    const user = verifyToken(sessionToken);
-    if (!user || !isAdmin(user)) {
+    const user = withResolvedLevel(verifyToken(sessionToken));
+    if (!user || !isAdminOnly(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

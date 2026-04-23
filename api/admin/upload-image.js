@@ -8,7 +8,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { put } = require('@vercel/blob');
 const formidable = require('formidable-serverless');
-const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel } = require('../_utils');
+const { verifyToken, apiResponse, getTokenFromRequest, withResolvedLevel, isAdminOnly } = require('../_utils');
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const EXT_BY_MIME = {
@@ -18,10 +18,6 @@ const EXT_BY_MIME = {
   'image/gif': '.gif',
 };
 const MAX_SIZE = 4 * 1024 * 1024; // 4MB
-
-function isAdmin(user) {
-  return user && user.level === 'admin';
-}
 
 function parseForm(req) {
   return new Promise((resolve, reject) => {
@@ -51,7 +47,7 @@ module.exports = async (req, res) => {
 
     const decoded = verifyToken(sessionToken);
     const user = withResolvedLevel(decoded);
-    if (!user || !isAdmin(user)) {
+    if (!user || !isAdminOnly(user)) {
       return apiResponse(res, 403, { error: '관리자만 접근할 수 있습니다.' });
     }
 

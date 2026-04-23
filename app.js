@@ -272,7 +272,6 @@ const checkoutAmount = document.getElementById('checkoutAmount');
 const checkoutOrderTime = document.getElementById('checkoutOrderTime');
 const inputDepositor = document.getElementById('inputDepositor');
 const inputContact = document.getElementById('inputContact');
-const checkoutForm = document.getElementById('checkoutForm');
 const inputDeliveryDate = document.getElementById('inputDeliveryDate');
 const inputDeliveryTime = document.getElementById('inputDeliveryTime');
 const inputDeliveryAddress = document.getElementById('inputDeliveryAddress');
@@ -422,16 +421,6 @@ function formatDeliveryDateOnly(dateStr) {
   return `${get('year')}년 ${get('month')}월 ${get('day')}일`;
 }
 
-// 유틸: 입금기한 표시용 (KST, mm월 dd일 hh시 mm분)
-function formatDeadlineShort(date) {
-  const d = date instanceof Date ? date : new Date(date);
-  if (isNaN(d.getTime())) return '—';
-  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
-  const parts = formatter.formatToParts(d);
-  const get = (t) => parts.find((p) => p.type === t)?.value ?? '';
-  return `${get('month')}월 ${get('day')}일 ${get('hour')}시 ${get('minute')}분`;
-}
-
 // 유틸: 아이콘 이모지 (플레이스홀더)
 function getCategoryEmoji(category) {
   const emojis = { bento: '🍱', side: '🥗', salad: '🥬', beverage: '🥤', dessert: '🍰' };
@@ -531,26 +520,6 @@ function getMaxAllowedPendingForItem(itemId) {
   return Math.min(MAX_MENU_LINE_QTY, roomForOrder);
 }
 
-const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토'];
-
-function getBusinessDaysHint(categorySlug) {
-  const data = MENU_DATA[categorySlug];
-  const days = data?.businessDays;
-  if (!days || !Array.isArray(days) || days.length === 0) return '';
-  const names = days.slice().sort((a, b) => a - b).map((d) => DAY_NAMES_KO[d]).filter(Boolean);
-  return names.length ? `영업일: ${names.join(', ')}` : '';
-}
-
-function isBusinessDay(dateStr, categorySlug) {
-  if (!dateStr || !categorySlug) return true;
-  const data = MENU_DATA[categorySlug];
-  const days = data?.businessDays;
-  if (!days || !Array.isArray(days) || days.length === 0) return true;
-  const d = new Date(dateStr + 'T12:00:00+09:00');
-  const dayOfWeek = getKSTDayOfWeek(d.getTime());
-  return days.includes(dayOfWeek);
-}
-
 const DELIVERY_TIME_SLOTS = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'];
 
 /** 서버 주문 한 줄당 수량 상한과 동일 (api/orders/create.js) */
@@ -633,17 +602,6 @@ function scrollDeliveryDatePickerToTodayRow(panelEl) {
     panelEl.querySelector('.delivery-date-cell--enabled[data-date]');
   if (!target) return;
   target.scrollIntoView({ block: 'center', inline: 'nearest' });
-}
-
-// 장바구니에 포함된 첫 매장의 결제정보
-function getPaymentForCart() {
-  const itemIds = Object.keys(cart).filter((id) => cart[id] > 0);
-  const firstId = itemIds[0];
-  if (!firstId) return MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
-  const parts = firstId.split('-');
-  const storeSlug = parts.length > 1 ? parts.slice(0, -1).join('-') : (parts[0] || '');
-  const storeData = MENU_DATA[storeSlug];
-  return storeData?.payment || MENU_DATA.bento?.payment || MENU_DATA_FALLBACK.bento.payment;
 }
 
 // 카트 버튼 카운트 갱신
@@ -1372,7 +1330,6 @@ function renderProfileOrdersList() {
     return ORDER_STATUS_STEPS.findIndex((s) => s.key === status);
   };
   const isCancelled = (status) => status === 'cancelled';
-  const canCancel = canCancelOrder;
 
   profileOrdersData = {};
   const CANCELABLE_STEP_COUNT = 1;
@@ -1878,7 +1835,7 @@ function init() {
       openProfileOrderDetail(order);
     }
   });
-  btnCheckout.addEventListener('click', (e) => {
+  btnCheckout.addEventListener('click', () => {
     const total = calculateTotal();
     const TOTAL_MIN = cachedOrderPageIsEmailAdmin ? 0 : MIN_ORDER_PRICE;
     if (total < TOTAL_MIN) {
@@ -1994,7 +1951,7 @@ function init() {
           showUnsupportedRegionModal();
           return;
         }
-        let addr = '';
+        let addr;
         if (data.userSelectedType === 'R') {
           addr = data.roadAddress || data.autoRoadAddress || data.address || '';
         } else {

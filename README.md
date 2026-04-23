@@ -31,6 +31,8 @@
 npm install
 ```
 
+정적 분석(ESLint): `npm run lint` — 경고·에러 없이 통과해야 합니다. 자동 수정은 `npm run lint:fix`.
+
 ### 2. 환경 변수 설정
 
 `.env.local` 파일을 생성하고 다음 환경 변수를 설정합니다:
@@ -122,7 +124,7 @@ Vercel Dashboard → 프로젝트 → Storage → Postgres → Query에서 `db/s
 - 환경 변수로 민감 정보 보호
 - CORS 설정
 - SQL Injection 방지 (Parameterized queries)
-- 인증 코드 만료 시간 설정 (10분)
+- 인증 코드 만료 시간: Redis TTL `AUTH_CODE_TTL_SECONDS`(기본 120초)와 발송 메일 문구가 동일 기준
 
 ## 관리자 계정
 

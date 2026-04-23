@@ -200,7 +200,6 @@ async function generateOrderPdf(order, stores = [], options = {}) {
     ensureSpace(24);
     drawTableHeader();
 
-    let rowNum = 0;
     for (const slug of orderedSlugsFinal) {
       const title = getCategoryTitle(slug);
       ensureSpace(20);
@@ -213,7 +212,6 @@ async function generateOrderPdf(order, stores = [], options = {}) {
       if (useKorean) doc.font('NotoSansKR');
       y += 20;
       drawHLine(y, '#ddd');
-      rowNum++;
 
       for (const item of byCategory[slug]) {
         const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
@@ -226,7 +224,6 @@ async function generateOrderPdf(order, stores = [], options = {}) {
         doc.text(formatPrice(lineTotal), col4, y + 5, { width: 55, align: 'right' });
         y += rowH;
         drawHLine(y, '#eee');
-        rowNum++;
       }
     }
 
