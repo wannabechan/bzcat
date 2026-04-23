@@ -1783,7 +1783,7 @@ async function loadResendLogs() {
       ? rows
           .map(
             (r) =>
-              `<tr><td class="admin-resend-col-time">${escapeHtml(r.sentAtKst || '—')}</td><td>${escapeHtml(r.category || '—')}</td><td>${escapeHtml(r.recipients || '—')}</td><td>${escapeHtml(r.result || '—')}</td><td class="admin-resend-col-id">${escapeHtml(r.resendId || '—')}</td><td>${escapeHtml(r.error || '—')}</td></tr>`,
+              `<tr><td class="admin-resend-col-time">${escapeHtml(r.sentAtKst || '—')}</td><td class="admin-resend-col-category">${escapeHtml(r.category || '—')}</td><td class="admin-resend-col-recipients">${escapeHtml(r.recipients || '—')}</td><td class="admin-resend-col-result">${escapeHtml(r.result || '—')}</td><td class="admin-resend-col-id">${escapeHtml(r.resendId || '—')}</td><td class="admin-resend-col-error">${escapeHtml(r.error || '—')}</td></tr>`,
           )
           .join('')
       : '<tr><td colspan="6">표시할 발송 기록이 없습니다.</td></tr>';
@@ -1792,7 +1792,7 @@ async function loadResendLogs() {
       '<h2 class="admin-logs-title">Resend 발송 로그</h2>' +
       '<p class="admin-resend-hint">최근 30일 이내 기록만 표시됩니다. (조회 상한 500건)</p>' +
       '<div class="admin-resend-table-wrap">' +
-      '<table class="admin-resend-table"><thead><tr><th>발송 시각 (KST)</th><th>구분</th><th>수신자</th><th>결과</th><th>Resend ID</th><th>오류</th></tr></thead><tbody>' +
+      '<table class="admin-resend-table"><thead><tr><th class="admin-resend-col-time">발송 시각 (KST)</th><th class="admin-resend-col-category">구분</th><th class="admin-resend-col-recipients">수신자</th><th class="admin-resend-col-result">결과</th><th class="admin-resend-col-id">Resend ID</th><th class="admin-resend-col-error">오류</th></tr></thead><tbody>' +
       tableRows +
       '</tbody></table></div>';
   } catch (e) {
