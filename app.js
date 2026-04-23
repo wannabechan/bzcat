@@ -332,6 +332,19 @@ function formatPrice(price) {
   return price.toLocaleString() + '원';
 }
 
+/** 지도 링크: http(s)만 허용 (새 창 오픈용) */
+function getSafeMapLinkUrl(raw) {
+  const s = (raw || '').trim();
+  if (!s) return '';
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+    return u.href;
+  } catch {
+    return '';
+  }
+}
+
 // 유틸: HTML 이스케이프 (XSS 방지)
 function escapeHtml(s) {
   if (s == null || s === '') return '';
@@ -736,8 +749,34 @@ function renderMenuCards() {
     cap != null ? `최대주문수: ${cap}개` : '최대주문수: 제한 없음';
   const maxOrderSuffixEsc = escapeHtml(maxOrderSuffix);
   if (nameEsc) {
+    const mapOk = !!getSafeMapLinkUrl((data.mapLink || '').trim());
+    const slugEsc = escapeHtml(category);
+    const mapBtnClass = 'menu-maplink-btn' + (mapOk ? '' : ' menu-maplink-btn--inactive');
+    const mapAria = mapOk ? '지도에서 위치 보기' : '지도 링크 없음';
+    const mapPinSvg =
+      '<svg class="menu-maplink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 21.5c-4.2-3.5-7.5-7.2-7.5-11.5a7.5 7.5 0 0 1 15 0c0 4.3-3.3 8-7.5 11.5z" fill="none"/>' +
+      '<circle cx="12" cy="10" r="2.5" fill="none"/>' +
+      '</svg>';
+    const mapBtn =
+      '<button type="button" class="' +
+      mapBtnClass +
+      '" data-maplink-category="' +
+      slugEsc +
+      '" aria-label="' +
+      escapeHtml(mapAria) +
+      '">' +
+      mapPinSvg +
+      '</button>';
     menuSectionTitle.innerHTML =
-      '<span class="menu-section-madeby">cooked by ' + nameEsc + ' (' + maxOrderSuffixEsc + ')</span>';
+      '<span class="menu-section-madeby-line">' +
+      '<span class="menu-section-madeby">cooked by ' +
+      nameEsc +
+      ' (' +
+      maxOrderSuffixEsc +
+      ')</span> ' +
+      mapBtn +
+      '</span>';
   } else {
     menuSectionTitle.textContent = '';
   }
@@ -1478,6 +1517,16 @@ function showUnsupportedRegionModal() {
   modal.setAttribute('aria-hidden', 'false');
 }
 
+function handleMenuSectionTitleClick(e) {
+  const btn = e.target.closest('.menu-maplink-btn');
+  if (!btn || btn.classList.contains('menu-maplink-btn--inactive')) return;
+  const slug = btn.dataset.maplinkCategory;
+  if (!slug || !MENU_DATA[slug]) return;
+  const safe = getSafeMapLinkUrl(MENU_DATA[slug].mapLink);
+  if (!safe) return;
+  window.open(safe, '_blank', 'noopener,noreferrer');
+}
+
 // 카테고리 탭 클릭
 function handleCategoryClick(e) {
   const tab = e.target.closest('.category-tab');
@@ -1626,6 +1675,7 @@ function init() {
   window.BzCatAppOpenProfile = openProfile;
   window.BzCatAppReloadMenu = reloadMenuDataForOrderPage;
   categoryTabs.addEventListener('click', handleCategoryClick);
+  if (menuSectionTitle) menuSectionTitle.addEventListener('click', handleMenuSectionTitleClick);
   menuGrid.addEventListener('click', handleMenuGridClick);
   menuGrid.addEventListener(
     'focusout',

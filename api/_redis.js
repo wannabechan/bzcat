@@ -429,6 +429,7 @@ async function getMenuDataForApp() {
       payment: stores[i].payment,
       suburl: (stores[i].suburl || ''),
       brand: (stores[i].brand || ''),
+      mapLink: typeof stores[i].mapLink === 'string' ? stores[i].mapLink.trim() : '',
       bizNo: (stores[i].bizNo || ''),
       businessDays,
       businessHours,

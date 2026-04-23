@@ -305,6 +305,12 @@ function renderStore(store, menus) {
               <input type="text" data-field="suburl" value="${escapeHtml(store.suburl || '')}" placeholder="영어 소문자" pattern="[a-z]*" autocomplete="off">
             </div>
           </div>
+          <div class="admin-form-row">
+            <div class="admin-form-field" style="flex: 2; min-width: 220px;">
+              <label>맵링크</label>
+              <input type="url" data-field="mapLink" value="${escapeHtml(store.mapLink || '')}" placeholder="https://… (지도·네이버·카카오 등 URL)">
+            </div>
+          </div>
         </div>
         <div class="admin-section admin-section-menu">
           <div class="admin-section-title-row">
@@ -401,6 +407,7 @@ function collectData() {
     const representativeInput = storeEl.querySelector('input[data-field="representative"]');
     const bizNoInput = storeEl.querySelector('input[data-field="bizNo"]');
     const suburlInput = storeEl.querySelector('input[data-field="suburl"]');
+    const mapLinkInput = storeEl.querySelector('input[data-field="mapLink"]');
     const businessDaysInput = storeEl.querySelector('input[data-field="businessDays"]');
     const businessHoursInput = storeEl.querySelector('input[data-field="businessHours"]');
     const deliveryFeeInput = storeEl.querySelector('input[data-field="deliveryFee"]');
@@ -414,7 +421,7 @@ function collectData() {
     const packagingFee = parseInt(packagingFeeInput?.value || '0', 10);
     const maxOrderQ = parseInt(maxOrderQuantityInput?.value || '0', 10);
     const maxOrderQuantity = Number.isFinite(maxOrderQ) && maxOrderQ >= 0 ? Math.min(maxOrderQ, 999999) : 0;
-    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, packagingFee: Number.isFinite(packagingFee) && packagingFee >= 0 ? packagingFee : 0, maxOrderQuantity };
+    const store = { id: storeId, slug: storeId, title: titleInput?.value?.trim() || storeId, brand: brandInput?.value?.trim() || '', storeAddress: storeAddressInput?.value?.trim() || '', storeContact: storeContactInput?.value?.trim() || '', storeContactEmail: storeContactEmailInput?.value?.trim() || '', representative: representativeInput?.value?.trim() || '', bizNo: formatBizNo(bizNoInput?.value?.trim() || ''), suburl: (suburlInput?.value?.trim() || '').toLowerCase().replace(/[^a-z]/g, ''), mapLink: mapLinkInput?.value?.trim() || '', businessDays: businessDays.length ? businessDays.sort((a, b) => a - b) : [0, 1, 2, 3, 4, 5, 6], businessHours: businessHours.length ? businessHours : [...BUSINESS_HOURS_SLOTS], deliveryFee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 50000, packagingFee: Number.isFinite(packagingFee) && packagingFee >= 0 ? packagingFee : 0, maxOrderQuantity };
     stores.push(store);
 
     const menuList = storeEl.querySelector('.admin-menu-list');
@@ -2478,6 +2485,7 @@ async function init() {
           representative: '',
           bizNo: '',
           suburl: '',
+          mapLink: '',
           businessDays: [0, 1, 2, 3, 4, 5, 6],
           businessHours: [...BUSINESS_HOURS_SLOTS],
           deliveryFee: 50000,
