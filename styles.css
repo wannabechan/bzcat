@@ -482,11 +482,6 @@ body {
   background: transparent;
 }
 
-.menu-maplink-btn--inactive {
-  cursor: default;
-  pointer-events: none;
-}
-
 /* ===== Category Tabs ===== */
 .category-section {
   margin-bottom: 8px;

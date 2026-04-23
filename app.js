@@ -751,30 +751,27 @@ function renderMenuCards() {
   if (nameEsc) {
     const mapOk = !!getSafeMapLinkUrl((data.mapLink || '').trim());
     const slugEsc = escapeHtml(category);
-    const mapBtnClass = 'menu-maplink-btn' + (mapOk ? '' : ' menu-maplink-btn--inactive');
-    const mapAria = mapOk ? '지도에서 위치 보기' : '지도 링크 없음';
     const mapPinSvg =
       '<svg class="menu-maplink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M12 21.5c-4.2-3.5-7.5-7.2-7.5-11.5a7.5 7.5 0 0 1 15 0c0 4.3-3.3 8-7.5 11.5z" fill="none"/>' +
       '<circle cx="12" cy="10" r="2.5" fill="none"/>' +
       '</svg>';
-    const mapBtn =
-      '<button type="button" class="' +
-      mapBtnClass +
-      '" data-maplink-category="' +
-      slugEsc +
-      '" aria-label="' +
-      escapeHtml(mapAria) +
-      '">' +
-      mapPinSvg +
-      '</button>';
+    const mapBtn = mapOk
+      ? ' <button type="button" class="menu-maplink-btn" data-maplink-category="' +
+        slugEsc +
+        '" aria-label="' +
+        escapeHtml('지도에서 위치 보기') +
+        '">' +
+        mapPinSvg +
+        '</button>'
+      : '';
     menuSectionTitle.innerHTML =
       '<span class="menu-section-madeby-line">' +
       '<span class="menu-section-madeby">cooked by ' +
       nameEsc +
       ' (' +
       maxOrderSuffixEsc +
-      ')</span> ' +
+      ')</span>' +
       mapBtn +
       '</span>';
   } else {
@@ -1519,7 +1516,7 @@ function showUnsupportedRegionModal() {
 
 function handleMenuSectionTitleClick(e) {
   const btn = e.target.closest('.menu-maplink-btn');
-  if (!btn || btn.classList.contains('menu-maplink-btn--inactive')) return;
+  if (!btn) return;
   const slug = btn.dataset.maplinkCategory;
   if (!slug || !MENU_DATA[slug]) return;
   const safe = getSafeMapLinkUrl(MENU_DATA[slug].mapLink);
