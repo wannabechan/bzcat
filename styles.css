@@ -458,10 +458,6 @@ body {
   height: 24px;
 }
 
-.header-actions .profile-toggle {
-  margin-left: 10px;
-}
-
 @media (max-width: 768px) {
   .header-center {
     padding: 0 6px;
@@ -469,6 +465,10 @@ body {
 
   .header-promo-line {
     font-size: 0.6875rem;
+  }
+
+  .header-actions .profile-toggle {
+    transform: translateX(15px);
   }
 }
 
