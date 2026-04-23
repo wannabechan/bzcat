@@ -1383,6 +1383,7 @@ function renderProfileOrdersList() {
       const delivered = o.status === 'delivery_completed';
       const loveHeartSvg = `<svg class="profile-order-menu-love-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="profile-order-menu-love-path profile-order-menu-love-path--outline" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><path class="profile-order-menu-love-path profile-order-menu-love-path--fill" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
       const loveHeartGhostSvg = `<svg class="profile-order-menu-love-icon profile-order-menu-love-icon--ghost" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      const loveHeartInlineSvg = `<svg class="profile-order-menu-love-text-heart" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
       const loveLocked = !!(delivered && o.menuLoveLocked);
       const loveLiked = !!(delivered && o.menuLoveLiked);
       const loveBtnClass =
@@ -1398,7 +1399,7 @@ function renderProfileOrdersList() {
               <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
             </div>
             <div class="profile-order-menu-love${loveLiked ? ' profile-order-menu-love--liked' : ''}${loveLocked ? ' profile-order-menu-love--locked' : ''}">
-              <span class="profile-order-menu-love-text">맛있게 드셨다면 '사랑'해주세요!</span>
+              <span class="profile-order-menu-love-text">맛있게 드셨다면${loveHeartInlineSvg} 해주세요!</span>
               <button type="button" class="${loveBtnClass}" data-action="menu-love-toggle" data-order-id="${orderIdEsc}" aria-label="${loveLiked ? '사랑 취소' : '사랑 해주기'}" aria-pressed="${loveLiked ? 'true' : 'false'}" ${loveLocked ? 'disabled' : ''}>${loveHeartSvg}</button>
             </div>
           </div>`;

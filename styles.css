@@ -1860,6 +1860,14 @@ input.menu-qty-input.menu-qty-value:disabled {
   text-align: right;
 }
 
+.profile-order-menu-love-text-heart {
+  display: inline-block;
+  vertical-align: -0.14em;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0;
+}
+
 .profile-order-menu-love:not(.profile-order-menu-love--liked):not(.profile-order-menu-love--locked) .profile-order-menu-love-text {
   animation: profile-menu-love-text-blink 2s ease-in-out infinite;
 }
@@ -1910,8 +1918,8 @@ input.menu-qty-input.menu-qty-value:disabled {
 }
 
 .profile-order-menu-love-btn .profile-order-menu-love-icon {
-  width: 1.25em;
-  height: 1.25em;
+  width: calc(1.25em * 1.15);
+  height: calc(1.25em * 1.15);
   display: block;
 }
 
