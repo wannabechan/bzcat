@@ -1853,7 +1853,7 @@ input.menu-qty-input.menu-qty-value:disabled {
 }
 
 .profile-order-menu-love-text {
-  font-size: 0.9375rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-primary);
   line-height: 1.35;
@@ -1866,10 +1866,6 @@ input.menu-qty-input.menu-qty-value:disabled {
   width: 1.05em;
   height: 1.05em;
   margin: 0;
-}
-
-.profile-order-menu-love:not(.profile-order-menu-love--liked):not(.profile-order-menu-love--locked) .profile-order-menu-love-text {
-  animation: profile-menu-love-text-blink 2s ease-in-out infinite;
 }
 
 .profile-order-menu-love--liked .profile-order-menu-love-text {
@@ -1934,16 +1930,6 @@ input.menu-qty-input.menu-qty-value:disabled {
 .profile-order-menu-love-btn.is-liked .profile-order-menu-love-path--fill {
   display: block;
   fill: currentColor;
-}
-
-@keyframes profile-menu-love-text-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
 }
 
 .profile-load-more-wrap {
