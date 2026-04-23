@@ -332,12 +332,20 @@ function formatPrice(price) {
   return price.toLocaleString() + '원';
 }
 
-/** 주문 페이지 메뉴 카드: likePoints / orderPoints → 반올림 %. orderPoints가 0이면 '집계전' */
+/** 주문 페이지 메뉴 카드: likePoints / orderPoints → 반올림 %. orderPoints가 0이면 '-' */
 function formatMenuLikePointsPercentDisplay(likePoints, orderPoints) {
   const like = Math.max(0, Math.floor(Number(likePoints)) || 0);
   const order = Math.max(0, Math.floor(Number(orderPoints)) || 0);
-  if (order <= 0) return '집계전';
+  if (order <= 0) return '-';
   return `${Math.round((like / order) * 100)}%`;
+}
+
+/** 재주문율: API에서 계산된 reorderRatePct365(0~100). 없으면 '-' */
+function formatMenuReorderRateDisplay(reorderRatePct365) {
+  if (reorderRatePct365 == null || reorderRatePct365 === '') return '-';
+  const n = Number(reorderRatePct365);
+  if (!Number.isFinite(n)) return '-';
+  return `${Math.round(n)}%`;
 }
 
 /** 지도 링크: http(s)만 허용 (새 창 오픈용) */
@@ -791,7 +799,6 @@ function renderMenuCards() {
   const cartCategory = getCartCategory();
   const canAddFromCategory = cartCategory === null || category === cartCategory;
 
-  const menuCardStatReorderPending = '집계전';
   const menuCardStatHeartSvg =
     '<svg class="menu-card-stat-icon menu-card-stat-icon--heart" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
   const menuCardStatReorderSvg =
@@ -819,7 +826,7 @@ function renderMenuCards() {
         ? `<div class="menu-card-image"><img src="${escapeHtml(imgSrc)}" alt="${nameEsc}" class="menu-card-img"${imgLoadAttrs} decoding="async" width="400" height="400" onerror="this.outerHTML='<span class=\\'menu-card-emoji\\'>${emoji}</span>'"></div>`
         : `<div class="menu-card-image">${emoji}</div>`;
       const likeStatText = escapeHtml(formatMenuLikePointsPercentDisplay(item.likePoints, item.orderPoints));
-      const reorderStatText = escapeHtml(menuCardStatReorderPending);
+      const reorderStatText = escapeHtml(formatMenuReorderRateDisplay(item.reorderRatePct365));
       const actionsHtml = soldOut
         ? `<div class="menu-card-actions menu-card-actions--soldout">
               <div class="menu-qty-soldout" aria-live="polite">준비중</div>

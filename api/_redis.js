@@ -203,6 +203,84 @@ function uniqueOrderMenuItemIds(order) {
   return [...ids];
 }
 
+/** 재주문율 집계: 배송완료 시각 기준 최근 365일 */
+const REORDER_STATS_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
+
+function normalizeCustomerEmailForReorderStats(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function getDeliveryCompletedAtMsFromOrder(order) {
+  if ((order.status || '') !== 'delivery_completed') return null;
+  const hist = Array.isArray(order.status_history) ? order.status_history : [];
+  for (let i = 0; i < hist.length; i++) {
+    const h = hist[i];
+    if (h && h.s === 'delivery_completed' && h.at) {
+      const t = new Date(h.at).getTime();
+      if (Number.isFinite(t)) return t;
+    }
+  }
+  return null;
+}
+
+/**
+ * 메뉴별 재주문율(%): 최근 365일·배송완료 시각 기준.
+ * 분모 = 해당 메뉴를 1회 이상 배송완료 주문에 담은 고객 수(user_email),
+ * 분자 = 그중 해당 메뉴가 포함된 서로 다른 배송완료 주문이 2건 이상인 고객 수.
+ * @returns {Map<string, number>} 메뉴 id → 0..100 (분모 0인 메뉴는 맵에 없음)
+ */
+async function computeReorderRatePct365ByMenuItemId() {
+  const redis = getRedis();
+  const keys = (await redis.keys('order:*')) || [];
+  const orderKeys = keys.filter((k) => k !== 'order:deletions' && /^order:\d+$/.test(String(k)));
+  if (orderKeys.length === 0) return new Map();
+
+  const raws = await redis.mget(...orderKeys);
+  const cutoff = Date.now() - REORDER_STATS_WINDOW_MS;
+  /** @type {Map<string, Map<string, Set<string>>>} */
+  const byItem = new Map();
+
+  for (let i = 0; i < raws.length; i++) {
+    if (!raws[i]) continue;
+    let order;
+    try {
+      order = typeof raws[i] === 'string' ? JSON.parse(raws[i]) : raws[i];
+    } catch (_) {
+      continue;
+    }
+    if (!order || typeof order !== 'object') continue;
+    if ((order.status || '') !== 'delivery_completed') continue;
+    const deliveryAt = getDeliveryCompletedAtMsFromOrder(order);
+    if (deliveryAt == null || deliveryAt < cutoff) continue;
+    const email = normalizeCustomerEmailForReorderStats(order.user_email);
+    if (!email) continue;
+    const orderId = String(order.id || '').trim();
+    if (!orderId) continue;
+    const itemIds = uniqueOrderMenuItemIds(order);
+    for (let j = 0; j < itemIds.length; j++) {
+      const itemId = itemIds[j];
+      if (!byItem.has(itemId)) byItem.set(itemId, new Map());
+      const cmap = byItem.get(itemId);
+      if (!cmap.has(email)) cmap.set(email, new Set());
+      cmap.get(email).add(orderId);
+    }
+  }
+
+  /** @type {Map<string, number>} */
+  const pctMap = new Map();
+  for (const [itemId, cmap] of byItem) {
+    let denom = 0;
+    let numer = 0;
+    for (const set of cmap.values()) {
+      denom += 1;
+      if (set.size >= 2) numer += 1;
+    }
+    if (denom <= 0) continue;
+    pctMap.set(itemId, Math.round((numer / denom) * 100));
+  }
+  return pctMap;
+}
+
 function resolveStoreIdForMenuItem(itemId, stores) {
   const slug = getSlugFromItemId(itemId, stores);
   const s = (stores || []).find((st) => String(st.id || st.slug || '').toLowerCase() === slug);
@@ -365,7 +443,8 @@ async function getAllOrders() {
   const redis = getRedis();
   const keys = await redis.keys('order:*');
   if (!keys || keys.length === 0) return [];
-  const raws = await redis.mget(...keys);
+  const orderKeys = keys.filter((k) => k !== 'order:deletions' && /^order:\d+$/.test(String(k)));
+  const raws = await redis.mget(...orderKeys);
   const orders = [];
   for (let i = 0; i < raws.length; i++) {
     const raw = raws[i];
@@ -522,6 +601,20 @@ async function getMenuDataForApp() {
         : 0,
     };
   }
+
+  const reorderPctMap = await computeReorderRatePct365ByMenuItemId();
+  for (const slug of Object.keys(result)) {
+    const entry = result[slug];
+    entry.items = (entry.items || []).map((m) => {
+      const rid = String(m.id || '').trim();
+      const has = reorderPctMap.has(rid);
+      return {
+        ...m,
+        reorderRatePct365: has ? reorderPctMap.get(rid) : null,
+      };
+    });
+  }
+
   return result;
 }
 

@@ -759,7 +759,7 @@ body {
   background: #faf8f6;
 }
 
-/* 좋아요%(likePoints/orderPoints)·재주문(식 미정 시 '집계전'): category-notice와 동일 글자 크기·색 */
+/* 좋아요%(like/order)·재주문%(최근365일 배송완료 고객기준, 분모0은 '-'): category-notice와 동일 글자 크기·색 */
 .menu-card-reorder-stats {
   box-sizing: border-box;
   width: 100%;
