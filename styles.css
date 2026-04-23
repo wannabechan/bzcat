@@ -336,7 +336,7 @@ body {
   white-space: nowrap;
   opacity: 0;
   will-change: opacity, transform, color;
-  animation: header-promo-rotate 15s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  animation: header-promo-rotate 20s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
 }
 
 .header-promo-line-2 {
@@ -345,6 +345,10 @@ body {
 
 .header-promo-line-3 {
   animation-delay: 10s;
+}
+
+.header-promo-line-4 {
+  animation-delay: 15s;
 }
 
 @keyframes header-promo-rotate {
