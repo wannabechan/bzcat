@@ -13,6 +13,17 @@ let codeCountdownInterval = null;
 /** checkSession 성공 시 사용자 (쿠키 세션 포함). 로그아웃 시 null. */
 let cachedSessionUser = null;
 
+function syncHeaderPromoAnchor() {
+  const header = document.querySelector('.header');
+  const logo = document.querySelector('.logo');
+  const headerPromo = document.getElementById('headerPromo');
+  if (!header || !logo || !headerPromo) return;
+  const headerRect = header.getBoundingClientRect();
+  const logoRect = logo.getBoundingClientRect();
+  const logoRightWithinHeader = Math.max(0, Math.round(logoRect.right - headerRect.left));
+  headerPromo.style.setProperty('--header-promo-left', `${logoRightWithinHeader}px`);
+}
+
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -104,7 +115,9 @@ function showApp(user) {
     // 광고 문구는 로그아웃/일반 사용자에만 표시 (admin/operator/store manager 제외)
     const canShowPromo = !isAdmin && !isOperator && !isStoreManager;
     headerPromo.style.display = canShowPromo ? '' : 'none';
+    headerPromo.setAttribute('aria-hidden', canShowPromo ? 'false' : 'true');
   }
+  syncHeaderPromoAnchor();
   if (profileUserEmailEl) profileUserEmailEl.textContent = user && user.email ? user.email : '';
   // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
   if (chatBtn) chatBtn.style.display = 'none';
@@ -146,6 +159,7 @@ function hideInitialLoadOverlay() {
 }
 
 async function initAuth() {
+  window.addEventListener('resize', syncHeaderPromoAnchor);
   const user = await checkSession();
   showApp(user);
   hideInitialLoadOverlay();

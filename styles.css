@@ -462,23 +462,23 @@ body {
 
 @media (max-width: 768px) {
   .header-center {
-    flex: 0 1 auto;
-    margin-left: 10px;
-    padding: 0;
+    position: absolute;
+    left: calc(var(--header-promo-left, 16px) + 0.5ch);
+    right: 96px;
     justify-content: flex-start;
+    padding: 0;
   }
 
   .header-promo-track {
-    text-align: left;
-  }
-
-  .header-promo-line {
-    right: auto;
+    width: auto;
     text-align: left;
   }
 
   .header-promo-line {
     font-size: 0.6875rem;
+    left: 0;
+    right: auto;
+    text-align: left;
   }
 
   .header-actions .profile-toggle {
