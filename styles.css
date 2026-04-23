@@ -759,6 +759,49 @@ body {
   background: #faf8f6;
 }
 
+/* 좋아요·재주문 비율: 카테고리 안내(category-notice)와 동일 글자 크기·퍼센트 색 */
+.menu-card-reorder-stats {
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  padding: 6px 12px 10px;
+  margin: 0;
+  text-align: left;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  background: #faf8f6;
+  border-top: 1px solid var(--color-border);
+}
+
+.menu-card-stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.menu-card-stat-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.menu-card-stat-icon--heart {
+  color: #e55d73;
+}
+
+.menu-card-stat-icon--repeat {
+  color: var(--color-primary);
+}
+
+.menu-card-stat-pct {
+  color: #b0b0b0;
+  font-weight: 400;
+}
+
 .menu-card-name {
   font-size: 0.9375rem;
   font-weight: 500;

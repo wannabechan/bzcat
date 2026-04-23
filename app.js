@@ -783,6 +783,14 @@ function renderMenuCards() {
   const cartCategory = getCartCategory();
   const canAddFromCategory = cartCategory === null || category === cartCategory;
 
+  /** 좋아요·재주문 비율(%) — 계산식 확정 후 대체. 현재 UI 플레이스홀더. */
+  const menuCardStatPctPlaceholder = 0;
+  const menuCardStatPctText = `${menuCardStatPctPlaceholder}%`;
+  const menuCardStatHeartSvg =
+    '<svg class="menu-card-stat-icon menu-card-stat-icon--heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+  const menuCardStatReorderSvg =
+    '<svg class="menu-card-stat-icon menu-card-stat-icon--repeat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+
   menuGrid.innerHTML = items
     .map((item, index) => {
       const soldOut = !!item.soldOut;
@@ -841,6 +849,10 @@ function renderMenuCards() {
               <p class="menu-card-price">${formatPrice(item.price)}</p>
             </div>
             ${actionsHtml}
+          </div>
+          <div class="menu-card-reorder-stats">
+            <span class="menu-card-stat-item">${menuCardStatHeartSvg}<span class="menu-card-stat-pct">${menuCardStatPctText}</span></span>
+            <span class="menu-card-stat-item">${menuCardStatReorderSvg}<span class="menu-card-stat-pct">${menuCardStatPctText}</span></span>
           </div>
         </article>
       `;
