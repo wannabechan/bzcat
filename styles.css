@@ -458,6 +458,10 @@ body {
   height: 24px;
 }
 
+.header-actions .profile-toggle {
+  margin-left: 10px;
+}
+
 @media (max-width: 768px) {
   .header-center {
     padding: 0 6px;
