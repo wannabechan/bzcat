@@ -6,9 +6,24 @@
 const { Resend } = require('resend');
 const { generateCode, apiResponse } = require('../_utils');
 const { resendEmailsSend } = require('../_resend');
-const { saveAuthCode, AUTH_CODE_TTL_SECONDS } = require('../_redis');
+const { saveAuthCode, AUTH_CODE_TTL_SECONDS, hitRateLimit } = require('../_redis');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const SEND_CODE_EMAIL_MAX = 3;
+const SEND_CODE_IP_MAX = 10;
+const SEND_CODE_WINDOW_SEC = 60;
+
+function getClientIp(req) {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  const realIp = req.headers['x-real-ip'];
+  if (typeof realIp === 'string' && realIp.trim()) return realIp.trim();
+  const socketIp = req.socket && req.socket.remoteAddress;
+  if (typeof socketIp === 'string' && socketIp.trim()) return socketIp.trim();
+  return 'unknown';
+}
 
 module.exports = async (req, res) => {
   // CORS preflight
@@ -29,6 +44,33 @@ module.exports = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const clientIp = getClientIp(req);
+
+    // 발송 API 남용 방지: 이메일/클라이언트 IP 기준 고정 윈도우 제한
+    try {
+      const emailLimit = await hitRateLimit(
+        `ratelimit:send-code:email:${normalizedEmail}`,
+        SEND_CODE_EMAIL_MAX,
+        SEND_CODE_WINDOW_SEC,
+      );
+      if (emailLimit.limited) {
+        res.setHeader('Retry-After', String(emailLimit.retryAfterSec));
+        return apiResponse(res, 429, { error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
+      }
+
+      const ipLimit = await hitRateLimit(
+        `ratelimit:send-code:ip:${clientIp}`,
+        SEND_CODE_IP_MAX,
+        SEND_CODE_WINDOW_SEC,
+      );
+      if (ipLimit.limited) {
+        res.setHeader('Retry-After', String(ipLimit.retryAfterSec));
+        return apiResponse(res, 429, { error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
+      }
+    } catch (rateLimitError) {
+      // 레이트 리밋 저장 실패로 인증 전체가 막히지 않게 fail-open
+      console.error('send-code rate limit check failed:', rateLimitError);
+    }
 
     const code = generateCode();
 

@@ -39,6 +39,28 @@ async function saveAuthCode(email, code) {
   await redis.set(key, String(code), { ex: AUTH_CODE_TTL_SECONDS });
 }
 
+/**
+ * 고정 윈도우 레이트 리밋 카운터.
+ * @returns {{ limited: boolean, count: number, retryAfterSec: number }}
+ */
+async function hitRateLimit(key, maxRequests, windowSec) {
+  const redis = getRedis();
+  const count = Number(await redis.incr(key));
+  if (count === 1) {
+    await redis.expire(key, windowSec);
+  }
+  let retryAfterSec = windowSec;
+  try {
+    const ttl = Number(await redis.ttl(key));
+    if (Number.isFinite(ttl) && ttl > 0) retryAfterSec = ttl;
+  } catch (_) {}
+  return {
+    limited: count > maxRequests,
+    count,
+    retryAfterSec,
+  };
+}
+
 async function getAndDeleteAuthCode(email, code) {
   const redis = getRedis();
   const key = `auth:code:${email}`;
@@ -775,6 +797,7 @@ async function getMenuDataForApp() {
 
 module.exports = {
   AUTH_CODE_TTL_SECONDS,
+  hitRateLimit,
   saveAuthCode,
   getAndDeleteAuthCode,
   getUser,
