@@ -5,6 +5,7 @@
 
 const { verifyToken, apiResponse, getTokenFromRequest } = require('../_utils');
 const { getOrdersByUser } = require('../_redis');
+const { isMenuLoveLockedNow } = require('../_kst');
 
 const STATUS_LABELS = {
   submitted: '신청완료',
@@ -45,6 +46,9 @@ module.exports = async (req, res) => {
       const statusLabel = status === 'cancelled' && o.cancel_reason
         ? `${baseLabel}(${o.cancel_reason})`
         : baseLabel;
+      const menuLoveLiked = !!o.menu_love_liked;
+      const menuLoveLikedAt = o.menu_love_liked_at || null;
+      const menuLoveLocked = !!(menuLoveLiked && menuLoveLikedAt && isMenuLoveLockedNow(menuLoveLikedAt));
       return {
         id: o.id,
         status,
@@ -59,6 +63,9 @@ module.exports = async (req, res) => {
         pdfUrl: o.pdf_url || null,
         paymentLink: o.payment_link || null,
         piiAnonymizedAt: o.pii_anonymized_at || null,
+        menuLoveLiked,
+        menuLoveLikedAt,
+        menuLoveLocked,
       };
     });
 

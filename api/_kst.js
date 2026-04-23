@@ -113,6 +113,27 @@ function isPastKSTDeadline(dateStr, hourKST = 23, minuteKST = 59) {
   return Date.now() > deadlineMs;
 }
 
+/**
+ * menu_love: 좋아요한 날(KST 달력)을 1일째로 보고, 7일째 00:00 KST부터 잠금.
+ * @param {string} likedAtIso - ISO 8601
+ * @returns {number|null} 잠금 시각(ms)
+ */
+function getMenuLoveLockAtMs(likedAtIso) {
+  const likeMs = new Date(likedAtIso).getTime();
+  if (isNaN(likeMs)) return null;
+  const ymd = getKSTDateString(likeMs);
+  const dayStart = parseKSTDate(ymd);
+  if (!dayStart) return null;
+  return dayStart.getTime() + 6 * 86400000;
+}
+
+/** 현재 시각이 menu_love 잠금 이후인지 */
+function isMenuLoveLockedNow(likedAtIso) {
+  const lockMs = getMenuLoveLockAtMs(likedAtIso);
+  if (lockMs == null) return false;
+  return Date.now() >= lockMs;
+}
+
 module.exports = {
   KST_OFFSET_MS,
   getKSTDateString,
@@ -124,4 +145,6 @@ module.exports = {
   getKSTDayRange,
   formatDateKST,
   isPastKSTDeadline,
+  getMenuLoveLockAtMs,
+  isMenuLoveLockedNow,
 };

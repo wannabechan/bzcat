@@ -787,7 +787,7 @@ function renderMenuCards() {
   const menuCardStatPctPlaceholder = 0;
   const menuCardStatPctText = `${menuCardStatPctPlaceholder}%`;
   const menuCardStatHeartSvg =
-    '<svg class="menu-card-stat-icon menu-card-stat-icon--heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    '<svg class="menu-card-stat-icon menu-card-stat-icon--heart" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
   const menuCardStatReorderSvg =
     '<svg class="menu-card-stat-icon menu-card-stat-icon--repeat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
 
@@ -1380,6 +1380,40 @@ function renderProfileOrdersList() {
         }).join('');
       }
       const orderIdEsc = escapeHtml(String(o.id));
+      const delivered = o.status === 'delivery_completed';
+      const loveHeartSvg = `<svg class="profile-order-menu-love-icon" viewBox="0 0 24 24" aria-hidden="true"><path class="profile-order-menu-love-path profile-order-menu-love-path--outline" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><path class="profile-order-menu-love-path profile-order-menu-love-path--fill" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+      const loveHeartGhostSvg = `<svg class="profile-order-menu-love-icon profile-order-menu-love-icon--ghost" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      const loveLocked = !!(delivered && o.menuLoveLocked);
+      const loveLiked = !!(delivered && o.menuLoveLiked);
+      const loveBtnClass =
+        'profile-order-menu-love-btn' +
+        (loveLiked ? ' is-liked' : '') +
+        (loveLocked ? ' is-locked' : '');
+      let amountRowHtml;
+      if (cancelled) {
+        amountRowHtml = `<div class="profile-order-amount cancelled">${formatPrice(o.totalAmount || 0)}</div>`;
+      } else if (delivered) {
+        amountRowHtml = `<div class="profile-order-amount-row">
+            <div class="profile-order-amount-left">
+              <span class="profile-order-total-label">총금액</span>
+              <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
+            </div>
+            <div class="profile-order-menu-love${loveLiked ? ' profile-order-menu-love--liked' : ''}${loveLocked ? ' profile-order-menu-love--locked' : ''}">
+              <span class="profile-order-menu-love-text">맛있게 드셨다면 '사랑'해주세요!</span>
+              <button type="button" class="${loveBtnClass}" data-action="menu-love-toggle" data-order-id="${orderIdEsc}" aria-label="${loveLiked ? '사랑 취소' : '사랑 해주기'}" aria-pressed="${loveLiked ? 'true' : 'false'}" ${loveLocked ? 'disabled' : ''}>${loveHeartSvg}</button>
+            </div>
+          </div>`;
+      } else {
+        amountRowHtml = `<div class="profile-order-amount-row profile-order-amount-row--pre-delivery">
+            <div class="profile-order-amount-left">
+              <span class="profile-order-total-label">총금액</span>
+              <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
+            </div>
+            <div class="profile-order-menu-love profile-order-menu-love--pre-delivery" aria-hidden="true">
+              <span class="profile-order-menu-love-ghost">${loveHeartGhostSvg}</span>
+            </div>
+          </div>`;
+      }
       return `
         <div class="profile-order-card" data-order-id="${orderIdEsc}">
           <div class="profile-order-card-header">
@@ -1389,11 +1423,11 @@ function renderProfileOrdersList() {
                 <button type="button" class="profile-btn profile-btn-detail" data-action="detail">주문내역</button>
               </div>
             </div>
-            <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${escapeHtml(o.statusLabel || '')}</span>
+            <span class="profile-order-status ${cancelled ? 'cancelled' : ''} ${delivered ? 'delivered' : ''}">${escapeHtml(o.statusLabel || '')}</span>
           </div>
           <div class="profile-order-date">주문일시 : ${formatOrderDate(o.createdAt)}<br>배송희망일 : ${formatDeliveryDateOnly(o.deliveryDate)}</div>
           <div class="profile-order-status-steps">${stepsHtml}</div>
-          <div class="profile-order-amount ${cancelled ? 'cancelled' : ''} ${o.status === 'delivery_completed' ? 'delivered' : ''}">${formatPrice(o.totalAmount || 0)}</div>
+          ${amountRowHtml}
         </div>
       `;
     })
@@ -1745,6 +1779,52 @@ function init() {
     });
   }
   profileOrders.addEventListener('click', (e) => {
+    const loveBtn = e.target.closest('[data-action="menu-love-toggle"]');
+    if (loveBtn) {
+      e.preventDefault();
+      if (loveBtn.disabled || loveBtn.classList.contains('is-locked')) return;
+      const card = loveBtn.closest('.profile-order-card');
+      const orderId = card?.dataset?.orderId;
+      const order = orderId && profileOrdersData[orderId];
+      if (!order || order.status !== 'delivery_completed') return;
+      if (!window.BzCatAuth?.isLoggedIn?.()) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+      const nextLiked = !order.menuLoveLiked;
+      loveBtn.disabled = true;
+      fetch('/api/orders/menu-love', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          ...window.BzCatAuth.authFetchHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId: String(orderId), liked: nextLiked }),
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            alert(data.error || '처리에 실패했습니다.');
+            return;
+          }
+          const patch = {
+            menuLoveLiked: !!data.menuLoveLiked,
+            menuLoveLikedAt: data.menuLoveLikedAt || null,
+            menuLoveLocked: !!data.menuLoveLocked,
+          };
+          const i = profileAllOrders.findIndex((x) => String(x.id) === String(orderId));
+          if (i >= 0) Object.assign(profileAllOrders[i], patch);
+          if (profileOrdersData[orderId]) Object.assign(profileOrdersData[orderId], patch);
+          renderProfileOrdersList();
+        })
+        .catch(() => alert('네트워크 오류가 발생했습니다.'))
+        .finally(() => {
+          loveBtn.disabled = false;
+        });
+      return;
+    }
+
     const paymentLinkStep = e.target.closest('[data-action="open-payment-link"]');
     if (paymentLinkStep) {
       const card = paymentLinkStep.closest('.profile-order-card');

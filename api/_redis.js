@@ -10,6 +10,7 @@
 
 const { Redis } = require('@upstash/redis');
 const { getYymmddKST: getYymmddKSTFromKst } = require('./_kst');
+const { getSlugFromItemId } = require('./_order-display');
 
 let _redisClient = null;
 
@@ -192,13 +193,77 @@ function appendStatusHistory(order, status, actor) {
   });
 }
 
+function uniqueOrderMenuItemIds(order) {
+  const items = order.order_items || order.orderItems || [];
+  const ids = new Set();
+  for (const it of items) {
+    const id = String(it.id || '').trim();
+    if (id && id !== 'etc-fee') ids.add(id);
+  }
+  return [...ids];
+}
+
+function resolveStoreIdForMenuItem(itemId, stores) {
+  const slug = getSlugFromItemId(itemId, stores);
+  const s = (stores || []).find((st) => String(st.id || st.slug || '').toLowerCase() === slug);
+  return s ? String(s.id || s.slug) : null;
+}
+
+/**
+ * 주문에 포함된 메뉴 id별로 likePoints / orderPoints 조정 (매장별 메뉴 JSON 갱신)
+ * @param {{ likeDelta?: number, orderDelta?: number }} deltas
+ */
+async function adjustMenuPointsForOrder(order, stores, deltas) {
+  const likeDelta = Number(deltas.likeDelta) || 0;
+  const orderDelta = Number(deltas.orderDelta) || 0;
+  if (!likeDelta && !orderDelta) return;
+  const itemIds = uniqueOrderMenuItemIds(order);
+  if (itemIds.length === 0) return;
+
+  const byStore = new Map();
+  for (const itemId of itemIds) {
+    const storeId = resolveStoreIdForMenuItem(itemId, stores);
+    if (!storeId) continue;
+    if (!byStore.has(storeId)) byStore.set(storeId, new Set());
+    byStore.get(storeId).add(itemId);
+  }
+
+  const redis = getRedis();
+  for (const [storeId, idSet] of byStore) {
+    let menus = await getMenus(storeId);
+    let changed = false;
+    const next = menus.map((m) => {
+      if (!idSet.has(m.id)) return m;
+      changed = true;
+      const likePoints = Math.max(0, (Number(m.likePoints) || 0) + likeDelta);
+      const orderPoints = Math.max(0, (Number(m.orderPoints) || 0) + orderDelta);
+      return { ...m, likePoints, orderPoints };
+    });
+    if (changed) await redis.set(`app:menus:${storeId}`, JSON.stringify(next));
+  }
+}
+
 async function updateOrderStatus(orderId, status, actor) {
   const redis = getRedis();
   const order = await getOrderById(orderId);
   if (!order) return null;
   const by = actor === undefined || actor === null ? 'system' : String(actor);
+  const prevStatus = order.status;
   appendStatusHistory(order, status, by);
   order.status = status;
+
+  if (status === 'delivery_completed' && prevStatus !== 'delivery_completed') {
+    if (!order.order_points_applied) {
+      try {
+        const stores = await getStores();
+        await adjustMenuPointsForOrder(order, stores, { orderDelta: 1 });
+        order.order_points_applied = true;
+      } catch (e) {
+        console.error('order_points apply on delivery_completed:', e);
+      }
+    }
+  }
+
   await redis.set(`order:${orderId}`, JSON.stringify(order));
   return order;
 }
@@ -399,8 +464,22 @@ async function saveStoresAndMenus(stores, menusByStore) {
   const newIds = new Set((stores || []).map((s) => s.id));
   const removedIds = [...previousIds].filter((id) => !newIds.has(id));
   await redis.set(STORES_KEY, JSON.stringify(stores));
-  for (const [storeId, menus] of Object.entries(menusByStore)) {
-    await redis.set(`app:menus:${storeId}`, JSON.stringify(menus));
+  for (const [storeId, nextMenus] of Object.entries(menusByStore)) {
+    const prevMenus = await getMenus(storeId);
+    const prevById = new Map((prevMenus || []).map((m) => [m.id, m]));
+    const merged = (Array.isArray(nextMenus) ? nextMenus : []).map((m) => {
+      const p = prevById.get(m.id);
+      const likePoints =
+        m && Object.prototype.hasOwnProperty.call(m, 'likePoints') && Number.isFinite(Number(m.likePoints))
+          ? Math.floor(Number(m.likePoints))
+          : Number(p?.likePoints) || 0;
+      const orderPoints =
+        m && Object.prototype.hasOwnProperty.call(m, 'orderPoints') && Number.isFinite(Number(m.orderPoints))
+          ? Math.floor(Number(m.orderPoints))
+          : Number(p?.orderPoints) || 0;
+      return { ...m, likePoints, orderPoints };
+    });
+    await redis.set(`app:menus:${storeId}`, JSON.stringify(merged));
   }
   for (const storeId of removedIds) {
     await redis.del(`app:menus:${storeId}`);
@@ -476,4 +555,5 @@ module.exports = {
   saveStoresAndMenus,
   getMenuDataForApp,
   getRedis,
+  adjustMenuPointsForOrder,
 };
