@@ -208,9 +208,124 @@ function uniqueOrderMenuItemIds(order) {
 const REORDER_STATS_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 const REORDER_STATS_CACHE_TTL_MS = 5 * 60 * 1000;
 let reorderStatsCache = { at: 0, map: null };
+const MENU_LIKE_VIRTUAL_KEY = 'app:menu-like-virtual:v1';
+const MENU_LIKE_VIRTUAL_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+const MENU_LIKE_VIRTUAL_MIN = 35;
+const MENU_LIKE_VIRTUAL_MAX = 75;
+const MENU_LIKE_VIRTUAL_SWING = 15;
 
 function invalidateReorderStatsCache() {
   reorderStatsCache = { at: 0, map: null };
+}
+
+function clampMenuLikeVirtualPct(v) {
+  return Math.min(MENU_LIKE_VIRTUAL_MAX, Math.max(MENU_LIKE_VIRTUAL_MIN, v));
+}
+
+function randomIntInclusive(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+function pickMenuLikeVirtualPct(basePct) {
+  if (!Number.isFinite(basePct)) {
+    return randomIntInclusive(MENU_LIKE_VIRTUAL_MIN, MENU_LIKE_VIRTUAL_MAX);
+  }
+  const center = clampMenuLikeVirtualPct(Math.round(basePct));
+  const min = Math.max(MENU_LIKE_VIRTUAL_MIN, center - MENU_LIKE_VIRTUAL_SWING);
+  const max = Math.min(MENU_LIKE_VIRTUAL_MAX, center + MENU_LIKE_VIRTUAL_SWING);
+  return randomIntInclusive(min, max);
+}
+
+function computeActualLikePct(item) {
+  const like = Math.max(0, Math.floor(Number(item?.likePoints)) || 0);
+  const order = Math.max(0, Math.floor(Number(item?.orderPoints)) || 0);
+  if (order <= 0) return null;
+  return Math.round((like / order) * 100);
+}
+
+async function getMenuLikeVirtualStateMap(redis) {
+  const raw = await redis.get(MENU_LIKE_VIRTUAL_KEY);
+  if (!raw) return {};
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+async function applyLikeDisplayVirtualRulesToMenuData(result) {
+  const redis = getRedis();
+  const now = Date.now();
+  const state = await getMenuLikeVirtualStateMap(redis);
+  const activeItemIds = new Set();
+  let changed = false;
+
+  for (const slug of Object.keys(result)) {
+    const entry = result[slug];
+    entry.items = (entry.items || []).map((m) => {
+      const itemId = String(m?.id || '').trim();
+      if (!itemId) {
+        const fallbackActual = computeActualLikePct(m);
+        return { ...m, likeDisplayPct: fallbackActual };
+      }
+      activeItemIds.add(itemId);
+      const prev = state[itemId] && typeof state[itemId] === 'object' ? state[itemId] : null;
+      const actualPct = computeActualLikePct(m);
+      if (actualPct != null) {
+        const shouldUpdate =
+          !prev
+          || Number(prev.lastActualPct) !== actualPct
+          || prev.virtualPct != null
+          || prev.virtualSetAt != null;
+        if (shouldUpdate) {
+          state[itemId] = {
+            lastActualPct: actualPct,
+            virtualPct: null,
+            virtualSetAt: null,
+          };
+          changed = true;
+        }
+        return { ...m, likeDisplayPct: actualPct };
+      }
+
+      const keepCurrent =
+        prev
+        && Number.isFinite(Number(prev.virtualPct))
+        && Number.isFinite(Number(prev.virtualSetAt))
+        && (now - Number(prev.virtualSetAt) < MENU_LIKE_VIRTUAL_KEEP_MS);
+
+      if (keepCurrent) {
+        return { ...m, likeDisplayPct: clampMenuLikeVirtualPct(Math.round(Number(prev.virtualPct))) };
+      }
+
+      const baseFromVirtual = prev && Number.isFinite(Number(prev.virtualPct)) ? Number(prev.virtualPct) : NaN;
+      const baseFromActual = prev && Number.isFinite(Number(prev.lastActualPct)) ? Number(prev.lastActualPct) : NaN;
+      const basePct = Number.isFinite(baseFromVirtual) ? baseFromVirtual : baseFromActual;
+      const nextVirtualPct = pickMenuLikeVirtualPct(basePct);
+      state[itemId] = {
+        lastActualPct: Number.isFinite(baseFromActual) ? Math.round(baseFromActual) : null,
+        virtualPct: nextVirtualPct,
+        virtualSetAt: now,
+      };
+      changed = true;
+      return { ...m, likeDisplayPct: nextVirtualPct };
+    });
+  }
+
+  for (const itemId of Object.keys(state)) {
+    if (!activeItemIds.has(itemId)) {
+      delete state[itemId];
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await redis.set(MENU_LIKE_VIRTUAL_KEY, JSON.stringify(state));
+  }
 }
 
 function normalizeCustomerEmailForReorderStats(email) {
@@ -640,6 +755,8 @@ async function getMenuDataForApp() {
       };
     });
   }
+
+  await applyLikeDisplayVirtualRulesToMenuData(result);
 
   return result;
 }

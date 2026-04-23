@@ -89,6 +89,7 @@ function showApp(user) {
   const isAdmin = user && user.level === 'admin';
   const isOperator = user && user.level === 'operator';
   const isStoreManager = user && user.isStoreManager && user.level !== 'admin';
+  const headerPromo = document.getElementById('headerPromo');
   if (adminLink) {
     if (isAdmin || isOperator) {
       adminLink.style.display = '';
@@ -99,6 +100,11 @@ function showApp(user) {
     }
   }
   if (storeOrdersLink) storeOrdersLink.style.display = isStoreManager ? '' : 'none';
+  if (headerPromo) {
+    // 광고 문구는 로그아웃/일반 사용자에만 표시 (admin/operator/store manager 제외)
+    const canShowPromo = !isAdmin && !isOperator && !isStoreManager;
+    headerPromo.style.display = canShowPromo ? '' : 'none';
+  }
   if (profileUserEmailEl) profileUserEmailEl.textContent = user && user.email ? user.email : '';
   // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
   if (chatBtn) chatBtn.style.display = 'none';
