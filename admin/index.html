@@ -321,16 +321,27 @@
     .admin-logs-download-btn { background: none; border: none; padding: 0; font-size: 0.875rem; color: var(--color-primary); cursor: pointer; text-decoration: underline; }
     .admin-logs-download-btn:hover { color: var(--color-primary); opacity: 0.9; }
     .admin-logs-download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .admin-resend-hint { font-size: 0.8125rem; color: var(--color-text-secondary); margin: 0 0 12px; }
+    .admin-resend-table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
+    .admin-resend-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 720px; }
+    .admin-resend-table th,
+    .admin-resend-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+    .admin-resend-table th { background: var(--color-bg); font-weight: 600; white-space: nowrap; }
+    .admin-resend-table tbody tr:last-child td { border-bottom: none; }
+    .admin-resend-col-time { white-space: nowrap; width: 1%; }
+    .admin-resend-col-id { font-family: ui-monospace, monospace; font-size: 0.75rem; word-break: break-all; }
     @media (max-width: 768px) {
       .admin-payment-order-info { font-size: 0.76125rem; }
       .admin-tab[data-tab="stores"] { display: none; }
       .admin-tab[data-tab="settlement"] { display: none; }
       .admin-tab[data-tab="logs"] { display: none; }
       .admin-tab[data-tab="users"] { display: none; }
+      .admin-tab[data-tab="resend"] { display: none; }
       #storesView { display: none !important; }
       #settlementView { display: none !important; }
       #logsView { display: none !important; }
       #usersView { display: none !important; }
+      #resendView { display: none !important; }
       .admin-tabs { display: flex; gap: 0; }
       .admin-tabs .admin-tab { flex: 1; min-width: 0; padding: 12px 6px; font-size: 0.8125rem; text-align: center; }
       .admin-stats-table-menu tbody tr { height: 5em; }
@@ -358,6 +369,7 @@
       <button class="admin-tab" data-tab="settlement">정산관리</button>
       <button class="admin-tab admin-tab-logs" data-tab="logs">로그관리</button>
       <button class="admin-tab" data-tab="users">사용자관리</button>
+      <button class="admin-tab admin-tab-resend" data-tab="resend">Resend관리</button>
     </div>
 
     <div id="adminError" class="admin-error" style="display: none;"></div>
@@ -390,6 +402,10 @@
 
     <div id="usersView" class="admin-view">
       <div id="adminUsersContent"></div>
+    </div>
+
+    <div id="resendView" class="admin-view">
+      <div id="adminResendContent"></div>
     </div>
 
     <div class="admin-order-detail-overlay" id="adminOrderDetailOverlay" aria-hidden="true">

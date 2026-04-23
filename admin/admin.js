@@ -489,15 +489,19 @@ function setupTabs() {
     } else if (targetTab === 'users') {
       document.getElementById('usersView').classList.add('active');
       loadUsersManagement();
+    } else if (targetTab === 'resend') {
+      document.getElementById('resendView').classList.add('active');
+      clearPaymentIdleTimer();
+      loadResendLogs();
     }
   }
 
   const allowedTabs = adminUserLevel === 'operator'
     ? ['payments', 'stats', 'settlement', ...(canViewUsersTab ? ['users'] : [])]
-    : ['stores', 'payments', 'stats', 'settlement', 'logs', ...(canViewUsersTab ? ['users'] : [])];
+    : ['stores', 'payments', 'stats', 'settlement', 'logs', ...(canViewUsersTab ? ['users'] : []), 'resend'];
   tabs.forEach(tab => {
     const tabKey = tab.dataset.tab;
-    if ((adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs')) || (tabKey === 'users' && !canViewUsersTab)) {
+    if ((adminUserLevel === 'operator' && (tabKey === 'stores' || tabKey === 'logs' || tabKey === 'resend')) || (tabKey === 'users' && !canViewUsersTab)) {
       tab.style.display = 'none';
     } else {
       tab.style.display = '';
@@ -513,8 +517,11 @@ function setupTabs() {
   const isReload = nav?.type === 'reload' || (typeof performance.navigation !== 'undefined' && performance.navigation.type === 1);
   const saved = sessionStorage.getItem(ADMIN_TAB_KEY);
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  let tabToActivate = (saved && allowedTabs.includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile()) && (saved !== 'users' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
+  let tabToActivate = (saved && allowedTabs.includes(saved) && (saved !== 'settlement' || !isMobile()) && (saved !== 'stores' || !isMobile()) && (saved !== 'logs' || !isMobile()) && (saved !== 'users' || !isMobile()) && (saved !== 'resend' || !isMobile())) ? saved : (isMobile() ? 'payments' : 'stores');
   if (adminUserLevel === 'operator' && (tabToActivate === 'stores' || tabToActivate === 'logs')) {
+    tabToActivate = 'payments';
+  }
+  if (adminUserLevel === 'operator' && tabToActivate === 'resend') {
     tabToActivate = 'payments';
   }
   if (isReload && saved) {
@@ -1756,6 +1763,41 @@ async function loadSettlement() {
   } catch (_) {}
 
   await loadSettlementPeriod(defaultDate);
+}
+
+/** Resend관리 탭: Resend API 발송 목록 (최근 30일·상한 500건) */
+async function loadResendLogs() {
+  const container = document.getElementById('adminResendContent');
+  if (!container) return;
+
+  container.innerHTML = '<div class="admin-loading"><div class="admin-settlement-spinner" role="status" aria-label="로딩 중" style="margin:0 auto;"></div></div>';
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/admin/resend-logs`, {});
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '발송 로그를 불러올 수 없습니다.');
+    }
+    const data = await res.json();
+    const rows = data.rows || [];
+    const tableRows = rows.length
+      ? rows
+          .map(
+            (r) =>
+              `<tr><td class="admin-resend-col-time">${escapeHtml(r.sentAtKst || '—')}</td><td>${escapeHtml(r.category || '—')}</td><td>${escapeHtml(r.recipients || '—')}</td><td>${escapeHtml(r.result || '—')}</td><td class="admin-resend-col-id">${escapeHtml(r.resendId || '—')}</td><td>${escapeHtml(r.error || '—')}</td></tr>`,
+          )
+          .join('')
+      : '<tr><td colspan="6">표시할 발송 기록이 없습니다.</td></tr>';
+
+    container.innerHTML =
+      '<h2 class="admin-logs-title">Resend 발송 로그</h2>' +
+      '<p class="admin-resend-hint">최근 30일 이내 기록만 표시됩니다. (조회 상한 500건)</p>' +
+      '<div class="admin-resend-table-wrap">' +
+      '<table class="admin-resend-table"><thead><tr><th>발송 시각 (KST)</th><th>구분</th><th>수신자</th><th>결과</th><th>Resend ID</th><th>오류</th></tr></thead><tbody>' +
+      tableRows +
+      '</tbody></table></div>';
+  } catch (e) {
+    container.innerHTML = '<p class="admin-stats-error">' + escapeHtml(e.message || '발송 로그를 불러올 수 없습니다.') + '</p>';
+  }
 }
 
 /** 로그관리 탭: blob(bzcat-blob-log) 목록 조회 후 테이블 렌더, 체크박스 shift/command 선택, 다운로드 */
