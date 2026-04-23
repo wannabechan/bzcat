@@ -1832,12 +1832,6 @@ input.menu-qty-input.menu-qty-value:disabled {
   gap: 2px;
 }
 
-.profile-order-total-label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
 .profile-order-amount-value {
   font-size: 0.9375rem;
   font-weight: 600;

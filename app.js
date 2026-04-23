@@ -1395,7 +1395,6 @@ function renderProfileOrdersList() {
       } else if (delivered) {
         amountRowHtml = `<div class="profile-order-amount-row">
             <div class="profile-order-amount-left">
-              <span class="profile-order-total-label">총금액</span>
               <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
             </div>
             <div class="profile-order-menu-love${loveLiked ? ' profile-order-menu-love--liked' : ''}${loveLocked ? ' profile-order-menu-love--locked' : ''}">
@@ -1406,7 +1405,6 @@ function renderProfileOrdersList() {
       } else {
         amountRowHtml = `<div class="profile-order-amount-row profile-order-amount-row--pre-delivery">
             <div class="profile-order-amount-left">
-              <span class="profile-order-total-label">총금액</span>
               <span class="profile-order-amount-value">${formatPrice(o.totalAmount || 0)}</span>
             </div>
             <div class="profile-order-menu-love profile-order-menu-love--pre-delivery" aria-hidden="true">
