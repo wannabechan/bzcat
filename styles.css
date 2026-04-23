@@ -1344,9 +1344,14 @@ input.menu-qty-input.menu-qty-value:disabled {
   animation: notice-blink 0.4s ease-in-out 3;
 }
 
+@keyframes category-notice-color-blink {
+  0%,
+  100% { color: #b0b0b0; }
+  50% { color: var(--color-primary); }
+}
+
 .category-notice.notice-blink {
-  color: #202124;
-  animation: notice-blink 0.4s ease-in-out 3;
+  animation: category-notice-color-blink 0.4s ease-in-out 3;
 }
 
 /* ===== Profile Drawer ===== */
