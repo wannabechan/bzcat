@@ -336,15 +336,15 @@ body {
   white-space: nowrap;
   opacity: 0;
   will-change: opacity, transform, color;
-  animation: header-promo-rotate 12s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  animation: header-promo-rotate 15s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
 }
 
 .header-promo-line-2 {
-  animation-delay: 4s;
+  animation-delay: 5s;
 }
 
 .header-promo-line-3 {
-  animation-delay: 8s;
+  animation-delay: 10s;
 }
 
 @keyframes header-promo-rotate {
@@ -353,17 +353,17 @@ body {
     transform: translateY(45%);
     color: #9f9f9f;
   }
-  9% {
+  10% {
     opacity: 1;
     transform: translateY(0);
     color: var(--color-text-secondary);
   }
-  40% {
+  28% {
     opacity: 1;
     transform: translateY(0);
     color: var(--color-primary);
   }
-  50% {
+  32% {
     opacity: 0;
     transform: translateY(-45%);
     color: #9f9f9f;
@@ -463,7 +463,7 @@ body {
 @media (max-width: 768px) {
   .header-center {
     position: absolute;
-    left: calc(var(--header-promo-left, 16px) + 0.5ch);
+    left: calc(var(--header-promo-left, 16px) + 1ch);
     right: 96px;
     justify-content: flex-start;
     padding: 0;
