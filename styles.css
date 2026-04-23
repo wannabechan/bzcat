@@ -459,10 +459,16 @@ body {
 @media (max-width: 768px) {
   .header-center {
     padding: 0 6px;
+    justify-content: flex-start;
+  }
+
+  .header-promo-track {
+    width: 100%;
   }
 
   .header-promo-line {
     font-size: 0.6875rem;
+    text-align: left;
   }
 
   .header-actions .profile-toggle {
