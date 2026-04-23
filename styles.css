@@ -336,11 +336,15 @@ body {
   white-space: nowrap;
   opacity: 0;
   will-change: opacity, transform, color;
-  animation: header-promo-rotate 8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  animation: header-promo-rotate 12s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
 }
 
 .header-promo-line-2 {
   animation-delay: 4s;
+}
+
+.header-promo-line-3 {
+  animation-delay: 8s;
 }
 
 @keyframes header-promo-rotate {
@@ -458,17 +462,23 @@ body {
 
 @media (max-width: 768px) {
   .header-center {
-    padding: 0 6px;
+    flex: 0 1 auto;
+    margin-left: 10px;
+    padding: 0;
     justify-content: flex-start;
   }
 
   .header-promo-track {
-    width: 100%;
+    text-align: left;
+  }
+
+  .header-promo-line {
+    right: auto;
+    text-align: left;
   }
 
   .header-promo-line {
     font-size: 0.6875rem;
-    text-align: left;
   }
 
   .header-actions .profile-toggle {

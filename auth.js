@@ -12,33 +12,6 @@ let pendingEmail = null;
 let codeCountdownInterval = null;
 /** checkSession 성공 시 사용자 (쿠키 세션 포함). 로그아웃 시 null. */
 let cachedSessionUser = null;
-let headerPromoResizeBound = false;
-
-function updateHeaderPromoPosition() {
-  const headerPromo = document.getElementById('headerPromo');
-  const header = document.querySelector('.header');
-  const logo = document.querySelector('.logo');
-  const actions = document.querySelector('.header-actions');
-  if (!headerPromo || !header || !logo || !actions) return;
-
-  if (window.innerWidth <= 768 && headerPromo.style.display !== 'none') {
-    const headerRect = header.getBoundingClientRect();
-    const logoRect = logo.getBoundingClientRect();
-    const actionsRect = actions.getBoundingClientRect();
-    const left = Math.max(0, Math.round(logoRect.right - headerRect.left + 20));
-    const right = Math.max(0, Math.round(headerRect.right - actionsRect.left + 6));
-
-    headerPromo.style.position = 'absolute';
-    headerPromo.style.left = `${left}px`;
-    headerPromo.style.right = `${right}px`;
-    headerPromo.style.justifyContent = 'flex-start';
-  } else {
-    headerPromo.style.position = '';
-    headerPromo.style.left = '';
-    headerPromo.style.right = '';
-    headerPromo.style.justifyContent = '';
-  }
-}
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -132,7 +105,6 @@ function showApp(user) {
     const canShowPromo = !isAdmin && !isOperator && !isStoreManager;
     headerPromo.style.display = canShowPromo ? '' : 'none';
   }
-  updateHeaderPromoPosition();
   if (profileUserEmailEl) profileUserEmailEl.textContent = user && user.email ? user.email : '';
   // 채팅 버튼: 기능 기획 후 다시 살리기 → if (chatBtn) chatBtn.style.display = isAdmin ? '' : 'none';
   if (chatBtn) chatBtn.style.display = 'none';
@@ -190,11 +162,6 @@ async function initAuth() {
   const loginLogo = document.getElementById('loginLogo');
 
   const loginScreen = document.getElementById('loginScreen');
-
-  if (!headerPromoResizeBound) {
-    window.addEventListener('resize', updateHeaderPromoPosition);
-    headerPromoResizeBound = true;
-  }
 
   if (loginLogo) {
     loginLogo.addEventListener('click', () => location.reload());
