@@ -759,7 +759,7 @@ body {
   background: #faf8f6;
 }
 
-/* 좋아요·재주문 비율: 카테고리 안내(category-notice)와 동일 글자 크기·퍼센트 색 */
+/* 좋아요%(likePoints/orderPoints)·재주문(식 미정 시 '집계전'): category-notice와 동일 글자 크기·색 */
 .menu-card-reorder-stats {
   box-sizing: border-box;
   width: 100%;
