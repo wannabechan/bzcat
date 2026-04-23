@@ -87,6 +87,14 @@ function escapeHtml(s) {
   return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/** Resend ID 표시: 15번째 문자 이후는 생략(…). */
+function formatResendIdDisplay(id) {
+  const s = String(id ?? '').trim();
+  if (!s) return '';
+  if (s.length <= 15) return s;
+  return s.slice(0, 15) + '...';
+}
+
 function getAdminStoreForOrder(order) {
   const items = order.order_items || order.orderItems || [];
   if (!Array.isArray(items) || items.length === 0) return null;
@@ -1783,7 +1791,7 @@ async function loadResendLogs() {
       ? rows
           .map(
             (r) =>
-              `<tr><td class="admin-resend-col-time">${escapeHtml(r.sentAtKst || '—')}</td><td class="admin-resend-col-category">${escapeHtml(r.category || '—')}</td><td class="admin-resend-col-recipients">${escapeHtml(r.recipients || '—')}</td><td class="admin-resend-col-result">${escapeHtml(r.result || '—')}</td><td class="admin-resend-col-id">${escapeHtml(r.resendId || '—')}</td><td class="admin-resend-col-error">${escapeHtml(r.error || '—')}</td></tr>`,
+              `<tr><td class="admin-resend-col-time">${escapeHtml(r.sentAtKst || '—')}</td><td class="admin-resend-col-category">${escapeHtml(r.category || '—')}</td><td class="admin-resend-col-recipients">${escapeHtml(r.recipients || '—')}</td><td class="admin-resend-col-result">${escapeHtml(r.result || '—')}</td><td class="admin-resend-col-id">${escapeHtml(formatResendIdDisplay(r.resendId) || '—')}</td><td class="admin-resend-col-error">${escapeHtml(r.error || '—')}</td></tr>`,
           )
           .join('')
       : '<tr><td colspan="6">표시할 발송 기록이 없습니다.</td></tr>';
